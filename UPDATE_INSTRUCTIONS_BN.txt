@@ -1,0 +1,20 @@
+WLF 2.0.1 — Account password + header/dashboard correction
+
+WHAT CHANGED
+1. All Approved roles (User, R&I, Admin, Super Admin) can change ONLY their own password from My Account after current-password verification. Temporary password can be used as current password. User Management and reset of another account remain Super Admin-only.
+2. Dashboard Troubleshooting overview: General subcategories card removed. Other three cards remain. General Solution menu/data are not deleted.
+3. PC and mobile: navigation button, company logo and section title on left; appearance three-dot menu at far right. Dropdown opens inward without mobile overflow.
+
+APPLY TO EXISTING REPOSITORY
+1. Extract ZIP and open WLF-v2.0.1-Update folder.
+2. Open https://github.com/Saiful44711/WLF-Electrical-Solution
+3. Add file → Upload files. Drag CONTENTS of this folder (web/shared/dist/tests/docs folders and package.json) into repository root. Do not upload the ZIP or enclosing folder. GitHub replaces same-path files and retains other existing files in each folder.
+4. Commit changes. Existing main push workflow builds/tests/deploys automatically. Wait until Actions → Deploy WLF PWA to GitHub Pages is green.
+5. Open software. Save any draft. Three-dot menu → Update available · reload. PC can use Ctrl+Shift+R; installed mobile PWA may need close/reopen then update/reload.
+6. R&I/User/Admin → My Account → Current password = temporary/current password, New password + Confirm = your new password → Update password. Test login with new password afterward.
+
+No config.js, API keys, SQL, password data, database reset or Edge Function changes are included/needed. Your existing Supabase data and configured URL/key remain. Preserve the server profile-read permission already fixed in Supabase.
+
+VERIFICATION: 29 unit/database/edge/password tests passed. Browser tests passed for all roles own-password UI, local formulas/search, support workflow and permissions. Desktop/mobile header position and removal of dashboard General card verified; mobile menu-open overflow checked. Auth/realtime services are simulated in local harness; no real user passwords changed by the tests.
+
+GitHub connector write access was unavailable (403 Resource not accessible by integration); no remote file or deployment was changed by the assistant. Upload this patch manually using the steps above. Keep the old working package for backup.

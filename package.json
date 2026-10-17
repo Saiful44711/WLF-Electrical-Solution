@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "node scripts/build-pwa.mjs",
-    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs",
+    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs tests/password-change.test.cjs",
     "test:e2e": "node tests/supabase-e2e.cjs",
     "preview": "node scripts/serve.mjs"
   },

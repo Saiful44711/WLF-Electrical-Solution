@@ -38,4 +38,4 @@ body.motion-on:before{content:'';pointer-events:none;position:fixed;inset:0;z-in
 }
 
 @media screen{html[data-theme="dark"] .chip{background:#1f2937;color:#e5edf8;border-color:#64748b}html[data-theme="dark"] .chip b,html[data-theme="dark"] .chip span{color:#e5edf8;opacity:1}html[data-theme="dark"] .chip.active{background:#3730a3;border-color:#a5b4fc;color:#fff}html[data-theme="dark"] .chip.active b,html[data-theme="dark"] .chip.active span{color:#fff}}
-#realtimeStatus{display:block;padding:8px;color:var(--muted);font-size:11px} .appearance-menu>#installWlf,.appearance-menu>#updateWlf{display:block;margin:8px;max-width:230px;padding:8px;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px}
+#realtimeStatus{display:block;padding:8px;color:var(--muted);font-size:11px} .appearance-menu #installWlf,.appearance-menu #updateWlf{display:block;margin:8px;max-width:230px;padding:8px;font:inherit;color:var(--text);background:var(--card);border:1px solid var(--line);border-radius:8px}

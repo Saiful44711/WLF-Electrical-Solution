@@ -22,8 +22,11 @@ async function rpcOnce(action,args){
  if(action==='register'){var clean=LiftCore.registration(args[0],args[1],args[2]);r=await sb.auth.signUp({email:clean.email,password:clean.password,options:{data:{name:clean.name}}});if(r.error)throw r.error;await sb.auth.signOut({scope:'local'});return 'Account request sent. Wait for Super Admin approval. If email confirmation is enabled, confirm your email first.';}
  var auth=await sb.auth.getSession();if(!auth.data.session||auth.data.session.user.id!==args[0])throw Error('SESSION_EXPIRED');
  if(action==='changePassword'){
- if(!SESSION||!AccessCore.superUser(SESSION))throw Error('Permission denied');if(String(args[2]||'').length<8)throw Error('New password must be at least 8 characters.');
- r=await sb.auth.signInWithPassword({email:SESSION.email,password:args[1]});if(r.error)throw r.error;await dbCall('getSession',[]);r=await sb.auth.updateUser({password:args[2]});if(r.error)throw r.error;return 'Password changed successfully.';
+ if(!SESSION||!AccessCore.approved(SESSION))throw Error('Permission denied');if(String(args[2]||'').length<8)throw Error('New password must be at least 8 characters.');
+ var ownerId=auth.data.session.user.id,ownerEmail=auth.data.session.user.email;
+ r=await sb.auth.signInWithPassword({email:ownerEmail,password:args[1]});if(r.error)throw r.error;
+ if(!r.data.user||r.data.user.id!==ownerId)throw Error('SESSION_EXPIRED');
+ await dbCall('getSession',[]);r=await sb.auth.updateUser({password:args[2]});if(r.error)throw r.error;return 'Password changed successfully.';
  }
  if(action==='resetAppUserPassword'){
  r=await sb.functions.invoke('wlf-admin',{body:{action:'resetPassword',email:args[1]}});if(r.error)throw Error('Password reset failed. Deploy wlf-admin Edge Function and check its logs.');if(r.data.error)throw Error(r.data.error);return r.data;

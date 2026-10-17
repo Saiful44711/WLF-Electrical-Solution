@@ -16,7 +16,7 @@ window.addEventListener('wlf-logout',()=>{channel=null;owner='';refreshTables.cl
 window.addEventListener('online',subscribe);window.addEventListener('offline',()=>indicator('Offline · downloaded reference only'));
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvent=e;if(el('installWlf'))el('installWlf').hidden=false;});
 document.addEventListener('DOMContentLoaded',function(){
- var menu=document.querySelector('.appearance-menu');if(menu)menu.insertAdjacentHTML('beforeend','<small id="realtimeStatus" role="status">Sign in to connect</small><button id="installWlf" type="button" hidden>Install app</button><button id="updateWlf" type="button" hidden>Update available · reload</button>');
+ var menu=document.querySelector('.appearance-menu');if(menu)menu.querySelector('.appearance-options').insertAdjacentHTML('beforeend','<small id="realtimeStatus" role="status">Sign in to connect</small><button id="installWlf" type="button" hidden>Install app</button><button id="updateWlf" type="button" hidden>Update available · reload</button>');
  el('installWlf').onclick=async()=>{if(!installEvent)return;await installEvent.prompt();installEvent=null;el('installWlf').hidden=true;};
  var start=startApp;startApp=function(s){start(s);subscribe();};
  setInterval(()=>{if(SESSION&&!navigator.onLine&&SESSION.offlineUntil<=Date.now())forceLogout('Offline access expired. Reconnect and log in.');},15000);

@@ -10,7 +10,7 @@ if(typeof exportText!=='function')window.exportText=async function(filename,cont
 function modeScopeLive(){return typeof modeScope==='function'?modeScope():'apps-script';}
 function newOp(){return 'op-'+crypto.randomUUID();}
 ROLE_LABEL={'Super Admin':'Super Admin',Admin:'Admin · read only','R&I':'R&I · support workflow',User:'User · option access'};
-Troubleshooting.dashboard=async function(){var node=e('tbDashboard'),who=SESSION&&SESSION.email;if(!node||!SESSION)return;try{var x=await liveCall('getTroubleshootingSummary',[T()]);if(!SESSION||SESSION.email!==who)return;node.innerHTML='<div class="card"><h3>Troubleshooting overview</h3><div class="kpis">'+[['Error codes',x.errors],['NICE subcodes',x.subcodes],['Controller options',x.options],['General subcategories',x.general]].map(function(p,i){return '<div class="kpi k'+(i+1)+'"><b>'+p[1]+'</b><span>'+p[0]+'</span></div>';}).join('')+'</div></div>';}catch(err){if(node)node.textContent=cleanError(err);}};
+Troubleshooting.dashboard=async function(){var node=e('tbDashboard'),who=SESSION&&SESSION.email;if(!node||!SESSION)return;try{var x=await liveCall('getTroubleshootingSummary',[T()]);if(!SESSION||SESSION.email!==who)return;node.innerHTML='<div class="card"><h3>Troubleshooting overview</h3><div class="kpis">'+[['Error codes',x.errors],['NICE subcodes',x.subcodes],['Controller options',x.options]].map(function(p,i){return '<div class="kpi k'+(i+1)+'"><b>'+p[1]+'</b><span>'+p[0]+'</span></div>';}).join('')+'</div></div>';}catch(err){if(node)node.textContent=cleanError(err);}};
 var category='',selected='',snapshot=null,dashFilters={category:'',engineer:'',from:'',to:'',status:'',dateBasis:'created'},filters={status:'',query:'',from:'',to:'',assignee:'',engineer:'',dateBasis:'created'},fetchEpoch=0,applying=false,observed=null;
 function me(){return SESSION;}function superUser(){return C.superUser(me());}function title(c){return c==='commissioning'?'Commissioning Team Support Request':'After Sales Team Support Request';}
 function error(err){return cleanError(err);}function name(email){var u=state.users.find(function(x){return x.email===email;});return u?u.name:email||'Unassigned';}function dt(value){return value?new Date(value).toLocaleString():'';}
@@ -26,7 +26,7 @@ function applyAccess(){if(!SESSION||applying)return;applying=true;
  if(e('tbErrors')&&controller)hide(e('tbErrors'),!keyAllowed('tb:'+controller+':error'));
  document.querySelectorAll('[data-procedure]').forEach(function(b){hide(b.closest('.tb-option-card'),!keyAllowed('tb:option:'+b.dataset.procedure));});
  document.querySelectorAll('#tab-components [onclick^="openEditor"],#tab-components .actions,#tab-components [onclick^="deleteComponent"]').forEach(function(b){hide(b,!superUser());});
- hide(e('saveRecordBtn'),!superUser());var pw=document.querySelector('#tab-account [onclick="changePw()"]');hide(pw,!superUser());
+ hide(e('saveRecordBtn'),!superUser());var pw=document.querySelector('#tab-account [onclick="changePw()"]');hide(pw,!C.approved(me()));
  applying=false;
 }
 function componentAccess(){return keyAllowed('selection')||keyAllowed('calc:energy')||keyAllowed('calc:solar');}
@@ -133,7 +133,7 @@ async function realtimeRefresh(payload){
 }
 
 function mount(){
- var top=document.querySelector('.topbar'),menu=top.querySelector('.appearance-menu'),logo=top.querySelector('.header-company-logo'),hamburger=top.querySelector('.menu-btn');top.insertBefore(hamburger,top.firstChild);hamburger.insertAdjacentElement('afterend',logo);top.insertBefore(menu,logo);top.classList.add('review-topbar');
+ var top=document.querySelector('.topbar'),menu=top.querySelector('.appearance-menu'),logo=top.querySelector('.header-company-logo'),hamburger=top.querySelector('.menu-btn');top.insertBefore(hamburger,top.firstChild);hamburger.insertAdjacentElement('afterend',logo);top.appendChild(menu);top.querySelector('#pageTitle').parentElement.classList.add('header-page-title');top.classList.add('review-topbar');
  var n=document.querySelector('#nav [data-tab="troubleshooting"]');n.insertAdjacentHTML('afterend','<button data-tab="technical"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 13v-2a8 8 0 0116 0v2M4 11H2v7h4v-7zm16 0h2v7h-4v-7zm0 7a5 5 0 01-5 4h-3"/></svg>Technical Support <span id="supportBadge" class="support-nav-badge" hidden></span></button>');
  document.querySelector('.content').insertAdjacentHTML('beforeend','<section id="tab-technical" class="tab-content hidden"><div id="supportRoot"></div></section>');
  e('nav').addEventListener('click',function(ev){var b=ev.target.closest('button[data-tab=technical]');if(b){ev.preventDefault();ev.stopImmediatePropagation();category='';selected='';openTab('technical');}},true);

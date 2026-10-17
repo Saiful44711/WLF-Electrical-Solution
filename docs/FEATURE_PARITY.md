@@ -2,8 +2,8 @@
 
 | Existing feature | Supabase/PWA version |
 |---|---|
-| Company logo/login/header/icon | Retained transparent company logo and lift-drive app icons; three-dot appearance menu left of logo |
-| My Account | First navigation item; current approved identity; SA password-change UI retained |
+| Company logo/login/header/icon | Retained transparent company logo and lift-drive app icons; company logo/section at left, three-dot appearance menu at far right on desktop/mobile |
+| My Account | First navigation item; every approved role can change its own password after verifying the current password; only SA can reset someone else’s password |
 | Component Selection | Original dropdown/report mapping,77 initial records, local filtering/details after download, print/PDF |
 | Components Data | SA add/edit/delete; Admin/R&I read; normal User per selection grant |
 | Travel time, Total Power, nominal speed/slip, motor power, energy bill, solar/battery | Same shared formulas and result names; generator formula unchanged; no suggested AVR in Total Power |
@@ -19,7 +19,7 @@
 | Super Admin | Access/approval/config/data management, request creation, report; User Management visible/usable only here |
 | Notification badge | Accessible unsolved requests, including Received/Forwarded/Not Solved; Solved reduces it; deleted excluded |
 | Realtime | RLS-scoped Postgres Changes; list/count callback update, draft preserved;60s backup refresh |
-| Usage dashboard | Original action topics/per-user totals from Supabase usage records |
+| Usage dashboard | Original action topics/per-user totals; troubleshooting shows three cards (Error codes, NICE subcodes, Controller options); General subcategories card removed |
 | Calculation records/outbox | SA saves local validated records and syncs; owner-scoped remote retrieval/CSV |
 | Offline troubleshooting edits | SA outbox retained; revisions/idempotent repeat and conflict messages |
 | Dark/light and mobile | Retained responsive layout, corrected report/chip contrast, print uses its own palette |
