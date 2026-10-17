@@ -1,0 +1,408 @@
+{
+  "commissioning": {
+    "title": "Site Feedback Form - Commissioning",
+    "url": "https://forms.gle/LAAPuJiEyG9RohMKA",
+    "description": "কমিশনিং সংক্রান্ত জটিলতা নিয়ে আপনার ফিডব্যাক শেয়ার করতে অনুগ্রহ করে এই ফর্মটি পূরণ করুন। আপনার মূল্যবান মতামত ওয়ালটন লিফট R&I টিমকে সমস্যাগুলো খতিয়ে দেখতে, যথাযথ ব্যবস্থা গ্রহণ করতে এবং পণ্যের গুণগত মান আরও বাড়াতে সহায়তা করবে।  ",
+    "fields": [
+      {
+        "id": "field_2064608726",
+        "label": "Date",
+        "help": "",
+        "type": "date",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1674702979",
+        "label": "Name (ID)",
+        "help": "আপনার নাম ও ID। উদাহরণস্বরূপ - Abdullah (12345)",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1915927061",
+        "label": "In-charge",
+        "help": "",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Faisal (51123)"
+        ]
+      },
+      {
+        "id": "field_1866778380",
+        "label": "Project Name",
+        "help": "",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1369800003",
+        "label": "Project Lift ID",
+        "help": "",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1007488857",
+        "label": "Capacity (KG)",
+        "help": "",
+        "type": "select",
+        "required": true,
+        "options": [
+          "300",
+          "350",
+          "400",
+          "450",
+          "630",
+          "800",
+          "1000",
+          "1150",
+          "1250",
+          "1350",
+          "1600",
+          "2000",
+          "2500",
+          "3000",
+          "3500",
+          "4000",
+          "5000",
+          "6000"
+        ]
+      },
+      {
+        "id": "field_620050161",
+        "label": "Control System",
+        "help": "সাইটে কি ধরণের Control সিস্টেম ব্যবহৃত হচ্ছে সেটা এখনে সিলেক্ট করুন।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "MOT",
+          "MOTCUBE",
+          "NICE3000+",
+          "Hydraulic ARL-700",
+          "Home Lift",
+          "Hydraulic -PLC"
+        ]
+      },
+      {
+        "id": "field_1661471421",
+        "label": "Problem Category",
+        "help": "সাইটে কি ধরণের সমস্যা দেখা যাচ্ছে সেটা কোন ধরণের মধ্যে পড়ে সেটা ফিল আপ করুন।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Mechanical Problem",
+          "Electrical Problem"
+        ]
+      },
+      {
+        "id": "field_295723266",
+        "label": "Sub-Category",
+        "help": "সমস্যাটা স্পেসিফিক কোন ক্যাটাগরিতে পড়ে সেটা ফিলাপ করুন। এখানে একাধিক সিলেকশন করা যাবে।  একই প্রোজেক্টে একাধিক ধরণের সমস্যা থাকলে অনুগ্রহ করে একাধিকবার পূরণ করুন।",
+        "type": "multi",
+        "required": true,
+        "options": [
+          "1. Assembly / Fixing : Structure (Mechanical)",
+          "2. Assembly / Fixing : Cabin (Mechanical)",
+          "3. Assembly / Fixing : Machine Room (Mechanical)",
+          "4. Assembly / Fixing : Door (Mechanical)",
+          "5. Aesthetics (Mechanical)",
+          "6.Steel Rope (Mechanical)",
+          "7. Motor Related Issue (Mechanical)",
+          "8. Drive system related problem",
+          "9. Cartop board related problem",
+          "10. CPC/Call card related problem",
+          "11. COP display Issue",
+          "12. LOP display problem",
+          "13. Traction Machine related problem",
+          "14. Encoder problem",
+          "15. UPS/ARD related Issue",
+          "16. Braking Resistor problem",
+          "17. Intercom set issue",
+          "18. Light issue",
+          "19. Transformer",
+          "20. Door inverter",
+          "21. Switch",
+          "22. Sensor",
+          "23. Battery",
+          "24. Fan",
+          "25. AVR",
+          "26. Vibration/Rollback",
+          "27. Bumping",
+          "28. Others"
+        ]
+      },
+      {
+        "id": "field_501774740",
+        "label": "Problem",
+        "help": "সমস্যা কি ধরণের সেটা খুব সংক্ষিপ্ত আকারে এখানে লিখুন।  উপরে  Others হলে এখানে অন্য কি সমস্যা সেটা অবশ্যই লিখুন।",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1153901770",
+        "label": "Repeated Problem?",
+        "help": "আগে কোনো প্রজেক্টে এমন সমস্যা পেয়েছেন কি-না?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "field_374734969",
+        "label": "Repeated project Name and ID",
+        "help": "আগে যে প্রজেক্টে এই একই  সমস্যা হয়েছিল সেই প্রোজেক্টের আইডিটা শেয়ার করুন। \nউদাহরণস্বরূপ - Project Abdullah (12345)",
+        "type": "text",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "field_1279516091",
+        "label": "Shared to the group?",
+        "help": "প্রোজেক্টের এই সমস্যা গ্রুপে শেয়ার করা হয়েছে কি-না।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "field_2142260792",
+        "label": "Group Name",
+        "help": "যদি  WhatsApp / Viber এর গ্রুপে শেয়ার করা হয়ে থাকে তাহলে সেই গ্রুপের নাম উল্লেখ করুন। গ্রুপে শেয়ার করার সময় প্রোজেক্টের নাম, লিফট  ID এবং প্রবলেম নাম্বার  অবশ্যই মেনশন করুন। WhatsApp গ্রুপে না শেয়ার করলেও অবশ্যই Viber / Telegram গ্রুপে শেয়ার করতে হবে। অন্যথায়, R&I এবং QC এর পক্ষে ট্রেস রাখা কষ্টকর!",
+        "type": "multi",
+        "required": true,
+        "options": [
+          "R&I & Commissioning Team Technical Discussion ( Telegram)",
+          "Commissioning Feedbak (Viber)",
+          "Elevator QC Circle (Whatsapp)"
+        ]
+      },
+      {
+        "id": "field_1463858999",
+        "label": "Remarks",
+        "help": "কোনো ধরণের মতামত থাকলে  বা  প্রাপ্ত সমস্যা নিয়ে কোন বক্তব্য থাকলে সংক্ষিপ্ত আকারে এখানে জানান।",
+        "type": "text",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "submitted_date",
+        "label": "Submitted date",
+        "type": "date",
+        "help": "Request ID uses this date. Defaults to today (Bangladesh). Original incident/site date fields remain separate.",
+        "required": true,
+        "options": []
+      }
+    ]
+  },
+  "aftersales": {
+    "title": "Site Feedback Form - After Sales",
+    "url": "https://forms.gle/v4nQozvy5ja6R8Da6",
+    "description": "আফটার সেলস সংক্রান্ত জটিলতা নিয়ে আপনার ফিডব্যাক শেয়ার করতে অনুগ্রহ করে এই ফর্মটি পূরণ করুন। আপনার মূল্যবান মতামত ওয়ালটন লিফট R&I টিমকে সমস্যাগুলো খতিয়ে দেখতে, যথাযথ ব্যবস্থা গ্রহণ করতে এবং পণ্যের গুণগত মান আরও বাড়াতে সহায়তা করবে।  ",
+    "fields": [
+      {
+        "id": "field_2064608726",
+        "label": "Date of Incident",
+        "help": "",
+        "type": "date",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1674702979",
+        "label": "Name (ID)",
+        "help": "আপনার নাম ও ID। উদাহরণস্বরূপ - Abdullah (12345)",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1915927061",
+        "label": "In-charge",
+        "help": "",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Shakirul Yasir (40986)"
+        ]
+      },
+      {
+        "id": "field_702543330",
+        "label": "Project Name",
+        "help": "",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1369800003",
+        "label": "Project Lift ID",
+        "help": "",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1007488857",
+        "label": "Capacity (KG)",
+        "help": "",
+        "type": "select",
+        "required": true,
+        "options": [
+          "300",
+          "350",
+          "400",
+          "450",
+          "630",
+          "800",
+          "1000",
+          "1150",
+          "1250",
+          "1350",
+          "1600",
+          "2000",
+          "2500",
+          "3000",
+          "3500",
+          "4000",
+          "5000",
+          "6000"
+        ]
+      },
+      {
+        "id": "field_637986521",
+        "label": "Control System",
+        "help": "সাইটে কি ধরণের Control সিস্টেম ব্যবহৃত হচ্ছে সেটা এখনে সিলেক্ট করুন।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "MOT",
+          "MOTCUBE",
+          "NICE3000+",
+          "Hydraulic ARL-700",
+          "Home Lift",
+          "Hydraulic-PLC"
+        ]
+      },
+      {
+        "id": "field_1661471421",
+        "label": "Problem Category",
+        "help": "সাইটে কি ধরণের সমস্যা দেখা যাচ্ছে সেটা কোন ধরণের মধ্যে পড়ে সেটা ফিল আপ করুন।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Mechanical Problem",
+          "Electrical Problem"
+        ]
+      },
+      {
+        "id": "field_295723266",
+        "label": "Sub-Category",
+        "help": "সমস্যাটা স্পেসিফিক কোন ক্যাটাগরিতে পড়ে সেটা ফিলাপ করুন। এখানে একাধিক সিলেকশন করা যাবে।  একই প্রোজেক্টে একাধিক ধরণের সমস্যা থাকলে অনুগ্রহ করে একাধিকবার পূরণ করুন।",
+        "type": "multi",
+        "required": true,
+        "options": [
+          "1. Aesthetics (Mechanical)",
+          "2. Steel Rope (Mechanical)",
+          "3. Motor Related Issue (Mechanical)",
+          "4. Drive system related problem",
+          "5. Cartop board related problem",
+          "6. CPC/Call card related problem",
+          "7. COP display Issue",
+          "8. LOP display problem",
+          "9. Traction Machine related problem",
+          "10. Encoder problem",
+          "11. UPS/ARD related Issue",
+          "12. Braking Resistor problem",
+          "13. Intercom set issue",
+          "14. Light issue",
+          "15. Transformer",
+          "16. Door inverter",
+          "17. Door Motor",
+          "18. Switch",
+          "19. Sensor",
+          "20. Battery",
+          "21. Fan",
+          "22. AVR",
+          "23. Vibration/Rollback",
+          "24. Bumping",
+          "25. Others"
+        ]
+      },
+      {
+        "id": "field_501774740",
+        "label": "Problem",
+        "help": "সমস্যা কি ধরণের সেটা খুব সংক্ষিপ্ত আকারে এখানে লিখুন।  উপরে  Others হলে এখানে অন্য কি সমস্যা সেটা অবশ্যই লিখুন।",
+        "type": "text",
+        "required": true,
+        "options": []
+      },
+      {
+        "id": "field_1153901770",
+        "label": "Repeated Problem?",
+        "help": "আগে কোনো প্রজেক্টে এমন সমস্যা পেয়েছেন কি-না?",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "field_374734969",
+        "label": "Repeated project Name and ID",
+        "help": "আগে যে প্রজেক্টে এই একই  সমস্যা হয়েছিল সেই প্রোজেক্টের আইডিটা শেয়ার করুন।",
+        "type": "text",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "field_1279516091",
+        "label": "Shared to the group?",
+        "help": "প্রোজেক্টের এই সমস্যা গ্রুপে শেয়ার করা হয়েছে কি-না।",
+        "type": "select",
+        "required": true,
+        "options": [
+          "Yes",
+          "No"
+        ]
+      },
+      {
+        "id": "field_2142260792",
+        "label": "Group Name",
+        "help": "যদি  গ্রুপে শেয়ার করা হয়ে থাকে তাহলে সেই গ্রুপের নাম উল্লেখ করুন। গ্রুপে শেয়ার করার সময় প্রোজেক্টের নাম, লিফট  ID এবং প্রবলেম নাম্বার  অবশ্যই মেনশন করুন। WhatsApp গ্রুপে না শেয়ার করলেও অবশ্যই Viber / Telegram গ্রুপে শেয়ার করতে হবে। অন্যথায়, R&I এবং QC এর পক্ষে ট্রেস রাখা কষ্টকর!",
+        "type": "multi",
+        "required": true,
+        "options": [
+          "R&I and After Sales Team Technical Discussion (Telegram)",
+          "After Sales Feedback (Viber)"
+        ]
+      },
+      {
+        "id": "field_1463858999",
+        "label": "Remarks",
+        "help": "কোনো ধরণের মতামত থাকলে  বা  প্রাপ্ত সমস্যা নিয়ে কোন বক্তব্য থাকলে সংক্ষিপ্ত আকারে এখানে জানান।",
+        "type": "text",
+        "required": false,
+        "options": []
+      },
+      {
+        "id": "submitted_date",
+        "label": "Submitted date",
+        "type": "date",
+        "help": "Request ID uses this date. Defaults to today (Bangladesh). Original incident/site date fields remain separate.",
+        "required": true,
+        "options": []
+      }
+    ]
+  }
+}

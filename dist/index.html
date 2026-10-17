@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#10264d"><link rel="apple-touch-icon" href="icon-192.png"><title>WLF Electrical Solution</title>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css">
+</head>
+<body>
+
+  <!-- ================= LOADING ================= -->
+  <div id="loadingScreen" class="splash">
+    <div class="spinner"></div>
+    <div>Loading WLF Electrical Solution...</div>
+  </div>
+
+  <!-- ================= LOGIN / REGISTER ================= -->
+  <div id="authScreen" class="auth hidden">
+    <div class="auth-hero"><img class="auth-company-logo" src="company-logo.png" alt="Walton Lift">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 3v18"/><path d="M8.5 9.5L8.5 7M7 8.2l1.5-1.5L10 8.2"/><path d="M15.5 14.5V17M14 15.8l1.5 1.5 1.5-1.5"/></svg>
+        </div>
+        <div>WLF Electrical Solution<br><small style="font-weight:500;color:#a5b4fc;font-size:12px;">Component Selector</small></div>
+      </div>
+      <div>
+        <h1>Select the right <span>lift components</span> in seconds.</h1>
+        <p>Motor, controller, brake resistor, UPS/ARD, AVR, main cable and SDB breaker &mdash; all from one trusted data source, with ready-to-print A4 reports.</p>
+        <div class="hero-calculations"><div class="calculation-directory" aria-label="Available calculations"><span>Travel Time</span><span>Total Power</span><span>Nominal Speed &amp; Slip frequency</span><span>Motor Power</span><span>Energy Bill</span><span>Solar / Battery</span></div></div><div class="feat">
+          <div><i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>Instant motor &amp; controller recommendations</div>
+          <div><i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>All six lift engineering calculations</div>
+          <div><i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>Secure, role-based access managed by the admin</div>
+        </div>
+      </div>
+      <div class="credit">Design and develop by Md. Saiful Islam - Lift Electrical R&amp;I</div>
+    </div>
+
+    <div class="auth-panel">
+      <div class="login-brand"><img src="company-logo.png" alt="Walton Lift"><strong>WLF Electrical Solution</strong></div><div class="calculation-directory" aria-label="Available calculations"><span>Travel Time</span><span>Total Power</span><span>Nominal Speed &amp; Slip frequency</span><span>Motor Power</span><span>Energy Bill</span><span>Solar / Battery</span></div><div class="auth-card">
+        <div class="auth-tabs">
+          <button id="tabLogin" class="active" onclick="switchAuthTab('login')">Log in</button>
+          <button id="tabRegister" onclick="switchAuthTab('register')">Request access</button>
+        </div>
+        <div id="authMsg"></div>
+
+        <div id="loginForm">
+          <h2>Welcome back</h2>
+          <p class="sub">Log in with the email and password you registered.</p>
+          <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username" placeholder="you@example.com"></div>
+          <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password" placeholder="Your password"></div>
+          <button class="btn block" id="loginBtn" onclick="doLogin()">Log in</button>
+        </div>
+
+        <div id="registerForm" class="hidden">
+          <h2>Request access</h2>
+          <p class="sub">The admin will be notified and will approve your account.</p>
+          <div class="field"><label>Full name</label><input type="text" id="regName" placeholder="Your full name"></div>
+          <div class="field"><label>Email</label><input type="email" id="regEmail" autocomplete="username" placeholder="you@example.com"></div>
+          <div class="field"><label>Password (min. 8 characters)</label><input type="password" id="regPassword" autocomplete="new-password" placeholder="Choose a password"></div>
+          <button class="btn block" id="regBtn" onclick="doRegister()">Send request</button>
+        </div>
+      </div>
+      <div class="credit">Design and develop by Md. Saiful Islam - Lift Electrical R&amp;I</div>
+    </div>
+  </div>
+
+  <!-- ================= APP ================= -->
+  <div id="app" class="app hidden">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <div class="logo-mark">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M12 3v18"/><path d="M8.5 9.5L8.5 7M7 8.2l1.5-1.5L10 8.2"/><path d="M15.5 14.5V17M14 15.8l1.5 1.5 1.5-1.5"/></svg>
+        </div>
+        <div>WLF Electrical<br>Solution<small>Lift Electrical R&amp;I</small></div>
+      </div>
+
+      <nav class="nav" id="nav">
+        <div class="nav-label">Workspace</div>
+        <button data-tab="account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
+          My Account
+        </button>
+        <button class="active" data-tab="selection">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+          Component Selection
+        </button>
+        <button data-tab="calculation" class="need-calc hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg>
+          Calculations
+        </button>
+
+        <button data-tab="troubleshooting"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6a5 5 0 0 0-6 6L3 17a2 2 0 0 0 3 3l5-5a5 5 0 0 0 7-6l-3 3-3-3 3-3z"/></svg>Troubleshooting</button>
+<div class="nav-label need-admin hidden">Administration</div>
+        <button data-tab="users" class="need-admin hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 15c2 .5 3.2 2 3.7 5"/></svg>
+          User Management
+          <span class="badge-count hidden" id="pendingBadge">0</span>
+        </button>
+        <button data-tab="components" class="need-admin hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>
+          Components Data
+        </button>
+        <button data-tab="dashboard" class="need-admin hidden">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg>
+          Usage Dashboard
+        </button>
+      </nav>
+
+      <div class="side-user">
+        <div class="avatar" id="avatar">U</div>
+        <div class="who"><b id="sideName">User</b><span id="sideRole"></span></div>
+        <button class="icon-btn" title="Log out" onclick="logout()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+        </button>
+      </div>
+    </aside>
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <main class="main">
+      <div class="topbar no-print"><img class="header-company-logo" src="company-logo.png" alt="Walton Lift">
+        <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div>
+          <h2 id="pageTitle">Component Selection</h2>
+          <p id="pageSub">Choose your lift parameters to get the recommended components</p>
+        </div>
+<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮</summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
+      </div>
+
+      <div class="content">
+        <div id="globalMsg"></div>
+
+        <!-- ===== Component Selection ===== -->
+        <section id="tab-selection" class="tab-content">
+          <div class="card" id="inputCard">
+            <div class="card-head">
+              <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+              <div><h3>Lift parameters</h3><p>Choose the parameters, then pick a motor brand and model</p></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Capacity (kg)</label><select id="sel-capacity"></select></div>
+              <div class="field"><label>Speed (m/s)</label><select id="sel-speed"></select></div>
+              <div class="field"><label>Usage type</label><select id="sel-usageType"></select></div>
+              <div class="field"><label>Roping</label><select id="sel-roping"></select></div>
+            </div>
+            <div class="row">
+              <div class="field"><label>Motor brand</label><select id="sel-brand"></select></div>
+              <div class="field"><label>Motor model</label><select id="sel-model" disabled></select></div>
+            </div>
+            <p class="hint-line" id="comboHint"></p>
+            <button class="btn" id="searchBtn" onclick="searchComponents()">Search components</button>
+          </div>
+
+          <div class="card hidden" id="matchesCard">
+            <div class="card-head">
+              <div class="card-icon ci-teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></div>
+              <div><h3>Available motor options</h3><p>Click a motor to see the full recommendation</p></div>
+            </div>
+            <div class="chips" id="matchesList"></div>
+          </div>
+
+          <div id="reportWrap" class="hidden">
+            <div class="report-actions no-print">
+              <button class="btn ghost" onclick="printReport()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
+                Print / Save as PDF (A4)
+              </button>
+            </div>
+            <div class="report" id="report"></div>
+          </div>
+        </section>
+
+        <!-- ===== Calculations ===== -->
+        <section id="tab-calculation" class="tab-content hidden">
+          <div class="seg" id="calcSeg">
+            <button class="active" data-pane="travel">Travel Time</button>
+            <button data-pane="power">Total Power</button>
+            <button data-pane="speed">Nominal Speed &amp; Slip frequency</button>
+            <button data-pane="motor">Motor Power</button>
+            <button data-pane="energy">Energy Bill</button>
+            <button data-pane="solar">Solar / Battery</button>
+          </div>
+
+          <div id="pane-travel" class="calc-pane">
+            <div class="card">
+              <div class="card-head">
+                <div class="card-icon ci-orange"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+                <div><h3>Travel time calculator</h3><p>Based on constant acceleration / deceleration</p></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Travel height (m)</label><input type="number" inputmode="decimal" id="tt-height" step="any" placeholder="e.g. 5"></div>
+                <div class="field"><label>Rated speed (m/s)</label><input type="number" inputmode="decimal" id="tt-speed" step="any" placeholder="e.g. 0.1"></div>
+                <div class="field"><label>Acc / Dec (m/s&sup2;)</label><input type="number" inputmode="decimal" id="tt-acc" step="any" placeholder="e.g. 0.1"></div>
+              </div>
+              <button class="btn" onclick="calcTravelTime()">Calculate</button>
+              <div id="ttResult" style="margin-top:18px;"></div>
+            </div>
+          </div>
+
+          <div id="pane-power" class="calc-pane hidden">
+            <div class="card">
+              <div class="card-head">
+                <div class="card-icon ci-rose"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg></div>
+                <div><h3>Total Power</h3><p>Total lift load and suggested generator size</p></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Motor power (kW)</label><input type="number" inputmode="decimal" id="pw-motor" step="any" placeholder="e.g. 3.9"></div>
+                <div class="field"><label>Drive power factor (k2)</label><input type="number" inputmode="decimal" id="pw-k2" value="0.95" step="any"></div>
+                <div class="field"><label>Brake power factor (k3)</label><input type="number" inputmode="decimal" id="pw-k3" value="0.95" step="any"></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Brake power, both (W)</label><input type="number" inputmode="decimal" id="pw-brake" value="0" step="any"></div>
+                <div class="field"><label>2 ft tube light qty</label><input type="number" inputmode="numeric" id="pw-tube" value="0"></div>
+                <div class="field"><label>Panel light qty</label><input type="number" inputmode="numeric" id="pw-panel" value="0"></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Spot light qty</label><input type="number" inputmode="numeric" id="pw-spot" value="0"></div>
+                <div class="field"><label>Cross flow fan qty</label><input type="number" inputmode="numeric" id="pw-fan" value="0"></div>
+                <div class="field"><label>Others fixed load (W)</label><input type="number" inputmode="decimal" id="pw-others" value="500"></div>
+              </div>
+              <button class="btn" onclick="calcPower()">Calculate</button>
+              <div id="pwResult" style="margin-top:18px;"></div>
+            </div>
+          </div>
+
+          <div id="pane-speed" class="calc-pane hidden">
+            <div class="card">
+              <div class="card-head"><div><h3>Machine speed &amp; geared motor slip</h3><p id="ss-method"></p></div></div>
+              <div class="row">
+                <div class="field"><label for="ss-type">Machine type</label><select id="ss-type" onchange="toggleGearFields()"><option value="Gearless">Gearless</option><option value="Geared">Geared induction motor</option></select></div>
+                <div class="field"><label for="ss-diameter">Traction sheave diameter (mm)</label><input type="number" inputmode="decimal" id="ss-diameter" min="1" step="any" placeholder="e.g. 240"></div>
+                <div class="field"><label for="ss-roping">Roping ratio</label><select id="ss-roping"><option value="1">1:1</option><option value="2" selected>2:1</option><option value="4">4:1</option></select></div>
+                <div class="field"><label for="ss-rpm">Motor shaft RPM</label><input type="number" inputmode="decimal" id="ss-rpm" min="0" step="any" placeholder="e.g. 168"></div>
+              </div>
+              <div class="row hidden" id="ss-gearRow">
+                <div class="field"><label for="ss-gearA">Gear ratio numerator A</label><input type="number" inputmode="decimal" id="ss-gearA" min="0.01" step="any" placeholder="e.g. 61"></div>
+                <div class="field"><label for="ss-gearB">Gear ratio denominator B</label><input type="number" inputmode="decimal" id="ss-gearB" min="0.01" step="any" placeholder="e.g. 2"></div>
+              </div>
+              <div class="row hidden" id="ss-slipRow">
+                <div class="field"><label for="ss-freq">Motor electrical frequency (Hz)</label><input type="number" inputmode="decimal" id="ss-freq" min="0.01" step="any" value="50"><small>VFD output frequency for the entered RPM, not automatically the mains frequency.</small></div>
+                <div class="field"><label for="ss-poles">Actual motor poles</label><input type="number" inputmode="numeric" id="ss-poles" value="4" min="2" step="2"><small>Use the motor data: 2, 4, 6, 8, etc. Do not enter pole pairs.</small></div>
+              </div>
+              <button class="btn" onclick="calcSpeedSlip()">Calculate speed</button>
+              <div id="ssResult" style="margin-top:18px;"></div>
+            </div>
+          </div>
+
+          <div id="pane-motor" class="calc-pane hidden">
+            <div class="card">
+              <div class="card-head">
+                <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l2 2M9 3h6"/></svg></div>
+                <div><h3>Motor power justification</h3><p>Motor power from rated RPM and torque</p></div>
+              </div>
+              <div class="row">
+                <div class="field"><label>Rated RPM</label><input type="number" inputmode="decimal" id="mp-rpm" step="any" placeholder="e.g. 1465"></div>
+                <div class="field"><label>Torque (Nm)</label><input type="number" inputmode="decimal" id="mp-torque" step="any" placeholder="e.g. 192"></div>
+              </div>
+              <button class="btn" onclick="calcMotorPower()">Calculate</button>
+              <div id="mpResult" style="margin-top:18px;"></div>
+            </div>
+          </div>
+          <div id="pane-energy" class="calc-pane hidden">
+            <div class="card"><div class="card-head"><div><h3>Elevator energy &amp; electricity bill</h3><p>Daily, monthly and annual estimates for your lift usage</p></div></div><div id="energyForm"></div><div id="energyResult" aria-live="polite"></div></div>
+          </div>
+          <div id="pane-solar" class="calc-pane hidden">
+            <div class="card"><div class="card-head"><div><h3>Solar supply, elevator drive &amp; battery sizing</h3><p>Motor kW, backup operation and daily energy determine the sourcing requirements</p></div></div><div id="solarForm"></div><div id="solarResult" aria-live="polite"></div></div>
+          </div>
+<div class="card" id="recordTools"><h3>Calculation records</h3><p class="note">Save your latest successful calculation. Offline live records wait in the outbox until your account reconnects.</p><label for="recordNote">Record note</label><input id="recordNote" maxlength="500" placeholder="Lift / project reference"><div class="engineering-actions"><button class="btn" id="saveRecordBtn" onclick="saveLatestRecord()">Save calculation</button><button class="btn ghost" id="recordsBtn" onclick="openRecords()">Records / Outbox</button><button class="btn ghost" onclick="exportLatest()">Export latest CSV</button></div></div>        </section>
+
+        <!-- ===== Account ===== -->
+        <section id="tab-troubleshooting" class="tab-content hidden"><div id="tbRoot"></div></section>
+        <section id="tab-account" class="tab-content hidden">
+          <div class="card" style="max-width:520px;">
+            <div class="card-head">
+              <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+              <div><h3>Change password</h3><p id="accountInfo"></p></div>
+            </div>
+            <div class="field"><label>Current password</label><input type="password" id="pwOld" autocomplete="current-password"></div>
+            <div class="field"><label>New password (min. 8 characters)</label><input type="password" id="pwNew" autocomplete="new-password"></div>
+            <div class="field"><label>Confirm new password</label><input type="password" id="pwNew2" autocomplete="new-password"></div>
+            <button class="btn" onclick="changePw()">Update password</button>
+          </div>
+        </section>
+
+        <!-- ===== Admin: Users ===== -->
+        <section id="tab-users" class="tab-content hidden">
+          <div id="tempPwBox"></div>
+          <div class="card">
+            <div class="card-head">
+              <div class="card-icon ci-teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5"/></svg></div>
+              <div><h3>Users</h3><p>Approve requests and choose what each person can use</p></div>
+            </div>
+            <p class="note" id="troubleshootingAccessNote">Troubleshooting and all controller options: approved users can view/search; Admin can add, edit and delete. New options inherit this access automatically.</p><div class="tbl-wrap">
+              <table class="tbl" id="usersTable">
+                <thead><tr><th>Name</th><th>Email</th><th>Access level</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== Admin: Components ===== -->
+        <section id="tab-components" class="tab-content hidden">
+          <div class="card hidden" id="editorCard">
+            <div class="card-head">
+              <div class="card-icon ci-orange"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+              <div><h3 id="editorTitle">Edit component</h3><p>The first four fields are required</p></div>
+            </div>
+            <div class="editor-grid" id="editorFields"></div>
+            <div class="actions" style="margin-top:16px;">
+              <button class="btn success" id="saveCompBtn" onclick="saveComponent()">Save</button>
+              <button class="btn ghost" onclick="closeEditor()">Cancel</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="toolbar">
+              <div class="card-head" style="margin:0;">
+                <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></div>
+                <div><h3>Components data</h3><p id="compCount"></p></div>
+              </div>
+              <button class="btn" onclick="openEditor(null)">+ Add component</button>
+            </div>
+            <div class="tbl-wrap"><table class="tbl" id="componentsTable"><thead><tr id="compHeadRow"></tr></thead><tbody></tbody></table></div>
+          </div>
+        </section>
+
+        <!-- ===== Admin: Dashboard ===== -->
+        <section id="tab-dashboard" class="tab-content hidden">
+          <div id="statsArea"><div class="msg info">Loading...</div></div>
+        </section>
+      </div>
+
+      
+    </main>
+  </div>
+
+  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="live-workspace.js"></script><script src="pwa.js"></script>
+
+<dialog id="settingsDialog"><h2>App settings</h2><p class="note">Live connection is preconfigured. Offline calculators and previously viewed component details are available after an online login. Account and data changes require internet.</p><label for="themeSetting">Appearance</label><select id="themeSetting"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><label><input type="checkbox" id="motionSetting"> Subtle background effect</label><p id="settingsStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="applySettings()">Apply settings</button><button class="btn ghost" onclick="document.getElementById('settingsDialog').close()">Close</button></div></dialog>
+<dialog id="recordsDialog"><h2>Saved records &amp; outbox</h2><p id="recordStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="syncOutbox()">Sync now</button><button class="btn ghost" onclick="exportRecords()">Export records CSV</button><button class="btn ghost" onclick="document.getElementById('recordsDialog').close()">Close</button></div><div id="recordsList"></div></dialog><div id="apkPrintArea"></div></body>
+</html>
