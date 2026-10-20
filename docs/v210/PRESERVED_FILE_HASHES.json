@@ -1,0 +1,72 @@
+[
+  {
+    "path": "shared/logic.js",
+    "sha256": "43f836d28b05b20f475b83b28194bcb4828ee6cfdab0f04cae330eee42c077e2",
+    "unchanged": true
+  },
+  {
+    "path": "web/app.js",
+    "sha256": "3e52c8fd83d4009178717779fe3516b0b8d81d45b716b9f514a0e8a30e72cd04",
+    "unchanged": true
+  },
+  {
+    "path": "web/transport.js",
+    "sha256": "6277c93c51908249465f25c8a060b2da2a79d50f1e1217315f1a995f6998ff64",
+    "unchanged": true
+  },
+  {
+    "path": "web/troubleshooting.js",
+    "sha256": "c78df7874fa8215b60d488fcb6f1cbafff966945ee0ddf8edcd4c15676578491",
+    "unchanged": true
+  },
+  {
+    "path": "shared/troubleshooting-core.js",
+    "sha256": "ee8b9e021d8af8a860b9f73d8d1e201710b5f52d235a3ea3b5f91e5bea5380a6",
+    "unchanged": true
+  },
+  {
+    "path": "shared/support-forms.json",
+    "sha256": "027a11563b3a74eb98f3cc22454ce4e89059ba7d6f807edfabb45fa9876da39f",
+    "unchanged": true
+  },
+  {
+    "path": "data/component-source.json",
+    "sha256": "b39c22ba76a428fda6b182ae311646746bdc7e8fdd3b999d5b536fea13ab829b",
+    "unchanged": true
+  },
+  {
+    "path": "web/style.css",
+    "sha256": "b7a0fd76d7a39ff6840f16efd0b489266e557f343fd0c319892d445546529352",
+    "unchanged": true
+  },
+  {
+    "path": "web/shell.css",
+    "sha256": "154ca8ea4b00d339bdcc853eac3c66e766f1c88b6fe3cb1cb40e17c1bf597512",
+    "unchanged": true
+  },
+  {
+    "path": "web/support.css",
+    "sha256": "45777449834074d77c8c7b51c7154803271758b2034ecf1dd99fd999e3a2a4df",
+    "unchanged": true
+  },
+  {
+    "path": "web/troubleshooting.css",
+    "sha256": "878fb196dbb8d6ef798b9ff6718d24a39737f456e5fe1dd008ca472dc5ad22bb",
+    "unchanged": true
+  },
+  {
+    "path": "web/company-logo.png",
+    "sha256": "bcd05596be462bacfdc7d9e6f6956d2ec101a11bbdd07990ff5d2349522d862d",
+    "unchanged": true
+  },
+  {
+    "path": "web/icon-192.png",
+    "sha256": "9325d5bee233794018a15a6cf7485fc02ce0467235906e8f2fe520f99adad5c3",
+    "unchanged": true
+  },
+  {
+    "path": "web/icon-512.png",
+    "sha256": "bfd786b621d4dcc26536666ce85e490fb8e294d84dc9c9e3fc750869375fde39",
+    "unchanged": true
+  }
+]

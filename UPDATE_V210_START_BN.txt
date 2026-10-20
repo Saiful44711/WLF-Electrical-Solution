@@ -1,0 +1,16 @@
+WLF Electrical Solution v2.1.0 — Existing project update
+
+1. ZIP extract করুন। START_HERE.html browser-এ খুলুন।
+2. Current GitHub code ও database-এর আলাদা backup রাখুন।
+3. Supabase SQL Editor-এ GitHub-Update/supabase/UPDATE_V210.sql Run।
+4. VERIFY_V210.sql Run করে permissions/RLS যাচাই।
+5. wlf-maintenance Edge Function deploy; Verify JWT with legacy secret OFF।
+6. GOOGLE_DRIVE_SETUP_BN.html অনুযায়ী তিনটি Google secrets যোগ করুন।
+7. GitHub-Update-এর ভেতরের contents existing repo root-এ upload করুন।
+8. Actions green → PC/mobile PWA update → Logout/Login।
+9. প্রথমে Backup without Clear পরীক্ষা করুন। Verify/download/restore check ছাড়া clear নয়।
+
+Existing project-এ 01_SETUP.sql / seed.sql / FIRST_SUPER_ADMIN.sql চালাবেন না।
+Existing config.js বদলাবেন না। কোনো server secret GitHub-এ upload করবেন না।
+Full details, limits ও recovery instructions START_HERE.html-এ আছে।
+এই package deploy করা হয়নি; আপনি পরে apply করবেন।

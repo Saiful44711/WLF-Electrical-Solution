@@ -1,3 +1,20 @@
+# WLF Electrical Solution — v2.1.0 update
+
+Existing project: read `docs/v210/UPDATE_GUIDE_BN.html` first. Run only
+`supabase/UPDATE_V210.sql`, deploy the new `wlf-maintenance` function, configure
+Google Drive server secrets, then upload the frontend update. Never rerun the
+initial setup/seed against the live project.
+
+This update adds server-checked support archives/clear/restore, document links,
+role-specific usage dashboards and user search. It preserves existing
+engineering formulas, imported component records, troubleshooting editors and
+support workflow. Support archives are **not** full Auth/schema/project backups.
+
+The original baseline instructions below describe initial installation; new
+projects require the v2.1 update after initial setup.
+
+---
+
 # WLF Electrical Solution 2.0.0
 
 Supabase + GitHub Pages + installable PWA. Open the outer package's **START_HERE.html** for the complete Bengali beginner guide; its text is also in docs/SETUP_BN.md.
