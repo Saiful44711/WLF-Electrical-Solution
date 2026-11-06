@@ -231,39 +231,29 @@ function fillSelect(id, values, keepValue, placeholder) {
 
 function setIndex(idx) {
   clearComponentDetails();
-  var firstLoad = !INDEX.length;
-  INDEX = idx || [];
-  indexStamp = Date.now();
-  fillSelect('sel-capacity', uniq(INDEX, 'c', true), $('sel-capacity').value);
-  fillSelect('sel-speed', uniq(INDEX, 's', true), $('sel-speed').value);
-  fillSelect('sel-usageType', uniq(INDEX, 'u', false), $('sel-usageType').value);
-  fillSelect('sel-roping', uniq(INDEX, 'p', false), $('sel-roping').value);
-  if(firstLoad && INDEX.length && !comboRows().length){var first=INDEX[0];$('sel-capacity').value=String(first.c);$('sel-speed').value=String(first.s);$('sel-usageType').value=first.u;$('sel-roping').value=first.p;}
+  INDEX=idx||[];
+  indexStamp=Date.now();
+  fillSelect('sel-capacity',uniq(INDEX,'c',true),$('sel-capacity').value,'Any capacity');
+  fillSelect('sel-speed',uniq(INDEX,'s',true),$('sel-speed').value,'Any speed');
+  fillSelect('sel-usageType',uniq(INDEX,'u',false),$('sel-usageType').value,'Any usage type');
+  fillSelect('sel-roping',uniq(INDEX,'p',false),$('sel-roping').value,'Any roping');
   updateBrands();
 }
-
 function comboRows() {
-  var c = Number($('sel-capacity').value), s = Number($('sel-speed').value);
-  var u = $('sel-usageType').value, p = $('sel-roping').value;
-  return INDEX.filter(function (r) { return r.c === c && r.s === s && r.u === u && r.p === p; });
+  var c=$('sel-capacity').value,s=$('sel-speed').value,u=$('sel-usageType').value,p=$('sel-roping').value;
+  return INDEX.filter(function(r){return (!c||r.c===Number(c))&&(!s||r.s===Number(s))&&(!u||r.u===u)&&(!p||r.p===p);});
 }
-
 function updateBrands() {
-  var rows = comboRows();
-  var brands = uniq(rows, 'b', false);
-  fillSelect('sel-brand', brands, $('sel-brand').value, 'Any brand');
-  $('sel-brand').disabled = !brands.length;
-  $('comboHint').textContent = rows.length
-    ? rows.length + ' motor option(s) match these parameters'
-    : 'No motors are available for this combination';
+  var rows=comboRows(),brands=uniq(rows,'b',false);
+  fillSelect('sel-brand',brands,$('sel-brand').value,'Any brand');
+  $('sel-brand').disabled=!brands.length;
+  $('comboHint').textContent=rows.length+' motor option(s) match these lift parameters';
   updateModels();
 }
-
 function updateModels() {
-  var b = $('sel-brand').value;
-  var models = b ? uniq(comboRows().filter(function (r) { return r.b === b; }), 'm', false) : [];
-  fillSelect('sel-model', models, $('sel-model').value, b ? 'Any model' : 'Select a brand first');
-  $('sel-model').disabled = !b;
+  var brand=$('sel-brand').value,models=uniq(comboRows().filter(function(r){return !brand||r.b===brand;}),'m',false);
+  fillSelect('sel-model',models,$('sel-model').value,'Any model');
+  $('sel-model').disabled=!models.length;
 }
 
 function maybeRefreshIndex() {
@@ -520,17 +510,37 @@ function resetPw(row) {
 
 /* ---------------- admin: components ---------------- */
 function loadComponentsAdmin() {
-  google.script.run.withSuccessHandler(function (d) {
-    compData = d;
-    $('compCount').textContent = d.records.length + ' components';
-    $('compHeadRow').innerHTML = d.headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '<th>Actions</th>';
-    var html = '';
-    d.records.forEach(function (r) {
-      html += '<tr>' + r.values.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join('') +
-        '<td><div class="actions"><button class="btn ghost sm" onclick="openEditor(' + r.sheetRow + ')">Edit</button>' +
-        '<button class="btn danger sm" onclick="deleteComponent(' + r.sheetRow + ')">Delete</button></div></td></tr>';
+  var owner=T();
+  google.script.run.withSuccessHandler(function(d){
+    if(owner!==T())return;
+    compData=d;
+    var filters=$('componentAdminFilters'),before=Object.fromEntries(
+      Array.from(filters.querySelectorAll('select'),node=>[node.id,node.value]));
+    var fields=['Capacity (KG)','Speed (m/s)','Usage Type','Roping','Motor brand','Motor Model'];
+    filters.innerHTML=fields.map(function(label,i){
+      return '<label>'+esc(label)+'<select id="compFilter-'+i+'"></select></label>';
+    }).join('');
+    $('compHeadRow').innerHTML=d.headers.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'<th>Actions</th>';
+    var specs=fields.map(function(label,i){
+      var key=d.headers.indexOf(label),id='compFilter-'+i, node=$(id);
+      var options=[...new Set(d.records.map(function(r){return String(r.values[key]??'');}).filter(Boolean))];
+      options.sort(function(a,b){return a.localeCompare(b,undefined,{numeric:true});});
+      fillSelect(id,options,before[id]||'','All');
+      node.onchange=render;
+      return {node:node,key:key};
     });
-    document.querySelector('#componentsTable tbody').innerHTML = html;
+    function render(){
+      var records=d.records.filter(function(r){return specs.every(function(f){
+        return !f.node.value||f.node.value===String(r.values[f.key]??'');
+      });});
+      $('compCount').textContent=records.length+' of '+d.records.length+' components';
+      document.querySelector('#componentsTable tbody').innerHTML=records.map(function(r){
+        return '<tr>'+r.values.map(function(v){return '<td>'+esc(v??'')+'</td>';}).join('')+
+         '<td><div class="actions"><button class="btn ghost sm" onclick="openEditor('+r.sheetRow+')">Edit</button>'+
+         '<button class="btn danger sm" onclick="deleteComponent('+r.sheetRow+')">Delete</button></div></td></tr>';
+      }).join('');
+    }
+    render();
   }).withFailureHandler(fail).adminGetComponents(T());
 }
 
@@ -582,7 +592,7 @@ function loadStats() {
     var colors = ['#64748b', '#4f46e5', '#06b6d4', '#f97316', '#16a34a', '#e11d48'];
     var max = Math.max.apply(null, s.totals.concat([1]));
     var calcs = 0;
-    for (var k = 2; k < s.totals.length; k++) if(s.topics[k].indexOf('Troubleshooting / ')!==0) calcs += s.totals[k];
+    for (var k = 2; k < s.totals.length; k++) if(/ Calculation$| Justification$|^Solar Sizing Calculation$/.test(s.topics[k])) calcs += s.totals[k];
 
     var html = '<div class="kpis">' +
       '<div class="kpi k1"><b>' + s.totalEvents + '</b><span>Total actions</span></div>' +
@@ -609,8 +619,8 @@ function loadStats() {
       html += '<td><b>' + r.total + '</b></td><td>' + esc(r.lastActive) + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
-    $('statsArea').innerHTML = '<div id="techDashboard"></div><div id="tbDashboard"></div>'+html;
-    if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof LiveWorkspace!=='undefined')LiveWorkspace.renderSupportDashboard();
+    $('statsArea').innerHTML = '<div id="techDashboard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
+    if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof LiveWorkspace!=='undefined')LiveWorkspace.renderSupportDashboard();if(typeof WlfRi!=='undefined')WlfRi.dashboard();
   }).withFailureHandler(fail).adminStats(T());
 }
 

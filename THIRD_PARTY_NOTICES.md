@@ -199,3 +199,8 @@ Noto Sans Bengali
 This Font Software is licensed under the SIL Open Font License, Version 1.1. This license is available with a FAQ at: https://openfontlicense.org
 
 https://openfontlicense.org
+
+
+## Excel and PowerPoint exports
+
+See docs/v220/EXPORT_LICENSES.txt for JSZip, PptxGenJS and related licenses.

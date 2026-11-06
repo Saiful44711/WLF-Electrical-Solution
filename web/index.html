@@ -3,7 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#10264d"><link rel="apple-touch-icon" href="icon-192.png"><title>WLF Electrical Solution</title>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css">
+  <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css"><link rel="stylesheet" href="release-v220.css">
 <link rel="stylesheet" href="maintenance.css"></head>
 <body>
 
@@ -53,7 +53,7 @@
         <div id="registerForm" class="hidden">
           <h2>Request access</h2>
           <p class="sub">The admin will be notified and will approve your account.</p>
-          <div class="field"><label>Full name</label><input type="text" id="regName" placeholder="Your full name"></div>
+          <div class="field"><label for="regName">FULL NAME-ID</label><input type="text" id="regName" placeholder="Full name - employee ID" maxlength="120"></div>
           <div class="field"><label>Email</label><input type="email" id="regEmail" autocomplete="username" placeholder="you@example.com"></div>
           <div class="field"><label>Password (min. 8 characters)</label><input type="password" id="regPassword" autocomplete="new-password" placeholder="Choose a password"></div>
           <button class="btn block" id="regBtn" onclick="doRegister()">Send request</button>
@@ -136,7 +136,7 @@
           <div class="card" id="inputCard">
             <div class="card-head">
               <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
-              <div><h3>Lift parameters</h3><p>Choose the parameters, then pick a motor brand and model</p></div>
+              <div><h3>Lift parameters</h3><p>Filter by any combination of the six fields</p></div>
             </div>
             <div class="row">
               <div class="field"><label>Capacity (kg)</label><select id="sel-capacity"></select></div>
@@ -322,7 +322,7 @@
               </div>
               <button class="btn" onclick="openEditor(null)">+ Add component</button>
             </div>
-            <div class="tbl-wrap"><table class="tbl" id="componentsTable"><thead><tr id="compHeadRow"></tr></thead><tbody></tbody></table></div>
+            <div id="componentAdminFilters" class="review-fields"></div><div class="tbl-wrap"><table class="tbl" id="componentsTable"><thead><tr id="compHeadRow"></tr></thead><tbody></tbody></table></div>
           </div>
         </section>
 
@@ -336,7 +336,7 @@
     </main>
   </div>
 
-  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="pwa.js"></script>
+  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="form-fields.js"></script><script src="wlf-exports.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="ri-workspace.js"></script><script src="excel-backup.js"></script><script src="pwa.js"></script>
 
 <dialog id="settingsDialog"><h2>App settings</h2><p class="note">Live connection is preconfigured. Offline calculators and previously viewed component details are available after an online login. Account and data changes require internet.</p><label for="themeSetting">Appearance</label><select id="themeSetting"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><label><input type="checkbox" id="motionSetting"> Subtle background effect</label><p id="settingsStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="applySettings()">Apply settings</button><button class="btn ghost" onclick="document.getElementById('settingsDialog').close()">Close</button></div></dialog>
 <dialog id="recordsDialog"><h2>Saved records &amp; outbox</h2><p id="recordStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="syncOutbox()">Sync now</button><button class="btn ghost" onclick="exportRecords()">Export records CSV</button><button class="btn ghost" onclick="document.getElementById('recordsDialog').close()">Close</button></div><div id="recordsList"></div></dialog><div id="apkPrintArea"></div></body>
