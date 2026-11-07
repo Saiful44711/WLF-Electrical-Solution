@@ -120,17 +120,23 @@ const WlfDamage = (() => {
       const submit = form.querySelector('[type=submit]');
       const cancel = form.querySelector('[data-damage-close]');
       const message = form.querySelector('[role=status]');
-      let submitted = false;
       let operation;
       let lastPayload;
 
-      node.addEventListener('close', () => {
-        if (submitted || !isCurrent() || !el('supportHardware') || el('supportHardware').disabled) return;
-        for (const choice of el('supportHardware').querySelectorAll('input')) {
-          choice.checked = previous != null && choice.value === String(previous);
+      function cancelDemand() {
+        const currentHardware = el('supportHardware');
+        if (isCurrent() && currentHardware && !currentHardware.disabled) {
+          for (const choice of currentHardware.querySelectorAll('input')) {
+            choice.checked = previous != null && choice.value === String(previous);
+          }
         }
-      }, {once: true});
-      cancel.onclick = () => node.close();
+        node.close();
+      }
+      cancel.onclick = cancelDemand;
+      node.oncancel = event => {
+        event.preventDefault();
+        if (!cancel.disabled) cancelDemand();
+      };
       form.onsubmit = async event => {
         event.preventDefault();
         const solution = el('supportComment')?.value.trim();
@@ -160,7 +166,6 @@ const WlfDamage = (() => {
         message.textContent = 'Submitting demand…';
         try {
           const result = await call('createDamageDemand', {...payload, operation});
-          submitted = true;
           if (node.contains(form) && node.open) node.close();
           if (isCurrent()) onSaved(result);
         } catch (err) {

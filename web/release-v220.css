@@ -1,5 +1,9 @@
-.wlf-module { display:grid; gap:16px; }
-.wlf-module .card { margin:0; }
+.wlf-module { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+.wlf-module .card { margin:0; overflow-wrap:anywhere; }
+:is(#tab-ri-activity,#tab-ri-projects,#wlfRiDialog) .review-fields {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+:is(#tab-ri-activity,#tab-ri-projects,#wlfRiDialog) :is(input,select,textarea) { min-width:0; }
 .wlf-module-actions, .wlf-choice-list { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .wlf-module-actions { margin:12px 0; }
 .wlf-module .tbl td:last-child { white-space:normal; }
@@ -8,8 +12,8 @@
 .wlf-choices { min-width:0; border:1px solid var(--line, #52617a); padding:12px; border-radius:10px; }
 .wlf-choices div { display:flex; flex-wrap:wrap; gap:8px 14px; }
 .wlf-choices legend { font-weight:600; padding:0 4px; }
-.wlf-choice { display:inline-flex !important; align-items:center; gap:6px; }
-.wlf-choice input { width:auto; }
+.wlf-choice { display:inline-flex !important; align-items:center; gap:6px; max-width:100%; }
+.wlf-choice input { width:auto; flex:none; }
 .wlf-section-tabs { display:flex; flex-wrap:wrap; gap:8px; }
 .wlf-section-tabs .active { outline:2px solid #9374e1; outline-offset:1px; }
 .wlf-entry-values { display:grid; grid-template-columns:minmax(120px,1fr) minmax(140px,2fr); gap:6px 12px; }
@@ -22,7 +26,11 @@
 .wlf-gantt-track { height:12px; border-radius:8px; position:relative; background:rgba(126,111,180,.2); }
 .wlf-gantt-bar { position:absolute; height:100%; border-radius:8px; background:#9374e1; overflow:hidden; }
 .wlf-gantt-bar span { height:100%; display:block; background:#2ba981; }
-.wlf-section-tabs button, .wlf-module-actions button { white-space:normal; }
+.wlf-section-tabs button, .wlf-module-actions button { white-space:normal; max-width:100%; }
 .wlf-build { font-size:11px; display:block; margin-top:5px; }
 .wlf-module [aria-live]:empty { display:none; }
 @media(max-width:640px){.wlf-entry-values{grid-template-columns:1fr}.wlf-entry-values dd{margin-bottom:7px}.wlf-gantt-scale{font-size:10px}}
+@media(max-width:650px) {
+  :is(#tab-ri-activity,#tab-ri-projects,#wlfRiDialog) .review-fields { grid-template-columns:minmax(0,1fr); }
+  #wlfRiDialog { padding:16px; overflow-wrap:anywhere; }
+}

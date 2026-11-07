@@ -61,6 +61,22 @@ await page.locator('#tabLogin').click();
 async function login(name){await page.locator('#loginEmail').fill(name+'@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);await page.evaluate(()=>openTab('account'));await page.locator('#tab-account [onclick=\"changePw()\"]').waitFor({state:'visible'});for(const [old,next]of [['test-password-123','changed-password-123'],['changed-password-123','test-password-123']]){await page.locator('#pwOld').fill(old);await page.locator('#pwNew').fill(next);await page.locator('#pwNew2').fill(next);await page.locator('#tab-account button').click();await page.waitForFunction(()=>document.getElementById('pwNew').value==='');} }
 async function logout(){await page.evaluate(()=>logout());await page.locator('#authScreen').waitFor({state:'visible'});}
 async function tab(name){await page.evaluate(name=>openTab(name),name);}
+async function checkRiMobileFit(selector){
+ const width=page.viewportSize().width;
+ const layout=await page.locator(selector).evaluate((root,width)=>{
+  const scroller='.tbl-wrap, .wlf-gantt';
+  const controls=[root,...root.querySelectorAll('.card, .review-fields, .wlf-choice, .btn, input, select, textarea, '+scroller)];
+  const clipped=controls.filter(node=>{
+   const region=node.closest(scroller);
+   if(region&&region!==node)return false;
+   const box=node.getBoundingClientRect();
+   return box.width>0&&(box.left<-1||box.right>width+1);
+  }).map(node=>node.id||node.textContent.trim().slice(0,60)||node.tagName);
+  return {scrollWidth:document.documentElement.scrollWidth,clipped};
+ },width);
+ assert.ok(layout.scrollWidth<=width+1,selector+' expands the phone page to '+layout.scrollWidth+' px');
+ assert.deepEqual(layout.clipped,[],selector+' has clipped controls at '+width+' px');
+}
 async function fillDynamic(selector,overrides={}){
  await page.locator(selector+' [name]').evaluateAll((nodes,overrides)=>{
   const checked=new Set();
@@ -156,7 +172,13 @@ assert.equal(await page.locator('#componentsTable tbody tr').count(),1);
 
 // Activity reports, user ownership and the recorded status.
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=permissions||array['ri:activity','ri:projects'] where id in ($1,$2)",[IDS.user,IDS.rni]));
+await page.setViewportSize({width:360,height:800});
 await tab('ri-activity');
+await page.locator('#riEntryList .tbl-wrap').waitFor();
+await page.evaluate(()=>setAppearance('dark'));
+await checkRiMobileFit('#tab-ri-activity');
+await page.screenshot({path:'test-results/ri-team-activity-mobile.png',fullPage:true});
+await page.evaluate(()=>setAppearance('light'));
 await page.getByRole('button',{name:'Reports',exact:true}).click();
 assert.equal(await page.locator('[data-ri-action=category]').count(),3);
 await page.getByRole('button',{name:'Electrical & Electronic Components Service Report',exact:true}).click();
@@ -164,20 +186,37 @@ await fillDynamic('#riSubmitForm',{status:'Solved'});
 await page.locator('#riSubmitForm [type=submit]').click();
 await page.locator('#riSubmitStatus').filter({hasText:'Saved · Solved'}).waitFor();
 await page.locator('#riEntryList tbody tr').filter({hasText:'Solved'}).waitFor();
+await page.setViewportSize({width:320,height:760});
+await checkRiMobileFit('#tab-ri-activity');
 await page.screenshot({path:'test-results/v220-activity.png',fullPage:true});
 
 // Project creation, task update, Gantt and real PPTX download.
 await tab('ri-projects');
 await page.locator('[data-ri-action=new-project]').click();
-await page.locator('#wlfRiDialog [name=name]').fill('Commissioning quality review');
+await checkRiMobileFit('#wlfRiDialog');
+await page.locator('#wlfRiDialog [name=name]').fill('WLF Electrical solution software development');
 await page.locator('#wlfRiDialog [name=lead]').fill('user');
 await page.locator('#wlfRiDialog button[type=submit]').click();
 await page.locator('[data-project]').waitFor();
+await checkRiMobileFit('#tab-ri-projects');
 await page.locator('[data-ri-action=add-task]').click();
+await checkRiMobileFit('#wlfRiDialog');
 await page.locator('#wlfRiDialog [name=name]').fill('Record controller tests');
 await page.locator('#wlfRiDialog [name=progress]').fill('65');
 await page.locator('#wlfRiDialog button[type=submit]').click();
 await page.locator('.wlf-gantt-bar span').waitFor();
+await checkRiMobileFit('#tab-ri-projects');
+for(const selector of ['.wlf-gantt','[data-project] .tbl-wrap']){
+ assert.ok(await page.locator(selector).evaluate(node=>{
+  node.scrollLeft=node.scrollWidth;
+  const scrolls=node.scrollLeft>0;
+  node.scrollLeft=0;
+  return scrolls;
+ }),selector+' scrolls within its project card');
+}
+await page.screenshot({path:'test-results/ri-project-manager-mobile.png',fullPage:true});
+await page.setViewportSize({width:1280,height:900});
+await page.evaluate(()=>setAppearance('system'));
 const pptx=page.waitForEvent('download');
 await page.locator('[data-ri-action=project-ppt]').click();
 await(await pptx).saveAs('test-results/v220-project.pptx');
@@ -266,7 +305,15 @@ assert.deepEqual(await dialog.locator('input').evaluateAll(nodes=>nodes.map(node
 assert.equal(await dialog.locator('[name=confirmedBy]').inputValue(),'rni');
 assert.equal(await dialog.locator('[name=confirmedBy]').evaluate(n=>n.readOnly),true);
 assert.equal(await dialog.getByText('Replace the damaged main contactor.',{exact:true}).count(),0);
-await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+const canceled=await dialog.getByRole('button',{name:'Cancel',exact:true}).evaluate(button=>{
+ const popup=button.closest('dialog');
+ button.click();
+ return {closed:!popup.open,noChecked:document.querySelector('#supportHardware input[value=false]').checked};
+});
+assert.deepEqual(canceled,{closed:true,noChecked:true});
+await page.locator('#supportHardware input[value=true]').check();
+await dialog.waitFor();
+await page.keyboard.press('Escape');
 await dialog.waitFor({state:'hidden'});
 assert.equal(await page.locator('#supportHardware input[value=false]').isChecked(),true);
 await page.locator('#supportHardware input[value=true]').check();
