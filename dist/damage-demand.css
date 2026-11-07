@@ -1,0 +1,33 @@
+.damage-review-inputs { margin: 14px 0; }
+.damage-review-inputs > input { width: min(100%, 12rem); margin-bottom: 12px; }
+.damage-review-inputs fieldset { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px 10px; }
+.damage-review-inputs fieldset label { display: inline-flex; align-items: center; margin: 0 20px 0 0; gap: 6px; }
+.damage-review-inputs fieldset input { width: auto; margin: 0; }
+.damage-review-inputs p { margin: 6px 0 0; }
+.damage-ticket-summary, .damage-detail-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0; }
+.damage-ticket-summary { color: var(--muted); font-size: .9rem; }
+.damage-ticket-summary b { color: var(--text); }
+.damage-filter-fields { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); margin-top: 18px; }
+.damage-workspace { grid-template-columns: minmax(0, 1fr); }
+.damage-workspace .review-heading { flex-wrap: wrap; }
+.damage-workspace .engineering-actions { flex-wrap: wrap; }
+.damage-workspace .tbl-wrap { overflow-x: auto; }
+.damage-workspace .damage-table th, .damage-workspace .damage-table td { white-space: normal; min-width: 74px; }
+.damage-table small { display: block; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
+.damage-table td { overflow-wrap: anywhere; }
+.damage-table .damage-link { padding: 5px 9px; white-space: nowrap; }
+.damage-team + .damage-team { margin-top: 22px; }
+.damage-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); gap: 14px; }
+.damage-metrics div { display: grid; gap: 4px; }
+.damage-metrics b { font-size: 1.55rem; }
+.damage-metrics span { color: var(--muted); }
+.damage-chart-rows { display: grid; gap: 10px; max-height: 26rem; overflow-y: auto; padding: 2px 6px 2px 0; }
+.damage-chart-row > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; overflow-wrap: anywhere; }
+.damage-chart-row meter { width: 100%; height: 16px; }
+.damage-chart-row meter::-webkit-meter-optimum-value { background: #7652c5; }
+.damage-chart-row meter::-moz-meter-bar { background: #7652c5; }
+#wlfDamageDialog input { width: 100%; }
+#wlfDamageDialog .review-fields { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 0 12px; }
+#wlfDamageDialog .engineering-actions { flex-wrap: wrap; margin-top: 14px; }
+.damage-details { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+.damage-solution { white-space: pre-wrap; overflow-wrap: anywhere; }

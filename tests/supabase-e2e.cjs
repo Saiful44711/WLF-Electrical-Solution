@@ -29,6 +29,7 @@ function jwt(id){return [Buffer.from('{"alg":"none"}').toString('base64url'),Buf
 h=await makeDB();
 await h.db.exec(fs.readFileSync('supabase/UPDATE_V220.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
  const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.2.0-ri-support','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
@@ -196,8 +197,24 @@ assert.ok(excelZip.file('xl/tables/table6.xml'));
 assert.match(await excelZip.file('xl/workbook.xml').async('string'),/Factory Maintenance/);
 await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();
 await page.screenshot({path:'test-results/v220-storage.png',fullPage:true});
-await tab('dashboard');await page.locator('#tbDashboard .kpi').first().waitFor();assert.equal(await page.locator('#tbDashboard .kpi').count(),3);assert.equal((await page.locator('#tbDashboard').innerText()).includes('General subcategories'),false);const desktop=await page.evaluate(()=>{let logo=document.querySelector('.header-company-logo').getBoundingClientRect(),title=document.getElementById('pageTitle').getBoundingClientRect(),menu=document.querySelector('.appearance-menu').getBoundingClientRect(),top=document.querySelector('.topbar').getBoundingClientRect();return{left:logo.x<title.x,right:menu.x>title.right,edge:top.right-menu.right};});assert.ok(desktop.left&&desktop.right&&desktop.edge<40);await page.screenshot({path:'test-results/header-desktop-dashboard.png',fullPage:true});assert.equal(await page.locator('#nav [data-tab=users]').isVisible(),true);await tab('users');await page.locator('[data-access-user="user@example.test"]').waitFor({state:'attached'});await logout();assert.equal(await page.locator('#tab-users .access-user').count(),0);
+await tab('dashboard');await page.locator('#tbDashboard .kpi').first().waitFor();assert.equal(await page.locator('#tbDashboard .kpi').count(),3);assert.equal((await page.locator('#tbDashboard').innerText()).includes('General subcategories'),false);const desktop=await page.evaluate(()=>{let logo=document.querySelector('.header-company-logo').getBoundingClientRect(),title=document.getElementById('pageTitle').getBoundingClientRect(),menu=document.querySelector('.appearance-menu').getBoundingClientRect(),top=document.querySelector('.topbar').getBoundingClientRect();return{left:logo.x<title.x,right:menu.x>title.right,edge:top.right-menu.right};});assert.ok(desktop.left&&desktop.right&&desktop.edge<40);await page.screenshot({path:'test-results/header-desktop-dashboard.png',fullPage:true});assert.equal(await page.locator('#nav [data-tab=users]').isVisible(),true);await tab('users');await page.locator('[data-access-user="user@example.test"]').waitFor({state:'attached'});
+assert.equal(await page.locator('#nav [data-tab=ri-projects] + [data-tab=damage-demand]').isVisible(),true);
+await tab('damage-demand');
+await page.locator('#tab-damage-demand').getByText('No demands match these filters.').waitFor();
+assert.equal(await page.locator('[data-damage-pane]').count(),2);
+await tab('users');
+for (const [name,keys] of [['admin',['damage:demand','damage:receive']],['rni',['damage:dashboard']]]) {
+ const access=page.locator(`[data-access-user="${name}@example.test"]`);
+ await access.locator('xpath=..').locator('summary').click();
+ for (const key of keys) await access.locator(`input[value="${key}"]`).check();
+ const save=page.waitForResponse(response=>response.url().endsWith('/rest/v1/rpc/wlf_rpc')&&
+  response.request().postDataJSON()?.action==='saveAppUserAccess');
+ await access.locator('.access-save').click();
+ assert.ok((await save).ok());
+}
+await logout();assert.equal(await page.locator('#tab-users .access-user').count(),0);
 await login('user');
+assert.equal(await page.locator('#nav [data-tab=damage-demand]').isVisible(),false);
 await tab('ri-projects');
 await page.locator('[data-project] summary').click();
 assert.equal(await page.locator('[data-ri-action=add-task],[data-ri-action=delete-project]').count(),0);
@@ -216,9 +233,138 @@ await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').cl
 await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=identity]').inputValue(),'user');
 await fillDynamic('#supportRequestForm',{lift:'991234'});await page.locator('#submitSupportRequest').click();await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-991234-\d{8}/}).waitFor();const id=await page.locator('#supportDetail').getAttribute('data-record-id');assert.equal(await page.locator('#editSupportForm,#deleteSupportTicket,#receiveSupport').count(),0);assert.equal(await page.locator('#supportBadge').innerText(),'1');await logout();
 await login('admin');assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);await category();assert.equal(await page.locator('#newSupportRequest').count(),0);await page.locator('#supportFilterQuery').fill('991234');await page.waitForTimeout(450);assert.equal(await page.locator('#supportFilterQuery').evaluate(n=>document.activeElement===n),true);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('#supportDetail h3').waitFor();assert.equal(await page.locator('#receiveSupport').count(),0);const download=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await download).saveAs('test-results/support-report.csv');assert.ok(fs.readFileSync('test-results/support-report.csv','utf8').match(/TCS\d+-991234-\d{8}/));await logout();
-await login('rni');await tab('dashboard');await page.locator('#rniPerformanceTable').waitFor();assert.equal((await page.locator('#rniPerformanceTable').innerText()).includes('rni2@example.test'),false);await page.locator('.appearance-menu summary').click();await page.locator('#realtimeStatus').filter({hasText:'Realtime connected'}).waitFor();await page.locator('.appearance-menu summary').click();await category();assert.equal(await page.locator('#newSupportRequest').count(),0);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('#receiveSupport').click();await page.locator('#supportComment').fill('Keep this draft during realtime update');await page.evaluate(()=>window.__emitRealtime('wlf_requests'));await page.waitForTimeout(700);assert.equal(await page.locator('#supportComment').inputValue(),'Keep this draft during realtime update');assert.equal(await page.locator('#supportBadge').innerText(),'1');await page.locator('#solveSupport').click();await page.locator('#supportDetail .support-status').filter({hasText:'Solved'}).waitFor();assert.equal(await page.locator('#supportBadge').isVisible(),false);
+await login('rni');
+await tab('dashboard');
+await page.locator('#rniPerformanceTable').waitFor();
+assert.equal((await page.locator('#rniPerformanceTable').innerText()).includes('rni2@example.test'),false);
+await page.locator('.appearance-menu summary').click();
+await page.locator('#realtimeStatus').filter({hasText:'Realtime connected'}).waitFor();
+await page.locator('.appearance-menu summary').click();
+await tab('damage-demand');
+await page.locator('#damageChartTitle').waitFor();
+assert.equal(await page.locator('[data-damage-pane=demand]').count(),0);
+
+await category();
+assert.equal(await page.locator('#newSupportRequest').count(),0);
+await page.locator(`[data-ticket="${id}"]`).click();
+await page.locator('#receiveSupport').click();
+await page.locator('#supportComment').fill('Replace the damaged main contactor.');
+await page.locator('#supportDuration').fill('22.5');
+await page.locator('#supportHardware input[value=false]').check();
+await page.evaluate(()=>window.__emitRealtime('wlf_requests'));
+await page.waitForTimeout(700);
+assert.equal(await page.locator('#supportComment').inputValue(),'Replace the damaged main contactor.');
+assert.equal(await page.locator('#supportDuration').inputValue(),'22.5');
+assert.equal(await page.locator('#supportHardware input[value=false]').isChecked(),true);
+assert.equal(await page.locator('#supportBadge').innerText(),'1');
+
+await page.locator('#supportHardware input[value=true]').check();
+let dialog=page.locator('#wlfDamageDialog');
+await dialog.waitFor();
+assert.deepEqual(await dialog.locator('input').evaluateAll(nodes=>nodes.map(node=>node.name)),
+ ['confirmedBy','itemName','itemCode','itemSpec','quantity']);
+assert.equal(await dialog.locator('[name=confirmedBy]').inputValue(),'rni');
+assert.equal(await dialog.locator('[name=confirmedBy]').evaluate(n=>n.readOnly),true);
+assert.equal(await dialog.getByText('Replace the damaged main contactor.',{exact:true}).count(),0);
+await dialog.getByRole('button',{name:'Cancel',exact:true}).click();
+await dialog.waitFor({state:'hidden'});
+assert.equal(await page.locator('#supportHardware input[value=false]').isChecked(),true);
+await page.locator('#supportHardware input[value=true]').check();
+await dialog.locator('[name=itemName]').fill('Main contactor');
+await dialog.locator('[name=itemCode]').fill('=1+1');
+await dialog.locator('[name=itemSpec]').fill('24 V DC');
+await dialog.locator('[name=quantity]').fill('1.5');
+assert.equal(await dialog.locator('[name=quantity]').evaluate(n=>n.validity.valid),false);
+await dialog.locator('[name=quantity]').fill('2');
+await page.setViewportSize({width:390,height:844});
+await page.screenshot({path:'test-results/damage-demand-popup-mobile.png'});
+assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+await page.setViewportSize({width:1280,height:900});
+await dialog.getByRole('button',{name:'Submit demand',exact:true}).click();
+await page.locator('#supportActionStatus').filter({hasText:'Damage demand submitted to Dispatch.'}).waitFor();
+const demandStatus=page.locator('#supportDamageStatus');
+assert.match(await demandStatus.innerText(),/DD-\d+.*Pending/s);
+assert.equal(await page.locator('#supportHardware input[value=true]').isChecked(),true);
+assert.equal(await page.locator('#supportHardware input[value=true]').isDisabled(),true);
+assert.equal(await page.locator('#supportComment').inputValue(),'Replace the damaged main contactor.');
+await page.locator('#solveSupport').click();
+await page.locator('#supportDetail .support-status').filter({hasText:'Solved'}).waitFor();
+assert.equal(await page.locator('#supportBadge').isVisible(),false);
+await page.screenshot({path:'test-results/damage-demand-support-status.png',fullPage:true});
+
+await tab('damage-demand');
+await page.locator('#damageChartTitle').waitFor();
+assert.equal(await page.locator('[data-damage-pane=dashboard]').count(),1);
+await page.locator('#damageFilters [name=category]').selectOption('commissioning');
+await page.locator('#damageFilters [name=component]').selectOption('v:main contactor');
+const today=await page.evaluate(()=>AccessCore.dateKey(new Date()));
+await page.locator('#damageFilters [name=from]').fill(today);
+await page.locator('#damageFilters [name=to]').fill(today);
+const filteredDashboard=page.waitForResponse(response=>response.url().endsWith('/rest/v1/rpc/wlf_rpc')&&
+ response.request().postDataJSON()?.action==='getDamageDashboard');
+await page.getByRole('button',{name:'Apply filters',exact:true}).click();
+assert.ok((await filteredDashboard).ok());
+await page.locator('.damage-chart').getByText('2 units · 100%').waitFor();
+assert.equal(await page.locator('.damage-chart meter').getAttribute('value'),'100');
+const damageFile=page.waitForEvent('download');
+await page.locator('#damageExport').click();
+const exportedDamage=await damageFile;
+assert.match(exportedDamage.suggestedFilename(),/^WLF-Damage-Demand-.*\.xlsx$/);
+await exportedDamage.saveAs('test-results/damage-demand.xlsx');
+const damageZip=await Zip.loadAsync(fs.readFileSync('test-results/damage-demand.xlsx'));
+assert.ok(damageZip.file('xl/tables/table2.xml'));
+const damageSheet=await damageZip.file('xl/worksheets/sheet1.xml').async('string');
+assert.match(damageSheet,/Main contactor/);
+assert.match(damageSheet,/=1\+1/);
+assert.doesNotMatch(damageSheet,/<f>/);
+assert.match(await damageZip.file('xl/worksheets/sheet2.xml').async('string'),/<v>100<\/v>/);
+await page.screenshot({path:'test-results/damage-demand-dashboard.png',fullPage:true});
+await page.setViewportSize({width:390,height:844});
+await page.evaluate(()=>closeSidebar());
+await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);
+assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+await page.screenshot({path:'test-results/damage-demand-dashboard-mobile.png',fullPage:true});
+await page.setViewportSize({width:1280,height:900});
+await logout();
+
+await login('user');
+await category();
+await page.locator(`[data-ticket="${id}"]`).click();
+await page.locator('#supportDamageStatus').filter({hasText:'Pending'}).waitFor();
+assert.equal(await page.locator('#nav [data-tab=damage-demand]').isVisible(),false);
+await logout();
+
+await login('admin');
+await tab('damage-demand');
+await page.locator('[data-damage-view]').waitFor();
+assert.equal(await page.locator('[data-damage-pane=dashboard]').count(),0);
+await page.locator('#damageFilters [name=lift]').fill('991234');
+await page.locator('#damageFilters [name=project]').fill('Browser verification');
+await page.getByRole('button',{name:'Apply filters',exact:true}).click();
+await page.locator('#damageStatus').filter({hasNotText:'Loading'}).waitFor({state:'attached'});
+await page.locator('[data-damage-view]').click();
+await dialog.getByRole('heading',{name:'Solution statement'}).waitFor();
+await dialog.getByText('Replace the damaged main contactor.',{exact:true}).waitFor();
+await dialog.getByText('Submitted support form details',{exact:true}).click();
+assert.ok(await dialog.getByText('991234',{exact:true}).isVisible());
+await page.locator('#damageReceive').click();
+await page.locator('#damageDetailStatus').filter({hasText:'Demand received.'}).waitFor();
+assert.equal(await dialog.locator('.support-status').innerText(),'Received');
+await dialog.getByRole('button',{name:'Close',exact:true}).click();
+await page.locator('#tab-damage-demand').getByText('No demands match these filters.').waitFor();
+await page.locator('#damageFilters [name=status]').selectOption('Received');
+await page.getByRole('button',{name:'Apply filters',exact:true}).click();
+await page.locator('[data-damage-view]').waitFor();
+await logout();
+
+await login('user');
+await category();
+await page.locator(`[data-ticket="${id}"]`).click();
+await page.locator('#supportDamageStatus').filter({hasText:'Received'}).waitFor();
+assert.match(await page.locator('#supportDetail').innerText(),/Duration \(Min\) 22.5/);
+
 await page.setViewportSize({width:390,height:844});await page.evaluate(()=>closeSidebar());await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);const mobile=await page.evaluate(()=>{let logo=document.querySelector('.header-company-logo').getBoundingClientRect(),title=document.getElementById('pageTitle').getBoundingClientRect(),menu=document.querySelector('.appearance-menu').getBoundingClientRect();return{left:logo.x<title.x,right:menu.x>title.right,edge:innerWidth-menu.right};});assert.ok(mobile.left&&mobile.right&&mobile.edge<25);await page.locator('.appearance-menu summary').click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('.appearance-menu summary').click();await page.screenshot({path:'test-results/supabase-mobile-support.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 // Actual service worker caches project-subpath shell; downloaded references work offline.
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
-assert.deepEqual(errors,[]);console.log('PASS v2.2 browser including PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
+assert.deepEqual(errors,[]);console.log('PASS WLF browser including Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
 })().catch(async err=>{console.error(err);console.error('Page errors',errors);if(page&&!page.isClosed()){console.error((await page.locator('body').innerText()).slice(-3500));await page.screenshot({path:'test-results/failure.png',fullPage:true});}process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.close();if(h)await h.close();});

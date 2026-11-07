@@ -10,6 +10,25 @@ New staging databases apply it after UPDATE_V220.sql. The six field definitions
 and source checksum are in data/technical-support-forms-20261107.json.
 The previous definitions are stored in wlf_private.support_form_updates.
 
+## Damage Demand update
+
+On the current v2.2 project, run supabase/UPDATE_DAMAGE_DEMAND_20261107.sql
+in SQL Editor. Upload the matching web package to the existing GitHub Pages
+repository. The update requires the six Technical Support teams.
+
+An assigned R&I handler can record duration and Hardware Issue on a received
+support request. Commissioning, After Sales, Installation and Factory
+Maintenance can raise one replacement demand per request. A demand stores the
+support form snapshot and solution statement at submission.
+
+In User Management, Super Admin can grant Demand and Dashboard separately.
+Dispatch needs both Demand and Receive. The request submitter sees the demand
+status in the original Technical Support request. Report dates use Dhaka time.
+The component chart uses each item's quantity divided by the total quantity
+in the filtered demands.
+
+## Original v2.2 release
+
 | Order | Place | File or action |
 | --- | --- | --- |
 | 1 | Supabase SQL Editor | supabase/PRECHECK_V220.sql |
