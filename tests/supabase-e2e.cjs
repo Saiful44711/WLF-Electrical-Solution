@@ -54,16 +54,6 @@ else throw Error('Unexpected mocked route '+url.pathname);
 await page.goto(origin+'/wlf/');await page.locator('#loginEmail').waitFor();
 await page.locator('#tabRegister').click();await page.getByLabel('FULL NAME-ID').waitFor();
 await page.locator('#tabLogin').click();
-await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
-shellVersion='v220';
-await page.evaluate(async()=>{const registration=await navigator.serviceWorker.ready;await registration.update();});
-await page.locator('.appearance-menu summary').click();
-await page.locator('#updateWlf').waitFor();
-page.once('dialog',d=>d.accept());
-const updated=page.waitForEvent('load');
-await page.locator('#updateWlf').click();
-await updated;
-await page.waitForFunction(async()=> (await caches.keys()).some(key=>key.startsWith('wlf-pwa-2.2.0')));
 
 async function login(name){await page.locator('#loginEmail').fill(name+'@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);await page.evaluate(()=>openTab('account'));await page.locator('#tab-account [onclick=\"changePw()\"]').waitFor({state:'visible'});for(const [old,next]of [['test-password-123','changed-password-123'],['changed-password-123','test-password-123']]){await page.locator('#pwOld').fill(old);await page.locator('#pwNew').fill(next);await page.locator('#pwNew2').fill(next);await page.locator('#tab-account button').click();await page.waitForFunction(()=>document.getElementById('pwNew').value==='');} }
 async function logout(){await page.evaluate(()=>logout());await page.locator('#authScreen').waitFor({state:'visible'});}
@@ -87,6 +77,19 @@ async function fillDynamic(selector,overrides={}){
 
 async function category(){await tab('technical');await page.locator('[data-support-category="commissioning"]').click();await page.locator('#supportFilterQuery').waitFor();}
 await login('sa');
+// The appearance/update menu is inside the signed-in application shell.
+await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
+shellVersion='v220';
+await page.evaluate(async()=>{const registration=await navigator.serviceWorker.ready;await registration.update();});
+await page.locator('.appearance-menu summary').click();
+await page.locator('#updateWlf').waitFor();
+page.once('dialog',d=>d.accept());
+const updated=page.waitForEvent('load');
+await page.locator('#updateWlf').click();
+await updated;
+await page.waitForFunction(async()=> (await caches.keys()).some(key=>key.startsWith('wlf-pwa-2.2.0')));
+await page.locator('#app').waitFor({state:'visible'});
+await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
 // Existing troubleshooting editors remain available to Super Admin.
 await tab('troubleshooting');await page.locator('[data-section="GENERAL"]').waitFor({state:'visible'});await page.locator('[data-section="GENERAL"]').click();assert(await page.locator('#tbAdd').isVisible());await page.locator('#tbAdd').click();assert(await page.locator('.tb-field-label').first().isVisible());await page.evaluate(()=>document.getElementById('tbEditor').close());await page.locator('#tbBack').click();await page.locator('[data-section="MOT"]').click();assert(await page.locator('#tbAddOption').isVisible());await page.locator('#tbErrors').click();assert(await page.locator('#tbAdd').isVisible());await page.locator('#tbSearch').fill('Er07');await page.locator('#tbEdit').waitFor();await page.locator('#tbEdit').click();assert(await page.locator('[data-add-step]').first().isVisible());await page.evaluate(()=>document.getElementById('tbEditor').close());
 // Actual document CRUD against upgraded PostgreSQL and role-restricted UI.
