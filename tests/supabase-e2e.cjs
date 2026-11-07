@@ -79,15 +79,19 @@ async function category(){await tab('technical');await page.locator('[data-suppo
 await login('sa');
 // The appearance/update menu is inside the signed-in application shell.
 await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);
+await page.locator('.appearance-menu summary').click();
+const updateButton=page.locator('#updateWlf');
+assert.equal(await updateButton.isVisible(),false,'Initial service-worker install should not offer an update');
 shellVersion='v220';
 await page.evaluate(async()=>{const registration=await navigator.serviceWorker.ready;await registration.update();});
-await page.locator('.appearance-menu summary').click();
-await page.locator('#updateWlf').waitFor();
+await updateButton.waitFor({state:'visible'});
+assert.equal(await page.evaluate(async()=>Boolean((await navigator.serviceWorker.ready).waiting)),true);
 page.once('dialog',d=>d.accept());
-const updated=page.waitForEvent('load');
-await page.locator('#updateWlf').click();
-await updated;
-await page.waitForFunction(async()=> (await caches.keys()).some(key=>key.startsWith('wlf-pwa-2.2.0')));
+await Promise.all([page.waitForEvent('load'),updateButton.click()]);
+await page.waitForFunction(async()=>{
+ const keys=await caches.keys();
+ return keys.some(key=>key.startsWith('wlf-pwa-2.2.0')) && !keys.some(key=>key.startsWith('wlf-pwa-2.1.0'));
+});
 await page.locator('#app').waitFor({state:'visible'});
 await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
 // Existing troubleshooting editors remain available to Super Admin.

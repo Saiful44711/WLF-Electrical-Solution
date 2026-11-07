@@ -1,4 +1,4 @@
-(function(){'use strict';var channel=null,owner='',timer=null,installEvent=null,refreshTables=new Set(),running=false,updating=false;
+(function(){'use strict';var channel=null,owner='',timer=null,installEvent=null,refreshTables=new Set(),running=false;
 function el(id){return document.getElementById(id);}
 function indicator(s){if(el('realtimeStatus'))el('realtimeStatus').textContent=s;}
 async function flush(){if(running||!SESSION)return;running=true;var tables=Array.from(refreshTables);refreshTables.clear();try{
@@ -21,6 +21,60 @@ document.addEventListener('DOMContentLoaded',function(){
  var start=startApp;startApp=function(s){start(s);subscribe();};
  setInterval(()=>{if(SESSION&&!navigator.onLine&&SESSION.offlineUntil<=Date.now())forceLogout('Offline access expired. Reconnect and log in.');},15000);
  if(!configured())el('authMsg').innerHTML='<div class="msg info">Setup required: configure Supabase URL and publishable key. Read START_HERE_BN.html in your package.</div>';
- if('serviceWorker'in navigator){navigator.serviceWorker.register('./sw.js').then(reg=>{function waiting(){if(reg.waiting){el('updateWlf').hidden=false;el('updateWlf').onclick=()=>{if(confirm('Save any draft before updating. Reload now?')){updating=true;reg.waiting.postMessage('ACTIVATE_UPDATE');}};}}waiting();var lastCheck=0;function checkUpdate(){if(!navigator.onLine||document.visibilityState==='hidden'||Date.now()-lastCheck<60000)return;lastCheck=Date.now();reg.update().catch(function(){});}window.addEventListener('online',checkUpdate);document.addEventListener('visibilitychange',checkUpdate);reg.addEventListener('updatefound',()=>{const sw=reg.installing;sw.addEventListener('statechange',()=>{if(sw.state==='installed')waiting();});});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(updating)location.reload();});}).catch(err=>console.warn('Offline setup:',err.message));}
+ if ('serviceWorker' in navigator) {
+  const serviceWorkers = navigator.serviceWorker;
+  serviceWorkers.register('./sw.js').then(registration => {
+   const updateButton = el('updateWlf');
+   let updating = false;
+   let lastCheck = 0;
+
+   function syncUpdateButton() {
+    updateButton.hidden = updating || !serviceWorkers.controller || !registration.waiting;
+   }
+
+   function watchInstallation() {
+    registration.installing?.addEventListener('statechange', syncUpdateButton);
+    syncUpdateButton();
+   }
+
+   updateButton.onclick = () => {
+    const controller = serviceWorkers.controller;
+    if (!controller || !registration.waiting || !confirm('Save any draft before updating. Reload now?')) {
+     syncUpdateButton();
+     return;
+    }
+
+    // Another tab can activate the waiting worker while the confirmation is open.
+    if (serviceWorkers.controller !== controller) {
+     location.reload();
+     return;
+    }
+    const waitingWorker = registration.waiting;
+    if (waitingWorker) {
+     updating = true;
+     waitingWorker.postMessage('ACTIVATE_UPDATE');
+    } else if (registration.active && registration.active !== controller) {
+     updating = true;
+    }
+    syncUpdateButton();
+   };
+
+   function checkUpdate() {
+    if (!navigator.onLine || document.visibilityState === 'hidden' || Date.now() - lastCheck < 60000) return;
+    lastCheck = Date.now();
+    registration.update().catch(() => {});
+   }
+
+   window.addEventListener('online', checkUpdate);
+   document.addEventListener('visibilitychange', checkUpdate);
+   registration.addEventListener('updatefound', watchInstallation);
+   registration.waiting?.addEventListener('statechange', syncUpdateButton);
+   serviceWorkers.addEventListener('controllerchange', () => {
+    if (updating) location.reload();
+    else syncUpdateButton();
+   });
+   watchInstallation();
+  }).catch(err => console.warn('Offline setup:', err.message));
+ }
  });
 })();
