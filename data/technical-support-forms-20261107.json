@@ -1,0 +1,765 @@
+{
+  "source": {
+    "filename": "Technical support form.xlsx",
+    "sheet": "Technical Support Form",
+    "sha256": "2972fc9c03fec1ebfd00f17c28d6254263d29b35b9e7b6cb0690951abc7c965b",
+    "rows": {
+      "aftersales": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "commissioning": [
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "production": [
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "qc": [
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "maintenance": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44
+      ],
+      "installation": [
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54
+      ]
+    }
+  },
+  "assumptions": [
+    {
+      "cell": "F52",
+      "category": "installation",
+      "field": "Problem Sub-Category",
+      "decision": "select",
+      "reason": "The field type is blank and the workbook supplies ten choices in E52."
+    }
+  ],
+  "forms": {
+    "aftersales": {
+      "title": "After Sales Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "area_csm",
+          "label": "Area CSM",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Alamgir Hosen(54655)",
+            "Ashraful Alam(54950)",
+            "Mehedi Hasan(55514)",
+            "Ahmed Ashiq(54760)",
+            "Palash Chandra Roy(55009)"
+          ]
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "controller",
+          "label": "Control System Brand",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "NICE3000+",
+            "MOT",
+            "MOTCUBE",
+            "Hydraulic-ARL700",
+            "Hydraulic-PLC",
+            "Home Lift"
+          ]
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Drive system related problem",
+            "Cartop board related problem",
+            "CPC/Call card related problem",
+            "COP display Issue",
+            "LOP display problem",
+            "Traction Machine related problem",
+            "Encoder problem",
+            "UPS/ARD related Issue",
+            "Braking Resistor problem",
+            "Intercom set issue",
+            "Light issue",
+            "Transformer",
+            "Door inverter",
+            "Switch",
+            "Sensor",
+            "Battery",
+            "Fan",
+            "AVR",
+            "Vibration/Rollback",
+            "Bumping",
+            "MOTCUBE Activation",
+            "Parameters Issue",
+            "Other:"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    },
+    "commissioning": {
+      "title": "Commissioning Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "pm",
+          "label": "PM",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Md. Rejaul Karim(47869)",
+            "Masum(51111)"
+          ]
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "controller",
+          "label": "Control System Brand",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "NICE3000+",
+            "MOT",
+            "MOTCUBE",
+            "Hydraulic-ARL700",
+            "Hydraulic-PLC",
+            "Home Lift"
+          ]
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Drive system related problem",
+            "Cartop board related problem",
+            "CPC/Call card related problem",
+            "COP display Issue",
+            "LOP display problem",
+            "Traction Machine related problem",
+            "Encoder problem",
+            "UPS/ARD related Issue",
+            "Braking Resistor problem",
+            "Intercom set issue",
+            "Light issue",
+            "Transformer",
+            "Door inverter",
+            "Switch",
+            "Sensor",
+            "Battery",
+            "Fan",
+            "AVR",
+            "Vibration/Rollback",
+            "Bumping",
+            "MOTCUBE Activation",
+            "Parameters Issue",
+            "Other:"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    },
+    "production": {
+      "title": "Production Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "controller",
+          "label": "Control System Brand",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "NICE3000+",
+            "MOT",
+            "MOTCUBE",
+            "Hydraulic-ARL700",
+            "Hydraulic-PLC",
+            "Home Lift"
+          ]
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Drive system related problem",
+            "Cartop board related problem",
+            "CPC/Call card related problem",
+            "COP display Issue",
+            "LOP display problem",
+            "Traction Machine related problem",
+            "Encoder problem",
+            "UPS/ARD related Issue",
+            "Braking Resistor problem",
+            "Intercom set issue",
+            "Light issue",
+            "Transformer",
+            "Door inverter",
+            "Switch",
+            "Sensor",
+            "Battery",
+            "Fan",
+            "AVR",
+            "Vibration/Rollback",
+            "Bumping",
+            "MOTCUBE Activation",
+            "Parameters Issue",
+            "Other:"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    },
+    "qc": {
+      "title": "QC Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "controller",
+          "label": "Control System Brand",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "NICE3000+",
+            "MOT",
+            "MOTCUBE",
+            "Hydraulic-ARL700",
+            "Hydraulic-PLC",
+            "Home Lift"
+          ]
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Drive system related problem",
+            "Cartop board related problem",
+            "CPC/Call card related problem",
+            "COP display Issue",
+            "LOP display problem",
+            "Traction Machine related problem",
+            "Encoder problem",
+            "UPS/ARD related Issue",
+            "Braking Resistor problem",
+            "Intercom set issue",
+            "Light issue",
+            "Transformer",
+            "Door inverter",
+            "Switch",
+            "Sensor",
+            "Battery",
+            "Fan",
+            "AVR",
+            "Vibration/Rollback",
+            "Bumping",
+            "MOTCUBE Activation",
+            "Parameters Issue",
+            "Other:"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    },
+    "maintenance": {
+      "title": "Factory Maintenance Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "controller",
+          "label": "Control System Brand",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "NICE3000+",
+            "MOT",
+            "MOTCUBE",
+            "Hydraulic-ARL700",
+            "Hydraulic-PLC",
+            "Home Lift"
+          ]
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Drive system related problem",
+            "Cartop board related problem",
+            "CPC/Call card related problem",
+            "COP display Issue",
+            "LOP display problem",
+            "Traction Machine related problem",
+            "Encoder problem",
+            "UPS/ARD related Issue",
+            "Braking Resistor problem",
+            "Intercom set issue",
+            "Light issue",
+            "Transformer",
+            "Door inverter",
+            "Switch",
+            "Sensor",
+            "Battery",
+            "Fan",
+            "AVR",
+            "Vibration/Rollback",
+            "Bumping",
+            "MOTCUBE Activation",
+            "Parameters Issue",
+            "Other:"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    },
+    "installation": {
+      "title": "Installation Team Support Request",
+      "fields": [
+        {
+          "id": "date",
+          "label": "Date",
+          "type": "date",
+          "help": "",
+          "required": true,
+          "autoFill": "today",
+          "options": []
+        },
+        {
+          "id": "identity",
+          "label": "Name & ID",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "identity",
+          "options": []
+        },
+        {
+          "id": "pm",
+          "label": "PM",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Sabbir Ahmmed(55395)",
+            "Elias Hossain(52449)",
+            "Ashikur Rahman Akash(42976)",
+            "Taiful Islam(69313)"
+          ]
+        },
+        {
+          "id": "project",
+          "label": "Project Name",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "lift",
+          "label": "Lift ID",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "capacity",
+          "label": "Capacity",
+          "type": "number",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "problem_category",
+          "label": "Problem Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "Mechanical",
+            "Electrical"
+          ]
+        },
+        {
+          "id": "sub",
+          "label": "Problem Sub-Category",
+          "type": "select",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": [
+            "1. Asthetics",
+            "2. Steel Rope",
+            "3. Motor Related Issue",
+            "4. Door Related Issue",
+            "5. Vibration",
+            "6. Bumping",
+            "7. Electrical Layout",
+            "8. Slow Speed Issue",
+            "9. SDB Requirement",
+            "10. Others"
+          ]
+        },
+        {
+          "id": "problem",
+          "label": "Problem Details",
+          "type": "text",
+          "help": "",
+          "required": true,
+          "autoFill": "",
+          "options": []
+        },
+        {
+          "id": "remarks",
+          "label": "Remarks",
+          "type": "text",
+          "help": "",
+          "required": false,
+          "autoFill": "",
+          "options": []
+        }
+      ]
+    }
+  }
+}

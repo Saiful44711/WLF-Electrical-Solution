@@ -4,6 +4,7 @@ const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css'
 const testConfig="window.WLF_CONFIG={supabaseUrl:'https://wlf-test.supabase.co',supabasePublishableKey:'sb_publishable_test_public_key',offlineHours:24};";
 const archiveParts=new Map();
 const Zip=require('jszip');
+const supportWorkbook=require('../data/technical-support-forms-20261107.json');
 const excelFiles=new Map();
 let shellVersion='v210';
 let dbQueue=Promise.resolve();
@@ -27,6 +28,7 @@ function jwt(id){return [Buffer.from('{"alg":"none"}').toString('base64url'),Buf
 (async()=>{
 h=await makeDB();
 await h.db.exec(fs.readFileSync('supabase/UPDATE_V220.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','utf8'));
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
  const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.2.0-ri-support','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
@@ -94,6 +96,38 @@ await page.waitForFunction(async()=>{
 });
 await page.locator('#app').waitFor({state:'visible'});
 await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
+// All six Technical Support request forms must match the uploaded workbook.
+await tab('technical');
+for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
+ await page.locator('[data-support-category="'+team+'"]').click();
+ await page.locator('#newSupportRequest').click();
+ const controls = await page.locator('#supportRequestForm [name]').evaluateAll(nodes => nodes.map(node => ({
+  id: node.name,
+  label: node.closest('.field').querySelector('label').textContent.replace(/\s+\*$/, ''),
+  required: node.required,
+  readOnly: Boolean(node.readOnly),
+  tag: node.tagName,
+  inputMode: node.getAttribute('inputmode'),
+  value: node.value,
+  options: node.tagName === 'SELECT' ? Array.from(node.options).slice(1).map(option => option.value) : [],
+ })));
+ assert.equal(controls.length, expectedForm.fields.length, team);
+ for (const [index, field] of expectedForm.fields.entries()) {
+  const control = controls[index];
+  assert.equal(control.id, field.id, team+' field order');
+  assert.equal(control.label, field.label, team+' field label');
+  assert.equal(control.required, field.required, team+' required field');
+  assert.equal(control.readOnly, Boolean(field.autoFill), team+' autofill');
+  assert.deepEqual(control.options, field.options, team+' dropdown choices');
+  if (field.type === 'select') assert.equal(control.tag, 'SELECT');
+  if (field.type === 'number') assert.equal(control.inputMode, 'decimal');
+  if (field.autoFill === 'identity') assert.equal(control.value, 'sa');
+  if (field.autoFill === 'today') assert.match(control.value, /^\d{4}-\d{2}-\d{2}$/);
+ }
+ await page.screenshot({path:'test-results/support-fields-'+team+'.png',fullPage:true});
+ await page.locator('#closeSupportForm').click();
+ await page.locator('#supportHome').click();
+}
 // Existing troubleshooting editors remain available to Super Admin.
 await tab('troubleshooting');await page.locator('[data-section="GENERAL"]').waitFor({state:'visible'});await page.locator('[data-section="GENERAL"]').click();assert(await page.locator('#tbAdd').isVisible());await page.locator('#tbAdd').click();assert(await page.locator('.tb-field-label').first().isVisible());await page.evaluate(()=>document.getElementById('tbEditor').close());await page.locator('#tbBack').click();await page.locator('[data-section="MOT"]').click();assert(await page.locator('#tbAddOption').isVisible());await page.locator('#tbErrors').click();assert(await page.locator('#tbAdd').isVisible());await page.locator('#tbSearch').fill('Er07');await page.locator('#tbEdit').waitFor();await page.locator('#tbEdit').click();assert(await page.locator('[data-add-step]').first().isVisible());await page.evaluate(()=>document.getElementById('tbEditor').close());
 // Actual document CRUD against upgraded PostgreSQL and role-restricted UI.

@@ -3,6 +3,13 @@
 Production upgrade for the existing WLF v2.1 Supabase project and GitHub Pages PWA.
 Open START_HERE_BN.html in the release ZIP for the rollout guide.
 
+The 7 November 2026 Technical Support field update uses the supplied
+Technical support form.xlsx. Existing v2.2 projects apply
+supabase/UPDATE_SUPPORT_FORMS_20261107.sql in the Supabase SQL Editor.
+New staging databases apply it after UPDATE_V220.sql. The six field definitions
+and source checksum are in data/technical-support-forms-20261107.json.
+The previous definitions are stored in wlf_private.support_form_updates.
+
 | Order | Place | File or action |
 | --- | --- | --- |
 | 1 | Supabase SQL Editor | supabase/PRECHECK_V220.sql |
