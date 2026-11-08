@@ -30,6 +30,8 @@ h=await makeDB();
 await h.db.exec(fs.readFileSync('supabase/UPDATE_V220.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
+await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
  const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.2.0-ri-support','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
@@ -58,7 +60,7 @@ await page.goto(origin+'/wlf/');await page.locator('#loginEmail').waitFor();
 await page.locator('#tabRegister').click();await page.getByLabel('FULL NAME-ID').waitFor();
 await page.locator('#tabLogin').click();
 
-async function login(name){await page.locator('#loginEmail').fill(name+'@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);await page.evaluate(()=>openTab('account'));await page.locator('#tab-account [onclick=\"changePw()\"]').waitFor({state:'visible'});for(const [old,next]of [['test-password-123','changed-password-123'],['changed-password-123','test-password-123']]){await page.locator('#pwOld').fill(old);await page.locator('#pwNew').fill(next);await page.locator('#pwNew2').fill(next);await page.locator('#tab-account button').click();await page.waitForFunction(()=>document.getElementById('pwNew').value==='');} }
+async function login(name){await page.locator('#loginEmail').fill(name+'@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);await page.evaluate(()=>openTab('account'));await page.locator('#tab-account [onclick=\"changePw()\"]').waitFor({state:'visible'});for(const [old,next]of [['test-password-123','changed-password-123'],['changed-password-123','test-password-123']]){await page.locator('#pwOld').fill(old);await page.locator('#pwNew').fill(next);await page.locator('#pwNew2').fill(next);await page.locator('#tab-account [onclick="changePw()"]').click();await page.waitForFunction(()=>document.getElementById('pwNew').value==='');} }
 async function logout(){await page.evaluate(()=>logout());await page.locator('#authScreen').waitFor({state:'visible'});}
 async function tab(name){await page.evaluate(name=>openTab(name),name);}
 async function checkRiMobileFit(selector){
@@ -116,6 +118,11 @@ await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
 // All six Technical Support request forms must match the uploaded workbook.
 await tab('technical');
 for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
+ const expectedFields = [...expectedForm.fields];
+ if (['commissioning','aftersales','installation'].includes(team)) {
+  expectedFields.splice(expectedFields.findIndex(field=>field.label==='Project Name')+1,0,
+   {id:'project_address',label:'Project Address',type:'textarea',required:false,options:[]});
+ }
  await page.locator('[data-support-category="'+team+'"]').click();
  await page.locator('#newSupportRequest').click();
  const controls = await page.locator('#supportRequestForm [name]').evaluateAll(nodes => nodes.map(node => ({
@@ -128,8 +135,8 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
   value: node.value,
   options: node.tagName === 'SELECT' ? Array.from(node.options).slice(1).map(option => option.value) : [],
  })));
- assert.equal(controls.length, expectedForm.fields.length, team);
- for (const [index, field] of expectedForm.fields.entries()) {
+ assert.equal(controls.length, expectedFields.length, team);
+ for (const [index, field] of expectedFields.entries()) {
   const control = controls[index];
   assert.equal(control.id, field.id, team+' field order');
   assert.equal(control.label, field.label, team+' field label');
@@ -137,6 +144,7 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
   assert.equal(control.readOnly, Boolean(field.autoFill), team+' autofill');
   assert.deepEqual(control.options, field.options, team+' dropdown choices');
   if (field.type === 'select') assert.equal(control.tag, 'SELECT');
+  if (field.type === 'textarea') assert.equal(control.tag, 'TEXTAREA');
   if (field.type === 'number') assert.equal(control.inputMode, 'decimal');
   if (field.autoFill === 'identity') assert.equal(control.value, 'sa');
   if (field.autoFill === 'today') assert.match(control.value, /^\d{4}-\d{2}-\d{2}$/);
@@ -151,6 +159,8 @@ await tab('troubleshooting');await page.locator('[data-section="GENERAL"]').wait
 await tab('documents');await page.locator('#wlfAddCategory').click();await page.locator('#wlfCategoryName').fill('Training');await page.locator('#wlfCategoryFields').fill('Revision\nModel');await page.locator('#wlfCategoryForm button:not([type=button])').click();await page.locator('[data-doc-category]').filter({hasText:'Training'}).click();await page.locator('#wlfAddDocument').click();await page.locator('#wlfDocumentName').fill('Commissioning Checklist');await page.locator('#wlfDocumentUrl').fill('https://drive.google.com/file/d/synthetic_test/view');await page.locator('[data-doc-field="0"]').fill('R1');await page.locator('[data-doc-field="1"]').fill('Demo model');await page.locator('#wlfDocumentForm button:not([type=button])').click();await page.locator('#wlfDocList a').filter({hasText:'Commissioning Checklist'}).waitFor();assert.equal(await page.locator('#wlfDocList a').getAttribute('target'),'_blank');await page.locator('[data-edit-doc]').click();await page.locator('#wlfDocumentName').fill('Updated Checklist');await page.locator('#wlfDocumentForm button:not([type=button])').click();await page.locator('#wlfDocList a').filter({hasText:'Updated Checklist'}).waitFor();await page.setViewportSize({width:390,height:844});await page.evaluate(()=>closeSidebar());await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.screenshot({path:'test-results/v210-documents-mobile.png',fullPage:true});await page.setViewportSize({width:1280,height:900});
 // Search and rejected deletion keep the existing approval/access editor.
 await tab('users');await page.locator('#userAccessSearch').fill('user@example.test');assert.equal(await page.locator('.access-user:visible').count(),1);await page.locator('#userAccessSearch').fill('other@example.test');await page.locator('.access-user:visible summary').click();page.once('dialog',d=>d.accept());await page.locator('.access-delete').click();await page.waitForFunction(()=>!document.querySelector('[data-access-user="other@example.test"]'));
+assert.equal((await sequential(()=>h.db.query("select count(*) n from public.wlf_usage where actor=$1",[IDS.other]))).rows[0].n,1);
+assert.equal((await sequential(()=>h.db.query("select count(*) n from auth.users where id=$1",[IDS.other]))).rows[0].n,0);
 // One solved support fixture tests date filters, backup-only, clear, download and restore UI.
 let vals={};for(const f of require('../data/workbook-v220-audit.json').support.commissioning.fields)vals[f.id]=f.type==='multi'?[f.options[0]]:f.type==='date'?'2026-09-12':f.type==='number'?'8888':f.options.length?f.options[0]:'Browser backup test';let seed=await h.rpc('user','createSupportRequest',[{category:'commissioning',values:vals,mutationId:'browser-backup-create-0001'}]);seed=await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'receive',mutationId:'browser-backup-receive-001'}]);await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'solve',comment:'Backup test solved',mutationId:'browser-backup-solve-0001'}]);
 await h.db.query("update public.wlf_requests set created_at='2026-09-12 06:00:00+00' where id=$1",[seed.id]);
@@ -270,7 +280,7 @@ await tab('calculation');await page.evaluate(()=>openCalcPane('power'));for(cons
 const result=await page.evaluate(()=>LiftCore.calculate('calculatePowerAndAVR',{motorPowerKW:3.9,k2:.95,k3:.95,brakePowerBothW:324,tubeLightQty:4,panelLightQty:0,spotLightQty:4,crossFlowFanQty:2,othersFixedW:500}));assert.equal(result.suggestGeneratorKVA,8.668);
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();const searchBefore=rpcCount;await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.ok((await page.locator('#tbDetail').innerText()).includes('102'));await page.locator('#tbSubSearch').fill('102');await page.locator('#tbDetail').filter({hasText:'102'}).waitFor();assert.equal(rpcCount,searchBefore);
 await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=identity]').inputValue(),'user');
-await fillDynamic('#supportRequestForm',{lift:'991234'});await page.locator('#submitSupportRequest').click();await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-991234-\d{8}/}).waitFor();const id=await page.locator('#supportDetail').getAttribute('data-record-id');assert.equal(await page.locator('#editSupportForm,#deleteSupportTicket,#receiveSupport').count(),0);assert.equal(await page.locator('#supportBadge').innerText(),'1');await logout();
+await fillDynamic('#supportRequestForm',{lift:'991234',project_address:'Plot 14, Dhaka'});await page.locator('#submitSupportRequest').click();await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-991234-\d{8}/}).waitFor();const id=await page.locator('#supportDetail').getAttribute('data-record-id');assert.equal(await page.locator('#editSupportForm,#deleteSupportTicket,#receiveSupport').count(),0);assert.equal(await page.locator('#supportBadge').innerText(),'1');await logout();
 await login('admin');assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);await category();assert.equal(await page.locator('#newSupportRequest').count(),0);await page.locator('#supportFilterQuery').fill('991234');await page.waitForTimeout(450);assert.equal(await page.locator('#supportFilterQuery').evaluate(n=>document.activeElement===n),true);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('#supportDetail h3').waitFor();assert.equal(await page.locator('#receiveSupport').count(),0);const download=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await download).saveAs('test-results/support-report.csv');assert.ok(fs.readFileSync('test-results/support-report.csv','utf8').match(/TCS\d+-991234-\d{8}/));await logout();
 await login('rni');
 await tab('dashboard');
@@ -345,6 +355,7 @@ assert.equal(await page.locator('[data-damage-pane=dashboard]').count(),1);
 await page.locator('#damageFilters [name=category]').selectOption('commissioning');
 await page.locator('#damageFilters [name=component]').selectOption('v:main contactor');
 const today=await page.evaluate(()=>AccessCore.dateKey(new Date()));
+await page.locator('#damageFilters summary').click();
 await page.locator('#damageFilters [name=from]').fill(today);
 await page.locator('#damageFilters [name=to]').fill(today);
 const filteredDashboard=page.waitForResponse(response=>response.url().endsWith('/rest/v1/rpc/wlf_rpc')&&
@@ -365,6 +376,13 @@ assert.match(damageSheet,/Main contactor/);
 assert.match(damageSheet,/=1\+1/);
 assert.doesNotMatch(damageSheet,/<f>/);
 assert.match(await damageZip.file('xl/worksheets/sheet2.xml').async('string'),/<v>100<\/v>/);
+await page.locator('[data-damage-status=Pending]').click();
+await page.getByRole('heading',{name:'Pending demands',exact:true}).waitFor();
+assert.match(await page.locator('#damageResults tbody').innerText(),/Main contactor/);
+await page.locator('[data-damage-status=Received]').click();
+await page.getByRole('heading',{name:'Received demands',exact:true}).waitFor();
+await page.locator('#damageResults').getByText('No demands match these filters.').waitFor();
+assert.equal(await page.locator('[data-damage-status=Pending] b').innerText(),'1');
 await page.screenshot({path:'test-results/damage-demand-dashboard.png',fullPage:true});
 await page.setViewportSize({width:390,height:844});
 await page.evaluate(()=>closeSidebar());
@@ -385,6 +403,7 @@ await login('admin');
 await tab('damage-demand');
 await page.locator('[data-damage-view]').waitFor();
 assert.equal(await page.locator('[data-damage-pane=dashboard]').count(),0);
+await page.locator('#damageFilters summary').click();
 await page.locator('#damageFilters [name=lift]').fill('991234');
 await page.locator('#damageFilters [name=project]').fill('Browser verification');
 await page.getByRole('button',{name:'Apply filters',exact:true}).click();
@@ -394,17 +413,73 @@ await dialog.getByRole('heading',{name:'Solution statement'}).waitFor();
 await dialog.getByText('Replace the damaged main contactor.',{exact:true}).waitFor();
 await dialog.getByText('Submitted support form details',{exact:true}).click();
 assert.ok(await dialog.getByText('991234',{exact:true}).isVisible());
+assert.ok(await dialog.getByText('Plot 14, Dhaka',{exact:true}).isVisible());
 await page.locator('#damageReceive').click();
 await page.locator('#damageDetailStatus').filter({hasText:'Demand received.'}).waitFor();
 assert.equal(await dialog.locator('.support-status').innerText(),'Received');
 await dialog.getByRole('button',{name:'Close',exact:true}).click();
-await page.locator('#tab-damage-demand').getByText('No demands match these filters.').waitFor();
-await page.locator('#damageFilters [name=status]').selectOption('Received');
-await page.getByRole('button',{name:'Apply filters',exact:true}).click();
-await page.locator('[data-damage-view]').waitFor();
+await page.locator('#damageResults tbody .support-status').filter({hasText:'Received'}).waitFor();
+assert.equal(await page.locator('#damageFilters [name=status]').inputValue(),'');
+await page.locator('[data-damage-view]').click();
+await dialog.getByRole('heading',{name:'Solution statement'}).waitFor();
+assert.equal(await dialog.locator('#damageReceive').count(),0);
+await dialog.getByRole('button',{name:'Close',exact:true}).click();
+await logout();
+
+await login('sa');
+assert.equal(await page.locator('#nav [data-damage-nav=dashboard] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);
+await tab('qms');
+await page.locator('#qmsAdd').click();
+await page.locator('#qmsComponentForm [name=project]').fill('WLF North Tower');
+await page.locator('#qmsComponentForm [name=component]').fill('Drive unit');
+await page.locator('#qmsComponentForm [name=lift_id]').fill('L-101');
+await page.locator('#qmsComponentForm [name=quantity]').fill('3');
+await page.locator('#qmsComponentForm [type=submit]').click();
+await page.locator('#tab-qms tbody').getByText('Drive unit',{exact:true}).waitFor();
+await page.locator('[data-qms-view]').click();
+await page.locator('#qmsComponentForm [name=status]').selectOption('Verified');
+await page.locator('#qmsComponentForm [type=submit]').click();
+await page.locator('#tab-qms tbody').getByText('Verified',{exact:true}).waitFor();
+await tab('workspace-dashboard');
+await page.getByRole('heading',{name:'Team KPIs'}).waitFor();
+await page.locator('#workspaceFilters [name=section]').selectOption('qms');
+await page.locator('#workspaceFilters [type=submit]').click();
+await page.getByRole('cell',{name:'WLF North Tower · Drive unit',exact:true}).waitFor();
+const kpiFile=page.waitForEvent('download');
+await page.locator('#workspaceExport').click();
+await (await kpiFile).saveAs('test-results/workspace-kpis.xlsx');
+const kpiZip=await Zip.loadAsync(fs.readFileSync('test-results/workspace-kpis.xlsx'));
+assert.match(await kpiZip.file('xl/worksheets/sheet4.xml').async('string'),/WLF North Tower/);
+await page.evaluate(()=>setAppearance('light'));
+await page.screenshot({path:'test-results/workspace-kpis.png'});
+await page.setViewportSize({width:320,height:760});
+await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);
+await checkRiMobileFit('#tab-workspace-dashboard');
+await page.screenshot({path:'test-results/workspace-kpis-mobile.png'});
+await tab('qms');
+await page.locator('[data-qms-view]').waitFor();
+await checkRiMobileFit('#tab-qms');
+await page.locator('#qmsAdd').click();
+await checkRiMobileFit('#qmsDialog');
+await page.locator('#qmsClose').click();
+await page.setViewportSize({width:1280,height:900});
 await logout();
 
 await login('user');
+assert.equal(await page.locator('#nav [data-tab=qms]').isVisible(),false);
+assert.equal(await page.locator('#nav [data-tab=workspace-dashboard]').isVisible(),false);
+await tab('account');
+await page.getByRole('heading',{name:'My activity'}).waitFor();
+assert.equal(await page.locator('#pageTitle').innerText(),'My Profile');
+assert.equal(await page.locator('#profileOverview').getByText('Drive unit',{exact:false}).count(),0);
+assert.match(await page.locator('#profileOverview').innerText(),/user@example.test/);
+await page.screenshot({path:'test-results/workspace-profile.png'});
+await page.setViewportSize({width:320,height:760});
+await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);
+await page.evaluate(()=>setAppearance('dark'));
+await checkRiMobileFit('#tab-account');
+await page.screenshot({path:'test-results/workspace-profile-mobile.png'});
+await page.setViewportSize({width:1280,height:900});
 await category();
 await page.locator(`[data-ticket="${id}"]`).click();
 await page.locator('#supportDamageStatus').filter({hasText:'Received'}).waitFor();
@@ -413,5 +488,5 @@ assert.match(await page.locator('#supportDetail').innerText(),/Duration \(Min\) 
 await page.setViewportSize({width:390,height:844});await page.evaluate(()=>closeSidebar());await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);const mobile=await page.evaluate(()=>{let logo=document.querySelector('.header-company-logo').getBoundingClientRect(),title=document.getElementById('pageTitle').getBoundingClientRect(),menu=document.querySelector('.appearance-menu').getBoundingClientRect();return{left:logo.x<title.x,right:menu.x>title.right,edge:innerWidth-menu.right};});assert.ok(mobile.left&&mobile.right&&mobile.edge<25);await page.locator('.appearance-menu summary').click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('.appearance-menu summary').click();await page.screenshot({path:'test-results/supabase-mobile-support.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 // Actual service worker caches project-subpath shell; downloaded references work offline.
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
-assert.deepEqual(errors,[]);console.log('PASS WLF browser including Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
+assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
 })().catch(async err=>{console.error(err);console.error('Page errors',errors);if(page&&!page.isClosed()){console.error((await page.locator('body').innerText()).slice(-3500));await page.screenshot({path:'test-results/failure.png',fullPage:true});}process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.close();if(h)await h.close();});

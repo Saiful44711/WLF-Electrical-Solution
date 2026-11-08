@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build": "node scripts/build-pwa.mjs",
-    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs tests/password-change.test.cjs tests/maintenance.test.cjs tests/maintenance-edge.test.cjs tests/release-v220.test.cjs tests/support-forms-workbook.test.cjs tests/damage-demand.test.cjs",
+    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs tests/password-change.test.cjs tests/maintenance.test.cjs tests/maintenance-edge.test.cjs tests/release-v220.test.cjs tests/support-forms-workbook.test.cjs tests/damage-demand.test.cjs tests/workspace-update.test.cjs",
     "test:e2e": "node tests/supabase-e2e.cjs",
     "preview": "node scripts/serve.mjs",
     "build:upgrade": "node scripts/build-v220-sql.mjs",

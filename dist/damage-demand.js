@@ -195,7 +195,7 @@ const WlfDamage = (() => {
     return `<div class="tbl-wrap" tabindex="0" aria-label="Damage demand records"><table class="tbl damage-table">
       <thead><tr>${headers.map(label => `<th scope="col">${h(label)}</th>`).join('')}</tr></thead>
       <tbody>${rows.map(d => `<tr>
-        <td>${queue ? `<button type="button" class="btn ghost damage-link" data-damage-view="${h(d.id)}">${h(d.reference)}</button>` : h(d.reference)}
+        <td>${allowed('demand') ? `<button type="button" class="btn ghost damage-link" data-damage-view="${h(d.id)}">${h(d.reference)}</button>` : h(d.reference)}
           <small>${h(d.requestReference)}</small></td>
         <td>${h(teamName(d.category))}</td><td>${h(d.project || 'Not recorded')}<small>${h(d.lift)}</small></td>
         ${queue ? '' : `<td>${h(d.controllers.join(', ') || 'Not recorded')}</td><td>${h(d.problemCategories.join(', ') || 'Not recorded')}</td>`}
@@ -219,7 +219,7 @@ const WlfDamage = (() => {
 
   function render() {
     const root = el('tab-damage-demand');
-    const {pane, filters, data, cursors} = state;
+    const {pane, filters, data, cursors, listStatus, advanced} = state;
     const queue = pane === 'demand';
     const facets = key => (data?.facets?.[key] || []).map(({value, label}) => [value, label]);
     const tabs = ['demand', 'dashboard'].filter(allowed).map(option =>
@@ -227,38 +227,51 @@ const WlfDamage = (() => {
         data-damage-pane="${option}">${option === 'demand' ? 'Demand' : 'Dashboard'}</button>`).join('');
 
     root.innerHTML = `<div class="wlf-module damage-workspace">
-      <section class="card">
-        <div class="review-heading"><div><h3>Damage Demand</h3>
-          <p class="note">${queue ? 'Track replacement demands by Technical Support team.' : 'Filter demand records, review component quantities and download Excel.'}</p>
-        </div></div>
-        <div class="wlf-section-tabs" aria-label="Damage Demand options">${tabs}</div>
-        <form id="damageFilters">
-          <div class="review-fields damage-filter-fields">
-            ${filterInput('From date', 'from', 'date', filters.from)}
-            ${filterInput('To date', 'to', 'date', filters.to)}
-            ${filterSelect('Support team', 'category', teamChoices, filters.category, 'All teams')}
-            ${queue ? filterSelect('Demand status', 'status', [['Pending', 'Pending'], ['Received', 'Received']], filters.status, 'All statuses') : ''}
-            ${queue ? filterInput('Lift ID', 'lift', 'text', filters.lift) : filterSelect('Controller', 'controller', facets('controller'), filters.controller)}
-            ${queue ? filterInput('Project name', 'project', 'text', filters.project) : filterSelect('Component', 'component', facets('component'), filters.component)}
-            ${queue ? '' : filterSelect('Problem category', 'problemCategory', facets('problemCategory'), filters.problemCategory)}
-          </div>
-          <p class="note">Dates use the demand submission date in Dhaka time.</p>
+      <section class="card damage-controls">
+        <div class="damage-toolbar">
+          <div class="wlf-section-tabs" aria-label="Damage Demand options">${tabs}</div>
           <div class="engineering-actions">
-            <button type="submit" class="btn">Apply filters</button>
-            <button type="button" class="btn ghost" id="damageReset">Reset filters</button>
             <button type="button" class="btn ghost" id="damageRefresh">Refresh</button>
             ${queue ? '' : '<button type="button" class="btn ghost" id="damageExport">Download filtered Excel</button>'}
           </div>
+        </div>
+        <form id="damageFilters">
+          <div class="damage-filter-fields">
+            ${filterSelect('Support team', 'category', teamChoices, filters.category, 'All teams')}
+            ${queue ? filterSelect('Status', 'status', [['Pending', 'Pending'], ['Received', 'Received']], filters.status, 'All statuses') :
+              filterSelect('Component', 'component', facets('component'), filters.component)}
+            ${queue ? filterInput('Project name', 'project', 'text', filters.project) :
+              filterSelect('Controller', 'controller', facets('controller'), filters.controller)}
+            <div class="engineering-actions">
+            <button type="submit" class="btn">Apply filters</button>
+            <button type="button" class="btn ghost" id="damageReset">Reset filters</button>
+            </div>
+          </div>
+          <details class="damage-more-filters" ${advanced ? 'open' : ''}>
+            <summary>More filters${filters.from || filters.to || filters.lift || filters.problemCategory ? ' · active' : ''}</summary>
+            <div class="damage-filter-fields">
+              ${filterInput('From date (Dhaka)', 'from', 'date', filters.from)}
+              ${filterInput('To date (Dhaka)', 'to', 'date', filters.to)}
+              ${queue ? filterInput('Lift ID', 'lift', 'text', filters.lift) :
+                filterSelect('Problem category', 'problemCategory', facets('problemCategory'), filters.problemCategory)}
+            </div>
+          </details>
         </form>
         <p id="damageStatus" role="status" aria-live="polite"></p>
       </section>
-      ${!queue && data ? `<section class="card damage-metrics" aria-label="Filtered demand totals">
-        ${[['Demands', data.total], ['Pending', data.pending], ['Received', data.received], ['Damaged units', data.units]]
-          .map(([label, value]) => `<div><b>${h(value)}</b><span>${h(label)}</span></div>`).join('')}
-        </section>${chart(data)}` : ''}
-      ${data ? `<section class="card">
-        <div class="review-heading"><h3>${queue ? 'Demand list' : 'Filtered demand records'}</h3>
-          <span class="note">${h(data.total)} match · showing ${data.rows.length}</span></div>
+      ${!queue && data ? `<section class="damage-metrics" aria-label="Filtered demand totals">
+        ${[['All demands', data.total, '', 'all'], ['Pending', data.pending, 'Pending', 'pending'],
+            ['Received', data.received, 'Received', 'received'], ['Damaged units', data.units, null, 'units']]
+          .map(([label, value, status, tone]) => {
+            const content = `<span>${label}</span><b>${h(value)}</b>`;
+            return status === null ? `<div class="damage-metric" data-tone="${tone}">${content}</div>` :
+              `<button type="button" class="damage-metric" data-tone="${tone}" data-damage-status="${status}"
+                 aria-controls="damageResults" aria-pressed="${listStatus === status}">${content}</button>`;
+          }).join('')}
+        </section>` : ''}
+      ${data ? `<section class="card damage-results" id="damageResults">
+        <div class="review-heading"><h3 tabindex="-1">${queue ? 'Demand list' : listStatus ? listStatus + ' demands' : 'Filtered demand records'}</h3>
+          <span class="note">${h(data.pageTotal ?? data.total)} match · showing ${data.rows.length}</span></div>
         ${!data.rows.length ? '<p class="note">No demands match these filters.</p>' : queue ? teams.map(team => {
           const rows = data.rows.filter(d => d.category === team);
           return rows.length ? `<section class="damage-team"><h4>${h(teamName(team))}</h4>${table(rows, true)}</section>` : '';
@@ -267,11 +280,24 @@ const WlfDamage = (() => {
           <button type="button" class="btn ghost" id="damagePrevious" ${cursors.length ? '' : 'disabled'}>Previous page</button>
           <button type="button" class="btn ghost" id="damageNext" ${data.nextCursor ? '' : 'disabled'}>Next page</button>
         </div></section>` : ''}
+      ${!queue && data ? chart(data) : ''}
     </div>`;
 
+    document.querySelectorAll('#nav [data-damage-nav]').forEach(button => {
+      const current = button.dataset.damageNav === pane;
+      button.classList.toggle('active', current);
+    });
     root.querySelectorAll('[data-damage-pane]').forEach(button => button.onclick = () => setPane(button.dataset.damagePane));
     root.querySelectorAll('[data-damage-view]').forEach(button => button.onclick = () => openDetail(button.dataset.damageView));
+    root.querySelectorAll('[data-damage-status]').forEach(button => button.onclick = () => {
+      if (button.dataset.damageStatus === state.listStatus) return;
+      state.listStatus = button.dataset.damageStatus;
+      state.cursors = [];
+      load(true);
+    });
     const form = el('damageFilters');
+    const more = form.querySelector('details');
+    more.ontoggle = () => { if (more.isConnected) state.advanced = more.open; };
     form.oninput = () => { form.dataset.unsavedFilters = ''; };
     form.onsubmit = event => {
       event.preventDefault();
@@ -286,7 +312,7 @@ const WlfDamage = (() => {
       load();
     };
     el('damageReset').onclick = () => setPane(pane);
-    el('damageRefresh').onclick = load;
+    el('damageRefresh').onclick = () => load();
     if (el('damageExport')) el('damageExport').onclick = exportReport;
     if (el('damagePrevious')) el('damagePrevious').onclick = () => {
       if (!state.loading) {
@@ -302,18 +328,20 @@ const WlfDamage = (() => {
     };
   }
 
-  async function load() {
+  async function load(focusList = false) {
     const target = state;
     const run = ++target.run;
     const message = el('damageStatus');
     target.loading = true;
     message.textContent = 'Loading demands…';
     try {
-      const data = await call(target.pane === 'demand' ? 'getDamageDemands' : 'getDamageDashboard',
-        {...target.filters, cursor: target.cursors.at(-1)});
+      const queue = target.pane === 'demand';
+      const data = await call(queue ? 'getDamageDemands' : 'getDamageDashboard',
+        {...target.filters, status: queue ? target.filters.status : target.listStatus, cursor: target.cursors.at(-1)});
       if (state === target && run === target.run) {
         target.data = data;
         render();
+        if (focusList && visible()) el('damageResults').querySelector('h3').focus();
       }
     } catch (err) {
       if (state === target && run === target.run) {
@@ -331,13 +359,13 @@ const WlfDamage = (() => {
   function setPane(pane) {
     if (!allowed(pane)) return;
     detailRun++;
-    state = {pane, filters: pane === 'demand' ? {status: 'Pending'} : {}, cursors: [], loadedCursors: [], run: 0, data: null, loading: false};
+    state = {pane, filters: {}, listStatus: '', advanced: false, cursors: [], loadedCursors: [], run: 0, data: null, loading: false};
     render();
     load();
   }
 
-  function open() {
-    setPane(allowed('demand') ? 'demand' : 'dashboard');
+  function open(pane) {
+    setPane(['demand', 'dashboard'].includes(pane) && allowed(pane) ? pane : allowed('demand') ? 'demand' : 'dashboard');
   }
 
   function detailValues(pairs) {
@@ -362,7 +390,7 @@ const WlfDamage = (() => {
       </details>
       <p id="damageDetailStatus" role="status" aria-live="polite">${h(message)}</p>
       <div class="engineering-actions">
-        ${d.status === 'Pending' && allowed('receive') ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
+        ${d.status === 'Pending' && state?.pane === 'demand' && allowed('receive') ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
         <button type="button" class="btn ghost" data-damage-close>Close</button>
       </div>`);
     const close = node.querySelector('[data-damage-close]');
@@ -406,7 +434,7 @@ const WlfDamage = (() => {
       message.textContent = 'Apply filters before downloading the report.';
       return;
     }
-    const filters = {...target.filters};
+    const filters = {...target.filters, status: target.listStatus};
     button.disabled = true;
     message.textContent = 'Building Excel report…';
     try {
@@ -428,7 +456,9 @@ const WlfDamage = (() => {
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#nav [data-tab="ri-projects"]').insertAdjacentHTML('afterend',
-      '<button data-tab="damage-demand" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm0 0l9 4 9-4m-9 4v10"/></svg>Damage Demand</button>');
+      '<button data-tab="damage-demand" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm0 0l9 4 9-4m-9 4v10"/></svg>Damage Demand</button>'+
+      '<button data-damage-nav="demand" aria-label="Damage Demand / Demand" hidden>Demand</button>'+
+      '<button data-damage-nav="dashboard" aria-label="Damage Demand / Dashboard" hidden>Dashboard</button>');
     document.querySelector('.content').insertAdjacentHTML('beforeend', '<section id="tab-damage-demand" class="tab-content hidden"></section>');
     document.body.insertAdjacentHTML('beforeend', '<dialog id="wlfDamageDialog" aria-labelledby="damageDialogTitle"></dialog>');
     PAGES['damage-demand'] = ['Damage Demand', 'Replacement demands and component damage reports'];

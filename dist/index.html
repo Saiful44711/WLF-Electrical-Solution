@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#10264d"><link rel="apple-touch-icon" href="icon-192.png"><title>WLF Electrical Solution</title>
   <meta charset="utf-8">
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css"><link rel="stylesheet" href="release-v220.css">
-<link rel="stylesheet" href="maintenance.css"><link rel="stylesheet" href="damage-demand.css"></head>
+<link rel="stylesheet" href="maintenance.css"><link rel="stylesheet" href="damage-demand.css"><link rel="stylesheet" href="workspace-overview.css"></head>
 <body>
 
   <!-- ================= LOADING ================= -->
@@ -78,7 +78,7 @@
         <div class="nav-label">Workspace</div>
         <button data-tab="account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
-          My Account
+          My Profile
         </button>
         <button class="active" data-tab="selection">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -271,7 +271,8 @@
         <!-- ===== Account ===== -->
         <section id="tab-troubleshooting" class="tab-content hidden"><div id="tbRoot"></div></section>
         <section id="tab-account" class="tab-content hidden">
-          <div class="card" style="max-width:520px;">
+          <div id="profileOverview"></div>
+          <div class="card profile-password">
             <div class="card-head">
               <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
               <div><h3>Change password</h3><p id="accountInfo"></p></div>
@@ -336,7 +337,7 @@
     </main>
   </div>
 
-  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="form-fields.js"></script><script src="wlf-exports.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="ri-workspace.js"></script><script src="damage-demand.js"></script><script src="excel-backup.js"></script><script src="pwa.js"></script>
+  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="form-fields.js"></script><script src="wlf-exports.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="ri-workspace.js"></script><script src="damage-demand.js"></script><script src="workspace-overview.js"></script><script src="excel-backup.js"></script><script src="pwa.js"></script>
 
 <dialog id="settingsDialog"><h2>App settings</h2><p class="note">Live connection is preconfigured. Offline calculators and previously viewed component details are available after an online login. Account and data changes require internet.</p><label for="themeSetting">Appearance</label><select id="themeSetting"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><label><input type="checkbox" id="motionSetting"> Subtle background effect</label><p id="settingsStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="applySettings()">Apply settings</button><button class="btn ghost" onclick="document.getElementById('settingsDialog').close()">Close</button></div></dialog>
 <dialog id="recordsDialog"><h2>Saved records &amp; outbox</h2><p id="recordStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="syncOutbox()">Sync now</button><button class="btn ghost" onclick="exportRecords()">Export records CSV</button><button class="btn ghost" onclick="document.getElementById('recordsDialog').close()">Close</button></div><div id="recordsList"></div></dialog><div id="apkPrintArea"></div></body>

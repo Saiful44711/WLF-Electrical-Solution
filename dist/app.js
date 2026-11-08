@@ -7,7 +7,7 @@ var PAGES = {
   selection:   ['Component Selection', 'Choose your lift parameters to get the recommended components'],
   calculation: ['Calculations', 'Speed, travel time, power, energy bill and solar sizing'],
   troubleshooting: ['Troubleshooting', 'Controller errors, subcodes and general procedures'],
-  account:     ['My Account', 'Manage your password'],
+  account:     ['My Profile', 'Your work, performance and account settings'],
   users:       ['User Management', 'Approve access requests and set access levels'],
   components:  ['Components Data', 'Add, edit or remove component records'],
   dashboard:   ['Usage Dashboard', 'See which user used which feature, and how often']
@@ -161,7 +161,7 @@ function startApp(s) {
 
   if (!navBound) {
     document.querySelectorAll('#nav button').forEach(function (b) {
-      b.addEventListener('click', function () { openTab(b.getAttribute('data-tab')); });
+      b.addEventListener('click', function () { openTab(b.dataset.damageNav ? 'damage-demand' : b.dataset.tab, b.dataset.damageNav); });
     });
     navBound = true;
   }
