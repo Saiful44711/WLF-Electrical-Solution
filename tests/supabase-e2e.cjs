@@ -31,9 +31,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_V220.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
+await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
+for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
+await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
+await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.2.0-ri-support','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.3.0-sections','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -57,7 +62,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
 else throw Error('Unexpected mocked route '+url.pathname);
 }catch(e){status=400;data={message:e.message,code:'P0001'};}await route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(data)});});
 await page.goto(origin+'/wlf/');await page.locator('#loginEmail').waitFor();
-await page.locator('#tabRegister').click();await page.getByLabel('FULL NAME-ID').waitFor();
+await page.locator('#tabRegister').click();await page.getByLabel('NAME',{exact:true}).waitFor();await page.getByLabel('NAME',{exact:true}).fill('New Person');await page.getByLabel('SECTION').selectOption('Factory Maintenance');assert.equal(await page.locator('#regSection option').count(),14);await page.locator('#regEmail').fill('new.person@example.test');await page.locator('#regPassword').fill('long-password-1');await page.locator('#regBtn').click();await page.locator('#authMsg').filter({hasText:'ID'}).waitFor();await page.getByLabel('ID',{exact:true}).fill('NP-9');await page.locator('#regPassword').fill('');
 await page.locator('#tabLogin').click();
 
 async function login(name){await page.locator('#loginEmail').fill(name+'@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);await page.evaluate(()=>openTab('account'));await page.locator('#tab-account [onclick=\"changePw()\"]').waitFor({state:'visible'});for(const [old,next]of [['test-password-123','changed-password-123'],['changed-password-123','test-password-123']]){await page.locator('#pwOld').fill(old);await page.locator('#pwNew').fill(next);await page.locator('#pwNew2').fill(next);await page.locator('#tab-account [onclick="changePw()"]').click();await page.waitForFunction(()=>document.getElementById('pwNew').value==='');} }
@@ -119,6 +124,9 @@ await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
 await tab('technical');
 for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
  const expectedFields = [...expectedForm.fields];
+ // v2.3.0: the single Name & ID field is split into locked Name and ID fields.
+ const identityAt = expectedFields.findIndex(field=>field.autoFill==='identity');
+ expectedFields.splice(identityAt,1,{id:'login_name',label:'Name',type:'text',required:true,autoFill:'name',options:[]},{id:'login_id',label:'ID',type:'text',required:true,autoFill:'empid',options:[]});
  if (['commissioning','aftersales','installation'].includes(team)) {
   expectedFields.splice(expectedFields.findIndex(field=>field.label==='Project Name')+1,0,
    {id:'project_address',label:'Project Address',type:'textarea',required:false,options:[]});
@@ -146,7 +154,8 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
   if (field.type === 'select') assert.equal(control.tag, 'SELECT');
   if (field.type === 'textarea') assert.equal(control.tag, 'TEXTAREA');
   if (field.type === 'number') assert.equal(control.inputMode, 'decimal');
-  if (field.autoFill === 'identity') assert.equal(control.value, 'sa');
+  if (field.autoFill === 'name') assert.equal(control.value, 'sa');
+  if (field.autoFill === 'empid') assert.equal(control.value, 'SA-1');
   if (field.autoFill === 'today') assert.match(control.value, /^\d{4}-\d{2}-\d{2}$/);
  }
  await page.screenshot({path:'test-results/support-fields-'+team+'.png',fullPage:true});
@@ -252,6 +261,7 @@ await tab('damage-demand');
 await page.locator('#tab-damage-demand').getByText('No demands match these filters.').waitFor();
 assert.equal(await page.locator('[data-damage-pane]').count(),2);
 await tab('users');
+assert.match(await page.locator('[data-access-user="admin@example.test"]').locator('xpath=..').locator('summary').innerText(),/admin \(AD-2\)[\s\S]*Section user · Sales · Approved/);
 for (const [name,keys] of [['admin',['damage:demand','damage:receive']],['rni',['damage:dashboard']]]) {
  const access=page.locator(`[data-access-user="${name}@example.test"]`);
  await access.locator('xpath=..').locator('summary').click();
@@ -279,9 +289,12 @@ await page.evaluate(()=>{APK_SETTINGS.theme='dark';applyTheme();});await page.sc
 await tab('calculation');await page.evaluate(()=>openCalcPane('power'));for(const [id,v]of Object.entries({'pw-motor':'3.9','pw-k2':'.95','pw-k3':'.95','pw-brake':'324','pw-tube':'4','pw-panel':'0','pw-spot':'4','pw-fan':'2','pw-others':'500'}))await page.locator('#'+id).fill(v);await page.locator('#pane-power button').click();await page.locator('#pwResult').filter({hasText:'8.668'}).waitFor();
 const result=await page.evaluate(()=>LiftCore.calculate('calculatePowerAndAVR',{motorPowerKW:3.9,k2:.95,k3:.95,brakePowerBothW:324,tubeLightQty:4,panelLightQty:0,spotLightQty:4,crossFlowFanQty:2,othersFixedW:500}));assert.equal(result.suggestGeneratorKVA,8.668);
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();const searchBefore=rpcCount;await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.ok((await page.locator('#tbDetail').innerText()).includes('102'));await page.locator('#tbSubSearch').fill('102');await page.locator('#tbDetail').filter({hasText:'102'}).waitFor();assert.equal(rpcCount,searchBefore);
-await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=identity]').inputValue(),'user');
+await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=login_name]').inputValue(),'user');assert.equal(await page.locator('#supportRequestForm [name=login_id]').inputValue(),'US-5');assert.equal(await page.locator('#supportRequestForm [name=login_id]').evaluate(n=>n.readOnly),true);
 await fillDynamic('#supportRequestForm',{lift:'991234',project_address:'Plot 14, Dhaka'});await page.locator('#submitSupportRequest').click();await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-991234-\d{8}/}).waitFor();const id=await page.locator('#supportDetail').getAttribute('data-record-id');assert.equal(await page.locator('#editSupportForm,#deleteSupportTicket,#receiveSupport').count(),0);assert.equal(await page.locator('#supportBadge').innerText(),'1');await logout();
-await login('admin');assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);await category();assert.equal(await page.locator('#newSupportRequest').count(),0);await page.locator('#supportFilterQuery').fill('991234');await page.waitForTimeout(450);assert.equal(await page.locator('#supportFilterQuery').evaluate(n=>document.activeElement===n),true);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('#supportDetail h3').waitFor();assert.equal(await page.locator('#receiveSupport').count(),0);const download=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await download).saveAs('test-results/support-report.csv');assert.ok(fs.readFileSync('test-results/support-report.csv','utf8').match(/TCS\d+-991234-\d{8}/));await logout();
+// v2.3.0: no Admin read-all role. A section user with team access submits and sees only own requests.
+await login('admin');assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);await category();assert.equal(await page.locator('#newSupportRequest').count(),1);assert.equal(await page.locator(`[data-ticket="${id}"]`).count(),0);assert.equal(await page.locator('#downloadSupportCSV').count(),0);assert.equal(await page.locator('#supportFilterRequester').isVisible(),false);await logout();
+// Super Admin: SUPPORT USER filter lists the Commissioning section with Name (ID); card and history show Name (ID).
+await login('sa');await category();await page.locator('#supportFilterRequester').waitFor();assert.deepEqual(await page.locator('#supportFilterRequester option').allTextContents(),['All Commissioning users','user (US-5)']);await page.locator('#supportFilterRequester').selectOption('user@example.test');await page.locator(`[data-ticket="${id}"]`).waitFor();assert.match(await page.locator(`[data-ticket="${id}"] small`).innerText(),/^user \(US-5\) · /);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('.support-timeline li').first().waitFor();assert.match(await page.locator('#supportDetail').innerText(),/Submitted by user \(US-5\)/);assert.match(await page.locator('.support-timeline li').first().innerText(),/user \(US-5\)/);assert.equal((await page.locator('#supportDetail').innerText()).includes('user@example.test'),false);const download=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await download).saveAs('test-results/support-report.csv');assert.ok(fs.readFileSync('test-results/support-report.csv','utf8').match(/TCS\d+-991234-\d{8}/));await page.locator('#supportFilterRequester').selectOption('');await logout();
 await login('rni');
 await tab('dashboard');
 await page.locator('#rniPerformanceTable').waitFor();
@@ -472,7 +485,7 @@ await tab('account');
 await page.getByRole('heading',{name:'My activity'}).waitFor();
 assert.equal(await page.locator('#pageTitle').innerText(),'My Profile');
 assert.equal(await page.locator('#profileOverview').getByText('Drive unit',{exact:false}).count(),0);
-assert.match(await page.locator('#profileOverview').innerText(),/user@example.test/);
+assert.match(await page.locator('#profileOverview').innerText(),/user@example.test/);assert.match(await page.locator('#profileOverview').innerText(),/US-5/);assert.match(await page.locator('#profileOverview').innerText(),/Commissioning/);
 await page.screenshot({path:'test-results/workspace-profile.png'});
 await page.setViewportSize({width:320,height:760});
 await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);

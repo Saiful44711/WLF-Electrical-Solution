@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ['loginEmail', 'loginPassword'].forEach(function (id) {
     $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
   });
-  ['regName', 'regEmail', 'regPassword'].forEach(function (id) {
+  ['regName', 'regId', 'regEmail', 'regPassword'].forEach(function (id) {
     $(id).addEventListener('keydown', function (e) { if (e.key === 'Enter') doRegister(); });
   });
   ['sel-capacity', 'sel-speed', 'sel-usageType', 'sel-roping'].forEach(function (id) {
@@ -127,7 +127,7 @@ function doRegister() {
       setAuthMsg(msg, 'success');
     })
     .withFailureHandler(function (err) { busy(btn, false); setAuthMsg(cleanError(err), 'error'); })
-    .register($('regName').value, $('regEmail').value, $('regPassword').value);
+    .register($('regName').value, $('regEmail').value, $('regPassword').value, $('regId').value, $('regSection').value);
 }
 function forceLogout(msg) {
   clearToken(); if(typeof Troubleshooting!=='undefined')Troubleshooting.reset(); clearComponentDetails(); SESSION = null; INDEX = []; ENGINE_SELECTED = null; LAST_ENERGY = null;

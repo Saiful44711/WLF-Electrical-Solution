@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.3.0 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.2.0 → 2.3.0 · ১৫ নভেম্বর ২০২৬</p>
+  <h1>Sections, Name &amp; ID আপডেট: deployment নির্দেশিকা</h1>
+  <p>দুটো প্যাকেজ: <b>WLF-Supabase-v2.3.0.zip</b> (ডাটাবেস) আর <b>WLF-GitHub-v2.3.0.zip</b> (সফটওয়্যারের ফাইল)। নিচের ক্রম মেনে চলুন।</p>
+</header>
+
+<section>
+<nav><a href="#what">কী বদলেছে</a><a href="#order">ক্রম</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#s5">৫. পুরনো ডেটা মোছা</a><a href="#s6">৬. নতুন ইউজার</a><a href="#trouble">সমস্যা হলে</a><a href="#files">ফাইল তালিকা</a></nav>
+</section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>Request access:</b> এখন Name, ID, Section (ড্রপডাউন), Email আর Password। My Profile-এ ID আর Section দেখায়।</li>
+<li><b>১৩টি Section:</b> Sales, R&amp;I Electrical, R&amp;I Mechanical, Production, QM, Installation, Commissioning, After Sales, SCM, Dispatch, Process, Business Planning &amp; Development, Factory Maintenance।</li>
+<li><b>ইউজারের ধরন:</b> Super Admin; R&amp;I user (Section R&amp;I Electrical বা R&amp;I Mechanical হলে নিজে থেকেই। এরা Receive, Forward, Solve আর Damage Demand করতে পারে); বাকিরা section user। পুরনো Admin role নেই।</li>
+<li><b>Permission:</b> Super Admin ছাড়া কেউ নিজে থেকে কিছু পায় না। প্রতিটি option প্রতিটি ইউজারকে আলাদা করে টিক দিতে হয়। Edit, Delete আর Update শুধু Super Admin।</li>
+<li><b>ফর্ম:</b> ৬টি সাপোর্ট ফর্ম আর সব R&amp;I Activity ফর্মে "Name &amp; ID"-এর জায়গায় আলাদা <b>Name</b> আর <b>ID</b>। দুটোই লগইন প্রোফাইল থেকে নিজে বসে, বদলানো যায় না।</li>
+<li><b>নাম দেখানো:</b> সাপোর্ট কার্ডে রিকোয়েস্টকারীর Name (ID)। Activity history, Submitted by, Assigned to আর Solved-এ ইমেইলের বদলে Name (ID)।</li>
+<li><b>SUPPORT USER ফিল্টার:</b> আগের "Assigned to"-এর জায়গায়। টিমের section-এর ইউজার তালিকা থেকে বেছে, তাদের রিকোয়েস্ট ফিল্টার করা যায়।</li>
+<li><b>ফিল্ড উপর-নিচ:</b> আগের মতোই Manage form fields-এ ↑ ↓ বোতাম।</li>
+</ul>
+</section>
+
+<section id="order">
+<h2>ক্রম (এই ক্রমেই করবেন)</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>কোথায়</th><th>কী</th><th>সময়</th></tr>
+<tr><td>১</td><td>Supabase SQL Editor</td><td>ব্যাকআপ নেওয়া (Backup kit)</td><td>৫ মিনিট</td></tr>
+<tr><td>২</td><td>Supabase SQL Editor</td><td><code>UPDATE_SECTIONS_V230.sql</code> চালানো</td><td>২ মিনিট</td></tr>
+<tr><td>৩</td><td>GitHub</td><td>নতুন ফাইল আপলোড, Actions শেষ হওয়া পর্যন্ত অপেক্ষা</td><td>১০–১৫ মিনিট</td></tr>
+<tr><td>৪</td><td>লাইভ সাইট</td><td>Super Admin দিয়ে লগইন করে যাচাই</td><td>৫ মিনিট</td></tr>
+<tr><td>৫</td><td>Supabase SQL Editor</td><td>(ঐচ্ছিক) পুরনো ইউজার ও টেস্ট রেকর্ড মোছা</td><td>৩ মিনিট</td></tr>
+</table></div>
+<div class="attention">ধাপ ২ আর ৩-এর মাঝে বেশি দেরি করবেন না। মাঝের সময়ে পুরনো অ্যাপে User Management-এ Save কাজ করবে না (নতুন ডাটাবেস ID আর Section চায়), আর ফর্মে Name/ID খালি দেখাতে পারে। তবে ডেটা নষ্ট হবে না।</div>
+</section>
+
+<section id="s1">
+<h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol>
+<li>Supabase প্যাকেজের <code>backup-kit</code> ফোল্ডারের <code>00_START_HERE_BN.html</code> খুলুন। এর ধাপ ৩ মেনে কাজ করুন।</li>
+<li><code>01_STRUCTURE_BACKUP.sql</code> চালিয়ে Download CSV করুন, নাম দিন <code>WLF-structure-2026-11-15.csv</code>।</li>
+<li><code>02_DATA_BACKUP.sql</code> চালিয়ে Download CSV করুন, নাম দিন <code>WLF-data-2026-11-15.csv</code>।</li>
+<li><code>03_RESTORE_TOOL.html</code>-এ দুটো CSV দিয়ে দুবারই সবুজ "✓ ব্যাকআপ সম্পূর্ণ" দেখুন।</li>
+<li>GitHub থেকে Code → Download ZIP করে রাখুন। এটা পুরনো ভার্সন (v2.2.0), দরকার হলে ফিরে যাওয়ার জন্য।</li>
+</ol>
+</section>
+
+<section id="s2">
+<h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol>
+<li>Supabase-এ লগইন করে WLF প্রজেক্ট খুলুন।</li>
+<li>বাঁ মেনু → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li>Supabase প্যাকেজের <code>UPDATE_SECTIONS_V230.sql</code> Notepad-এ খুলুন। <b>Ctrl+A</b> চেপে সব বাছুন, <b>Ctrl+C</b> দিয়ে কপি করুন।</li>
+<li>SQL Editor-এ পেস্ট করে <b>Run</b> চাপুন। কোনো সতর্কবার্তা এলে <b>Run this query</b> বাছুন।</li>
+<li>নিচে এক সারির ফলাফল আসবে। <b>পাঁচটা কলামই <code>true</code> হতে হবে:</b>
+ <div class="scroll"><table>
+ <tr><th>কলাম</th><th>মানে</th></tr>
+ <tr><td><code>profile_id_section_ready</code></td><td>প্রোফাইলে ID আর Section যোগ হয়েছে</td></tr>
+ <tr><td><code>admin_role_removed</code></td><td>পুরনো Admin role নেই</td></tr>
+ <tr><td><code>support_forms_split</code></td><td>৬টি সাপোর্ট ফর্মে Name আর ID আলাদা হয়েছে</td></tr>
+ <tr><td><code>ri_forms_split</code></td><td>R&amp;I Activity ফর্মগুলোতেও আলাদা হয়েছে</td></tr>
+ <tr><td><code>super_admin_profile_ready</code></td><td>আপনার প্রোফাইলে Md. Saiful Islam, 44711, R&amp;I Electrical বসেছে</td></tr>
+ </table></div>
+</li>
+</ol>
+<div class="note">পুরো SQL একটাই transaction-এ চলে। মাঝপথে error হলে কিছুই বদলায় না, তাই ঠিক করে আবার চালানো নিরাপদ। দুবার চালালেও কোনো ক্ষতি নেই।</div>
+<div class="attention">যদি <code>super_admin_profile_ready</code> = <code>false</code> আসে, তার মানে Super Admin অ্যাকাউন্টের ইমেইল <code>liftrndelectrical@gmail.com</code> নয়। বাকি সব ঠিক থাকলে এগিয়ে যান, পরে User Management থেকে নিজের Name, ID আর Section দিয়ে দিতে পারবেন। অথবা স্ক্রিনশট আমাকে দিন।</div>
+</section>
+
+<section id="s3">
+<h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol>
+<li>কম্পিউটারে <code>WLF-GitHub-v2.3.0.zip</code> extract করুন। ভেতরে <code>WLF-Electrical-Solution-main</code> ফোল্ডার পাবেন।</li>
+<li>ব্রাউজারে (Chrome বা Edge) GitHub-এ আপনার <b>WLF-Electrical-Solution</b> repo খুলুন। উপরে branch <b>main</b> আছে কি না দেখে নিন।</li>
+<li><b>Add file</b> → <b>Upload files</b>।</li>
+<li><code>WLF-Electrical-Solution-main</code> ফোল্ডারের <b>ভেতরে</b> ঢুকুন। Ctrl+A দিয়ে সব ফাইল ও ফোল্ডার বাছুন (<code>.github</code>, <code>web</code>, <code>shared</code>, <code>supabase</code>, <code>tests</code>, <code>dist</code> ইত্যাদি), তারপর টেনে GitHub-এর আপলোড পেজে ছেড়ে দিন। GitHub একই নামের ফাইল বদলে দেবে আর ফোল্ডারের গঠন ঠিক রাখবে।</li>
+<li>আপলোড শেষ হলে নিচে Commit message দিন: <code>v2.3.0 Sections, Name &amp; ID update</code>।</li>
+<li><b>Commit directly to the main branch</b> বাছাই থাকা অবস্থায় <b>Commit changes</b> চাপুন।</li>
+<li>উপরের <b>Actions</b> ট্যাবে যান। <b>Deploy WLF PWA to GitHub Pages</b> চলতে দেখবেন (হলুদ বৃত্ত)। এটা build, সব টেস্ট আর ব্রাউজার টেস্ট চালায়, ১০–১৫ মিনিট লাগতে পারে।</li>
+<li>সবুজ ✓ এলে সাইট আপডেট হয়ে গেছে। লাল ✗ এলে ক্লিক করে যে ধাপটা লাল, তার স্ক্রিনশট আমাকে দিন। লাল হলে সাইট বদলায় না, আগের ভার্সন চালু থাকে।</li>
+</ol>
+<div class="note">শুধু বদলানো ফাইল আপলোড করতে চাইলে নিচের <a href="#files">ফাইল তালিকা</a> দেখুন। তবে পুরো ফোল্ডার আপলোড করাই সহজ আর নিরাপদ।</div>
+</section>
+
+<section id="s4">
+<h2>৪. লাইভ সাইটে যাচাই</h2>
+<ol>
+<li>সাইট খুলুন: <code>https://saiful44711.github.io/WLF-Electrical-Solution/</code>। "Update available" দেখালে Update/Reload চাপুন, না দেখালে Ctrl+F5 চাপুন। ফোনে অ্যাপ বন্ধ করে আবার খুলুন।</li>
+<li>Super Admin দিয়ে লগইন করুন (পাসওয়ার্ড আগেরটাই)।</li>
+<li><b>My Profile:</b> ID 44711 আর Section R&amp;I Electrical দেখাচ্ছে কি না।</li>
+<li><b>লগআউট → Request access:</b> Name, ID, Section, Email, Password ঘর আছে কি না।</li>
+<li><b>Technical Support → যেকোনো টিম → + New request:</b> Name আর ID নিজে বসেছে এবং বদলানো যাচ্ছে না।</li>
+<li><b>ফিল্টার:</b> "SUPPORT USER" দেখাচ্ছে কি না।</li>
+<li><b>User Management:</b> প্রতিটি ইউজারে Name, ID, Section, Status আর "Super Admin (full control)" ঘর আছে কি না।</li>
+</ol>
+</section>
+
+<section id="s5">
+<h2>৫. (ঐচ্ছিক) পুরনো ইউজার ও টেস্ট রেকর্ড মোছা</h2>
+<div class="danger">এটা আর ফেরানো যায় না। আগে ধাপ ১-এর মতো <b>আবার নতুন ব্যাকআপ</b> নিন।</div>
+<p><b>যা মুছবে:</b> Super Admin ছাড়া সব ইউজার (লগইন ও প্রোফাইল), আর সব টেস্ট রেকর্ড: সাপোর্ট রিকোয়েস্ট ও ইতিহাস, R&amp;I Activity ও Project, Damage Demand, QMS, usage log, সেভ করা হিসাব। আপনার নিজের টেস্ট রিকোয়েস্টও মুছবে।<br>
+<b>যা থাকবে:</b> আপনার লগইন, পাসওয়ার্ড ও অনুমতি; Components data, Troubleshooting, সাপোর্ট ফর্ম, Documents links, R&amp;I ক্যাটাগরি, সেটিং।</p>
+<ol>
+<li>SQL Editor → New query → <code>CLEANUP_KEEP_SUPER_ADMIN_V230.sql</code> পুরোটা পেস্ট → Run।</li>
+<li>ফলাফলে <code>profiles_left</code> = 1 আর <code>support_requests_left</code> = 0 হলে কাজ শেষ।</li>
+<li><code>note</code>-এ যদি লেখা থাকে "Login accounts could not be deleted here", তাহলে বাঁ মেনু → <b>Authentication → Users</b>-এ গিয়ে আপনার ইমেইল ছাড়া বাকিগুলো বেছে Delete করুন। তাদের অ্যাপে ঢোকার পথ আগেই বন্ধ হয়ে গেছে।</li>
+</ol>
+</section>
+
+<section id="s6">
+<h2>৬. নতুন ইউজার approve করা</h2>
+<ol>
+<li>ইউজার Request access দিলে User Management-এ Pending দেখাবে।</li>
+<li>খুলে <b>Name, ID আর Section</b> মিলিয়ে নিন। ভুল থাকলে ঠিক করে দিন (একই ID দুজনের আছে কি না খেয়াল রাখবেন)।</li>
+<li>Status <b>Approved</b> করুন আর দরকারি option টিক দিন:
+ <ul>
+ <li><b>Section user (যেমন Commissioning):</b> নিজের টিম, যেমন "Commissioning Team", আর যা যা লাগবে (Component Selection, Calculations, Troubleshooting ইত্যাদি)।</li>
+ <li><b>R&amp;I user:</b> যে টিমগুলোর রিকোয়েস্ট সে সামলাবে সেগুলো (যেমন Commissioning Team, After Sales Team), সাথে R&amp;I Team Activity বা Project Manager লাগলে সেগুলোও।</li>
+ <li>Forward করা যাবে শুধু সেই R&amp;I user-কে, যার ওই টিমে টিক আছে।</li>
+ </ul></li>
+<li><b>Save user &amp; access</b> চাপুন। ইউজার পরের লগইনে নতুন মেনু পাবে।</li>
+</ol>
+</section>
+
+<section id="trouble">
+<h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>SQL-এ <code>STOP: apply the v2.2 and 7 November 2026 updates first</code></td><td>আগের আপডেট চালানো নেই</td><td>আমাকে জানান। কিছু বদলায়নি</td></tr>
+<tr><td>SQL-এ অন্য কোনো ERROR</td><td>পুরো SQL বাতিল হয়েছে, কিছু বদলায়নি</td><td>Error-এর স্ক্রিনশট দিন</td></tr>
+<tr><td>Actions লাল ✗</td><td>build বা টেস্ট ফেল করেছে, সাইট আগের মতোই আছে</td><td>লাল ধাপটা খুলে স্ক্রিনশট দিন</td></tr>
+<tr><td>সাইটে পুরনো ফর্ম দেখাচ্ছে</td><td>ব্রাউজারে পুরনো ভার্সন রয়ে গেছে</td><td>Ctrl+F5, বা মেনু থেকে Update activate করুন</td></tr>
+<tr><td>Save চাপলে "Enter a valid ID" বা "Choose a section"</td><td>ইউজারের ID বা Section খালি</td><td>দুটোই দিয়ে আবার Save করুন</td></tr>
+<tr><td>রিকোয়েস্ট দিতে গেলে "Required: ID"</td><td>ইউজারের প্রোফাইলে ID নেই (পুরনো অ্যাকাউন্ট)</td><td>User Management থেকে ID দিন</td></tr>
+<tr><td>Forward-এ "access to this team"</td><td>যাকে পাঠাচ্ছেন তার ওই টিমে টিক নেই</td><td>User Management-এ তার জন্য টিমটা টিক দিন</td></tr>
+<tr><td>R&amp;I user কোনো রিকোয়েস্ট দেখছে না</td><td>টিমে টিক নেই (আগে নিজে থেকে পেত, এখন পায় না)</td><td>সংশ্লিষ্ট টিম টিক দিন</td></tr>
+<tr><td>SUPPORT USER তালিকা খালি</td><td>ওই section-এর approved ইউজার নেই</td><td>ইউজারের Section ঠিক আছে কি না দেখুন</td></tr>
+</table></div>
+<p><b>আগের ভার্সনে ফেরা:</b> শুধু সাইট ফেরাতে চাইলে ধাপ ১-এর v2.2.0 GitHub zip আপলোড করুন। ডাটাবেস ফেরাতে ব্যাকআপ কিট লাগবে, সেটা আমার সাথে বসে করা ভালো।</p>
+</section>
+
+<section id="files">
+<h2>ফাইল তালিকা</h2>
+<h3>Supabase প্যাকেজ (WLF-Supabase-v2.3.0.zip)</h3>
+<div class="scroll"><table>
+<tr><th>ফাইল</th><th>কাজ</th></tr>
+<tr><td><code>UPDATE_SECTIONS_V230.sql</code></td><td>ধাপ ২: ডাটাবেস আপডেট</td></tr>
+<tr><td><code>CLEANUP_KEEP_SUPER_ADMIN_V230.sql</code></td><td>ধাপ ৫: পুরনো ডেটা মোছা (ঐচ্ছিক)</td></tr>
+<tr><td><code>backup-kit/</code></td><td>ব্যাকআপ ও রিস্টোর কিট</td></tr>
+<tr><td><code>full-source/supabase/</code></td><td>ডাটাবেসের সব SQL (শুরু থেকে v2.3.0 পর্যন্ত) আর Edge Function কোড, ভবিষ্যতের রেকর্ড হিসেবে</td></tr>
+<tr><td><code>SQL_RUN_ORDER.txt</code></td><td>নতুন প্রজেক্টে শূন্য থেকে বানাতে কোন ক্রমে কোন ফাইল চালাতে হয়</td></tr>
+</table></div>
+<h3>GitHub-এ বদলানো বা নতুন ফাইল</h3>
+<p class="small">web/index.html, web/app.js, web/transport.js, web/form-fields.js, web/live-workspace.js, web/ri-workspace.js, web/workspace-overview.js, web/sw.js, shared/access-core.js, shared/logic.js, scripts/build-pwa.mjs, supabase/UPDATE_SECTIONS_V230.sql (নতুন), supabase/CLEANUP_KEEP_SUPER_ADMIN_V230.sql (নতুন), tests/sections-update.test.cjs (নতুন), tests/supabase-e2e.cjs, tests/calculations.test.cjs, package.json, package-lock.json, README.md, START_HERE_V230_BN.html (নতুন), dist/ ফোল্ডারের build করা ফাইল</p>
+</section>
+
+<section>
+<h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul>
+<li>আপনার repo-র সব SQL দিয়ে বানানো কপি-ডাটাবেসে (PostgreSQL 16) আপডেট দুবার চালানো, তারপর পরিষ্কার করার ফাইল।</li>
+<li>repo-র সব ইউনিট টেস্ট (৭০টি, নতুন ৭টিসহ) আর পুরো ব্রাউজার টেস্ট পাস।</li>
+<li>ফোন ও কম্পিউটারে, লাইট ও ডার্ক মোডে স্ক্রিনশট দেখে যাচাই।</li>
+</ul>
+<div class="attention">আসল Supabase-এ চালানো যায়নি। GitHub Actions-এর টেস্ট PGlite দিয়ে চলে, আর আমি এখানে আসল PostgreSQL দিয়ে চালিয়েছি, তাই Actions-এর ফলাফল একবার দেখে নেবেন।</div>
+</section>
+<footer>WLF Electrical Solution · v2.3.0 · Lift Electrical R&amp;I</footer>
+</main>
+</body>
+</html>

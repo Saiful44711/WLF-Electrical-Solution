@@ -5,13 +5,17 @@ var supportTitles={
  production:'Production Team Support Request', maintenance:'Factory Maintenance Team Support Request',
  qc:'QC Team Support Request', installation:'Installation Team Support Request'
 };
-var categories=Object.keys(supportTitles),roles=['Super Admin','Admin','R&I','User'];
+var categories=Object.keys(supportTitles),roles=['Super Admin','R&I','User'];
+var sections=['Sales','R&I Electrical','R&I Mechanical','Production','QM','Installation','Commissioning','After Sales','SCM','Dispatch','Process','Business Planning & Development','Factory Maintenance'];
+var teamSections={commissioning:'Commissioning',aftersales:'After Sales',installation:'Installation',production:'Production',qc:'QM',maintenance:'Factory Maintenance'};
+function roleFor(section){return section==='R&I Electrical'||section==='R&I Mechanical'?'R&I':'User';}
+function label(u){if(!u)return '';var n=u.name||u.email||'';return u.empId?n+' ('+u.empId+')':n;}
 var calculators={calculateTravelTime:'calc:travel',calculatePowerAndAVR:'calc:power',calculateSpeedSlip:'calc:speed',calculateMotorPower:'calc:motor',calculateEnergyBill:'calc:energy',calculateSolarSizing:'calc:solar'};
 function superUser(u){return !!u&&u.status==='Approved'&&u.role==='Super Admin';}
 function approved(u){return !!u&&u.status==='Approved'&&roles.indexOf(u.role)>=0;}
 function read(u,key){
  if(!approved(u))return false;
- return superUser(u)||(u.permissions||[]).includes(key)||(!key.startsWith('ri:')&&(u.role==='Admin'||u.role==='R&I'));
+ return superUser(u)||(u.permissions||[]).includes(key);
 }
 function operate(u,key){return approved(u)&&(key.slice(-8)===':request'?(u.role==='User'&&read(u,key)||superUser(u)):key.slice(-7)===':handle'?u.role==='R&I':superUser(u));}
 function damageAccess(u,option){
@@ -22,9 +26,9 @@ function damageAccess(u,option){
 }
 function workspaceAccess(u,key){return approved(u)&&u.workspaceUpdate===true&&(superUser(u)||(u.permissions||[]).includes(key));}
 function categoryRead(u,c){return categories.indexOf(c)>=0&&['request','handle','senior'].some(function(k){return read(u,'support:'+c+':'+k);});}
-function handler(u,c){return approved(u)&&u.role==='R&I'&&categories.indexOf(c)>=0;}
-function canReport(u){return approved(u)&&['Super Admin','Admin','R&I'].indexOf(u.role)>=0;}
-function visible(u,t){return !t.deletedAt&&categoryRead(u,t.category)&&(u.role==='Admin'||superUser(u)||handler(u,t.category)||t.createdBy===u.email);}
+function handler(u,c){return approved(u)&&u.role==='R&I'&&categories.indexOf(c)>=0&&((u.permissions||[]).includes('support:'+c+':request')||(u.teams||[]).includes(c));}
+function canReport(u){return approved(u)&&['Super Admin','R&I'].indexOf(u.role)>=0;}
+function visible(u,t){return !t.deletedAt&&categoryRead(u,t.category)&&(superUser(u)||handler(u,t.category)||t.createdBy===u.email);}
 function reference(t){
  if(t.reference)return t.reference;
  var values=t.values||{},schema=t.formSchema||{},fields=schema.fields||[],liftField=fields.find(function(f){return f.id==='field_1369800003'||/^(project\s*)?lift\s*id$/i.test(f.label||'');}),dateField=fields.find(function(f){return f.id==='submitted_date';})||fields.find(function(f){return f.id==='field_2064608726'||/^(submitted date|date|date of incident)$/i.test(f.label||'');});
@@ -78,5 +82,5 @@ function apiCan(u,a){if(!approved(u))return false;
  if(calculators[a])return read(u,calculators[a]);if(['adminSaveComponent','adminDeleteComponent','adminUpdateUser','adminResetPassword','saveEngineeringRecord','saveAppUserAccess','resetAppUserPassword','editSupportRequest','deleteSupportRequest','saveSupportSchema','saveTroubleshootingEntry','deleteTroubleshootingEntry'].indexOf(a)>=0)return superUser(u);if(['adminListUsers','listAppUsers'].indexOf(a)>=0)return superUser(u);if(a==='adminGetComponents')return superUser(u);if(['saveDocumentCategory','deleteDocumentCategory','saveDocument','deleteDocument'].indexOf(a)>=0)return superUser(u);if(['getSupportReport','getDashboardSupport','adminStats'].indexOf(a)>=0)return canReport(u);if(a==='transitionSupportRequest')return u.role==='R&I';if(a==='createSupportRequest')return superUser(u)||u.role==='User';if(a==='getComponentDetails'||a==='refreshIndex')return read(u,'selection')||read(u,'calc:energy')||read(u,'calc:solar');return true;}
 function validateSchema(raw){if(!raw||!Array.isArray(raw.fields)||raw.fields.length<1||raw.fields.length>60)throw Error('A form needs 1–60 valid fields.');var seen={};var fields=raw.fields.map(function(f){var id=clean(f.id,100),label=clean(f.label,180),help=clean(f.help,2000),type=String(f.type||'text');if(!/^[-a-zA-Z0-9_]{4,100}$/.test(id)||seen[id]||!label||['text','date','select','multi'].indexOf(type)<0)throw Error('Check field name, type and unique ID.');seen[id]=true;var options=Array.from(new Set((Array.isArray(f.options)?f.options:[]).map(function(o){return clean(o,300);}).filter(Boolean)));if(options.length>100||(['select','multi'].indexOf(type)>=0&&!options.length))throw Error('Choice fields need 1–100 valid options.');return {id:id,label:label,help:help,type:type,required:!!f.required,options:['select','multi'].indexOf(type)>=0?options:[]};});if(JSON.stringify(fields).length>28000)throw Error('Form definition is too large.');return fields;}
 function entryKey(e){return e.controller==='GENERAL'?'tb:general:'+e.id:e.kind==='procedure'?'tb:option:'+e.id:'tb:'+e.controller+':error';}
-return {dateKey:dateKey,reference:reference,unresolvedCount:unresolvedCount,categories:categories,supportTitles:supportTitles,roles:roles,calculators:calculators,superUser:superUser,approved:approved,read:read,operate:operate,categoryRead:categoryRead,damageAccess:damageAccess,workspaceAccess:workspaceAccess,handler:handler,visible:visible,validateForm:validateForm,transition:transition,entryKey:entryKey,apiAllowed:apiAllowed,apiCan:apiCan,liveActions:liveActions,validateSchema:validateSchema,canReport:canReport,pendingCount:pendingCount,filterTickets:filterTickets,performance:performance};
+return {sections:sections,teamSections:teamSections,roleFor:roleFor,label:label,dateKey:dateKey,reference:reference,unresolvedCount:unresolvedCount,categories:categories,supportTitles:supportTitles,roles:roles,calculators:calculators,superUser:superUser,approved:approved,read:read,operate:operate,categoryRead:categoryRead,damageAccess:damageAccess,workspaceAccess:workspaceAccess,handler:handler,visible:visible,validateForm:validateForm,transition:transition,entryKey:entryKey,apiAllowed:apiAllowed,apiCan:apiCan,liveActions:liveActions,validateSchema:validateSchema,canReport:canReport,pendingCount:pendingCount,filterTickets:filterTickets,performance:performance};
 });

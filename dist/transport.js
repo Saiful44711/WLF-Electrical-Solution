@@ -19,7 +19,7 @@ async function rpcOnce(action,args){
  try{ctx=await dbCall('getSession',[]);}catch(err){await sb.auth.signOut({scope:'local'});throw err;}
  ctx.token=r.data.user.id;ctx.offlineUntil=Date.now()+Math.min(24,Number(CFG.offlineHours)||24)*3600000;return ctx;
  }
- if(action==='register'){var clean=LiftCore.registration(args[0],args[1],args[2]);r=await sb.auth.signUp({email:clean.email,password:clean.password,options:{data:{name:clean.name}}});if(r.error)throw r.error;await sb.auth.signOut({scope:'local'});return 'Account request sent. Wait for Super Admin approval. If email confirmation is enabled, confirm your email first.';}
+ if(action==='register'){var clean=LiftCore.registration(args[0],args[1],args[2],args[3],args[4]);r=await sb.auth.signUp({email:clean.email,password:clean.password,options:{data:{name:clean.name,employeeId:clean.employeeId,section:clean.section}}});if(r.error)throw r.error;await sb.auth.signOut({scope:'local'});return 'Account request sent. Wait for Super Admin approval. If email confirmation is enabled, confirm your email first.';}
  var auth=await sb.auth.getSession();if(!auth.data.session||auth.data.session.user.id!==args[0])throw Error('SESSION_EXPIRED');
  if(action==='changePassword'){
  if(!SESSION||!AccessCore.approved(SESSION))throw Error('Permission denied');if(String(args[2]||'').length<8)throw Error('New password must be at least 8 characters.');

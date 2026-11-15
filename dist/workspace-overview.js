@@ -86,9 +86,11 @@ const WlfOverview = (() => {
       <div class="profile-person">
         <span class="profile-avatar" aria-hidden="true">${h(initials)}</span>
         <div><div class="overview-eyebrow">MY PROFILE</div><h3>${h(profile.name)}</h3>
-          <p>${h(profile.role)} · ${h(profile.email)}</p><span class="overview-pill">${h(profile.status)}</span></div>
+          <p>${h(profile.role==='Super Admin'?'Super Admin':profile.role==='R&I'?'R&I user':'Section user')} · ${h(profile.email)}</p><span class="overview-pill">${h(profile.status)}</span></div>
       </div>
       <dl class="profile-account">
+        <div><dt>ID</dt><dd>${h(profile.empId||'—')}</dd></div>
+        <div><dt>Section</dt><dd>${h(profile.section||'—')}</dd></div>
         <div><dt>Member since</dt><dd>${h(date(profile.joinedAt))}</dd></div>
         <div><dt>Last sign-in</dt><dd>${h(date(profile.lastSignIn,true))}</dd></div>
       </dl>

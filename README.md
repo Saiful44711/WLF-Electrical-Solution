@@ -1,4 +1,34 @@
-# WLF Electrical Solution v2.2.0
+# WLF Electrical Solution v2.3.0
+
+## v2.3.0 Sections, Name & ID update (15 November 2026)
+
+Open START_HERE_V230_BN.html for the click-by-click rollout guide.
+
+| Order | Place | File or action |
+| --- | --- | --- |
+| 1 | Supabase SQL Editor | Backup kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql, check both CSVs with 03_RESTORE_TOOL.html |
+| 2 | Supabase SQL Editor | supabase/UPDATE_SECTIONS_V230.sql (all five result columns must be true) |
+| 3 | GitHub repository | Upload the changed files to main; wait for the Pages workflow to finish green |
+| 4 | Live app | Activate the update, log in as Super Admin, check My Profile |
+| 5 | Supabase SQL Editor (optional) | supabase/CLEANUP_KEEP_SUPER_ADMIN_V230.sql after a fresh backup |
+
+- Request access asks for Name, ID, Section (13 sections), Email and Password.
+- User types: Super Admin; R&I user (Section R&I Electrical or R&I Mechanical,
+  processes support for the ticked teams); section user. The Admin role and its
+  automatic read-all access are removed. Every option except Super Admin's is granted
+  per user.
+- Support and R&I activity forms: the single Name & ID field becomes locked Name and
+  ID fields (auto-fill name / empid), filled from the login profile on the server.
+- Support cards, details and activity history show Name (ID) instead of e-mail.
+- The ASSIGNED TO filter is now SUPPORT USER: requesters of the team's section
+  (Commissioning, After Sales, Installation, Production, QC = QM,
+  Factory Maintenance).
+- Forwarding requires the receiving R&I user to have access to that team.
+- Field order: the existing up/down buttons in Manage form fields.
+
+New staging databases apply UPDATE_SECTIONS_V230.sql after UPDATE_WORKSPACE_20261107.sql.
+Tests: tests/sections-update.test.cjs and the updated browser test.
+
 
 Production upgrade for the existing WLF v2.1 Supabase project and GitHub Pages PWA.
 Open START_HERE_BN.html in the release ZIP for the rollout guide.

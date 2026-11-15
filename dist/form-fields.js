@@ -6,12 +6,13 @@ const WlfFields = (() => {
     text: 'Text', textarea: 'Long text', date: 'Date', number: 'Number', select: 'Dropdown',
     radio: 'Single choice', multi: 'Multi-select', checkbox: 'Checkbox'
   };
-  const autoOptions = {'':'By field name', identity:'Login Name & ID', today:'Today (Dhaka)', none:'Off'};
+  const autoOptions = {'':'By field name', name:'Login Name', empid:'Login ID', identity:'Login Name & ID (one field)', today:'Today (Dhaka)', none:'Off'};
   const option = (value,label,current) => '<option value="'+h(value)+'"'+(value===current?' selected':'')+'>'+h(label)+'</option>';
   const date = () => AccessCore.dateKey(new Date());
   const display = value => Array.isArray(value) ? value.join(', ') : typeof value==='boolean' ? (value?'Yes':'No') : String(value??'');
   function auto(field) {
     if (field.autoFill==='none') return '';
+    if (['text','textarea'].includes(field.type) && (field.autoFill==='name' || field.autoFill==='empid')) return field.autoFill;
     if (field.type==='date' && (field.autoFill==='today' || field.id==='submitted_date')) return 'today';
     if (['text','textarea'].includes(field.type) && (field.autoFill==='identity'
       || ['identity','field_1674702979'].includes(field.id)
@@ -22,7 +23,7 @@ const WlfFields = (() => {
     const label=h(field.label)+(field.required?' *':'');
     const options=field.options||[];
     const mode=auto(field);
-    if (value==null && !editing) value=mode==='today'?date():mode==='identity'?SESSION?.name:'';
+    if (value==null && !editing) value=mode==='today'?date():mode==='name'?SESSION?.name:mode==='empid'?SESSION?.empId:mode==='identity'?[SESSION?.name,SESSION?.empId].filter(Boolean).join(' - '):'';
     const id='dynamic-'+field.id;
     const inputId=h(id), inputName=h(field.id);
     const input=' id="'+inputId+'" name="'+inputName+'"'+(field.required?' required':'');

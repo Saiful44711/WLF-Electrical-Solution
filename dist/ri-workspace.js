@@ -158,7 +158,8 @@ const WlfRi = (() => {
     const id=category?.id||'custom-'+crypto.randomUUID();
     const starter=[
       {id:'date',label:'Date',type:'date',autoFill:'today',required:true},
-      {id:'identity',label:'Name & ID',type:'text',autoFill:'identity',required:true},
+      {id:'login_name',label:'Name',type:'text',autoFill:'name',required:true},
+      {id:'login_id',label:'ID',type:'text',autoFill:'empid',required:true},
       {id:'subject',label:'Task name',type:'text',required:true},
       {id:'problem',label:'Task details',type:'textarea',required:true},
       {id:'status',label:'Task status',type:'select',options:['Completed','Ongoing','Hold','Canceled'],required:true}
