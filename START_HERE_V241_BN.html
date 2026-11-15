@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.4.1 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.3.0 → 2.4.1 · ১৫ নভেম্বর ২০২৬</p>
+  <h1>Document folders, Assignee ও বানান ঠিক করা: deployment নির্দেশিকা</h1>
+  <p>দুটো প্যাকেজ: <b>WLF-Supabase-v2.4.1.zip</b> (ডাটাবেস) আর <b>WLF-GitHub-v2.4.1.zip</b> (পুরো সফটওয়্যার)। সাথে আপলোডের জন্য ছোট <b>WLF-GitHub-v2.4.1-UPLOAD.zip</b> (v2.3.0-এর পর বদলানো সব ফাইল)।</p>
+</header>
+
+<section>
+<nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#use">ফোল্ডার ব্যবহার</a><a href="#trouble">সমস্যা হলে</a><a href="#files">ফাইল তালিকা</a></nav>
+</section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>Documents Links-এ ফোল্ডার:</b> প্রতিটি sub menu-র (BOM, Diagram…) ভেতরে ফোল্ডার, আর ফোল্ডারের ভেতরেও ফোল্ডার (সর্বোচ্চ ৬ স্তর)। উপরে পথ দেখায় (যেমন Training › Manuals 2026), সাথে ← Up বোতাম।</li>
+<li><b>Search:</b> পুরো sub menu-র সব ফোল্ডার আর ডকুমেন্টের নামে খোঁজে, ফলাফলে 📁 দিয়ে ফোল্ডারের পথ দেখায়।</li>
+<li><b>Add / Edit document:</b> নতুন "Folder" ঘর আছে। যে ফোল্ডারে আছেন, সেটা আগে থেকেই বাছাই থাকে।</li>
+<li><b>ফোল্ডারের নিয়ম:</b> বানানো, Rename / move আর Delete করতে পারে শুধু Super Admin। শুধু খালি ফোল্ডার মোছা যায়।</li>
+<li><b>R&amp;I Project Manager → Add task:</b> ঘরের নাম <b>Assignee</b> (সঠিক বানান)। নিজে থেকে কেউ বসে না। ড্রপডাউনে থাকে শুধু Project lead আর collaborator-রা, Name (ID) সহ। "Add user" দিয়ে নতুন কাউকে আনলে Save-এর সময় সে নিজে থেকেই collaborator হয়ে যায়। প্রজেক্টের বাইরের কাউকে সার্ভারও দিতে দেয় না।</li>
+<li><b>v2.4.1:</b> v2.4.0-এ ঘরের নাম ভুল করে "Assign user" করা হয়েছিল। "Assignee" ইংরেজিতে সঠিক বানান, তাই সেটাই ফেরানো হয়েছে। কাজের নিয়ম একই আছে। আগে v2.4.0-এর SQL চালিয়ে থাকলে নতুন <code>UPDATE_V240.sql</code> আবার চালান, এতে শুধু error বার্তার লেখা বদলাবে।</li>
+<li><b>বানান:</b> Installation ফর্মে "1. Asthetics" → "1. Aesthetics"। Troubleshooting-এ NICE3000+ Err38-এ "runs in in up direction" → "runs in up direction"।</li>
+<li><b>ব্যাকআপ কিট:</b> <code>01_STRUCTURE_BACKUP.sql</code> চালালে Supabase সেই ভুল "RLS" সতর্কবার্তা আর দেখাবে না।</li>
+</ul>
+</section>
+
+<section id="s1">
+<h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol>
+<li>Supabase প্যাকেজের <code>backup-kit</code> ফোল্ডারের নতুন <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন। নাম দিন <code>WLF-structure-…csv</code> আর <code>WLF-data-…csv</code>।</li>
+<li><code>03_RESTORE_TOOL.html</code>-এ দুটো CSV দিয়ে দুবারই সবুজ "✓ ব্যাকআপ সম্পূর্ণ" দেখুন।</li>
+<li>GitHub থেকে Code → Download ZIP করে রাখুন (এখনকার v2.3.0)।</li>
+</ol>
+</section>
+
+<section id="s2">
+<h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol>
+<li>Supabase → আপনার প্রজেক্ট → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V240.sql</code> (v2.4.1 কপি) Notepad-এ খুলে Ctrl+A, Ctrl+C করুন, তারপর SQL Editor-এ পেস্ট করে <b>Run</b> চাপুন।</li>
+<li>"Potential issue detected / RLS" বার্তা এলে <b>Run without RLS</b> চাপুন। নতুন ফোল্ডার টেবিলের RLS এই SQL নিজেই চালু করে, তাই এখানে কোনো ঝুঁকি নেই।</li>
+<li>ফলাফলে <b>পাঁচটা কলামই <code>true</code></b> হতে হবে:
+ <div class="scroll"><table>
+ <tr><th>কলাম</th><th>মানে</th></tr>
+ <tr><td><code>document_folders_ready</code></td><td>ফোল্ডারের টেবিল তৈরি হয়েছে</td></tr>
+ <tr><td><code>document_folder_column_ready</code></td><td>ডকুমেন্টে ফোল্ডারের ঘর যোগ হয়েছে</td></tr>
+ <tr><td><code>folders_protected</code></td><td>ফোল্ডার টেবিলে RLS চালু (বাইরে থেকে লেখা যায় না)</td></tr>
+ <tr><td><code>spelling_fixed</code></td><td>দুটো বানান ঠিক হয়েছে</td></tr>
+ <tr><td><code>task_and_folder_rules_ready</code></td><td>Assignee আর ফোল্ডারের সার্ভার-নিয়ম চালু হয়েছে</td></tr>
+ </table></div></li>
+</ol>
+<div class="note">পুরো SQL একটাই transaction-এ চলে। error হলে কিছুই বদলায় না, আর দুবার চালালেও কোনো ক্ষতি নেই।</div>
+</section>
+
+<section id="s3">
+<h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol>
+<li><code>WLF-GitHub-v2.4.1-UPLOAD.zip</code> extract করুন, ভেতরের <code>WLF-v2.4.1-upload</code> ফোল্ডারে ঢুকুন। আগে v2.4.0 আপলোড করে থাকলেও এটাই দিন, একই ফাইল আবার গেলে কোনো ক্ষতি নেই।</li>
+<li>GitHub-এ repo খুলে <b>Add file → Upload files</b> চাপুন।</li>
+<li>ফোল্ডারের ভেতরের সব কিছু (Ctrl+A) টেনে আপলোড পেজে ছেড়ে দিন। একবারে ১০০টির কম ফাইল, তাই একবারেই হয়ে যাবে।</li>
+<li>Commit message দিন: <code>v2.4.1 Document folders, Assignee, spelling</code>। তারপর <b>Commit directly to the main branch</b> → <b>Commit changes</b>।</li>
+<li><b>Actions</b> ট্যাবে সবুজ ✓ আসা পর্যন্ত অপেক্ষা করুন (২–১৫ মিনিট)।</li>
+</ol>
+<div class="attention">ধাপ ২ (SQL) আগে, ধাপ ৩ (GitHub) পরে। SQL চালানোর আগে নতুন সাইট চালু হলে ফোল্ডারের বোতাম কাজ করবে না, তবে কোনো ডেটা নষ্ট হবে না।</div>
+</section>
+
+<section id="s4">
+<h2>৪. লাইভ সাইটে যাচাই</h2>
+<ol>
+<li>Ctrl+F5 চাপুন, অথবা অ্যাপ বন্ধ করে আবার খুলুন। ⋮ মেনুর নিচে <b>WLF v2.4.1</b> দেখাবে।</li>
+<li><b>Documents Links</b> → একটা sub menu → <b>+ Add folder</b>: ফোল্ডার বানান, ভেতরে <b>+ Add document</b> দিন, তারপর উপরের পথে sub menu-র নামে ক্লিক করে ফিরে আসুন।</li>
+<li>Search-এ ডকুমেন্টের নাম লিখুন। ফলাফলে 📁 দিয়ে ফোল্ডারের পথ দেখাবে।</li>
+<li><b>R&amp;I Project Manager</b> → একটা প্রজেক্ট → <b>Add task</b>: Assignee খালি থাকবে, ড্রপডাউনে Project lead আর collaborator-রা থাকবে।</li>
+<li><b>Technical Support → Installation → + New request</b>: Problem Sub-Category-তে "1. Aesthetics" দেখাবে।</li>
+</ol>
+</section>
+
+<section id="use">
+<h2>ফোল্ডার ব্যবহারের নিয়ম</h2>
+<ul>
+<li><b>ফোল্ডার খোলা:</b> 📁 নামে ক্লিক করুন। ফিরতে ← Up চাপুন, বা উপরের পথের যেকোনো নামে ক্লিক করুন।</li>
+<li><b>ফোল্ডার সরানো বা নাম বদলানো:</b> <b>Rename / move</b> চাপুন, তারপর "Inside" থেকে নতুন জায়গা বাছুন।</li>
+<li><b>ডকুমেন্ট অন্য ফোল্ডারে সরানো:</b> ডকুমেন্টের <b>Edit</b> → "Folder" বদলান → Save।</li>
+<li><b>ফোল্ডার মোছা:</b> আগে ভেতরের সব ডকুমেন্ট আর ফোল্ডার সরিয়ে বা মুছে খালি করুন। Drive-এর আসল ফাইল কখনো মোছে না।</li>
+<li>আগের সব ডকুমেন্ট sub menu-র উপরের স্তরেই থাকবে। চাইলে Edit করে ফোল্ডারে সরাতে পারবেন।</li>
+</ul>
+</section>
+
+<section id="trouble">
+<h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_SECTIONS_V230.sql</code></td><td>v2.3.0-এর SQL চালানো নেই</td><td>আমাকে জানান। কিছু বদলায়নি</td></tr>
+<tr><td>"Unsupported action" বা ফোল্ডার বানানো যাচ্ছে না</td><td>সাইট নতুন, কিন্তু SQL চালানো হয়নি</td><td>ধাপ ২ চালান</td></tr>
+<tr><td>"A folder with this name already exists here"</td><td>একই জায়গায় একই নামের ফোল্ডার আছে</td><td>অন্য নাম দিন</td></tr>
+<tr><td>"Folders can be nested up to 6 levels"</td><td>৬ স্তরের বেশি গভীর হয়ে যাচ্ছে</td><td>উপরের কোনো স্তরে রাখুন</td></tr>
+<tr><td>"This folder is not empty"</td><td>ভেতরে ফোল্ডার বা ডকুমেন্ট আছে</td><td>আগে সেগুলো সরান বা মুছুন</td></tr>
+<tr><td>টাস্ক Save-এ "Assignee (project lead or a collaborator)"</td><td>ইউজার বাছাই হয়নি, বা প্রজেক্টের বাইরের কেউ</td><td>ড্রপডাউন থেকে বাছুন, বা "Add user" দিয়ে যোগ করুন</td></tr>
+<tr><td>"Add user"-এ কাউকে পাওয়া যাচ্ছে না</td><td>তার "R&amp;I Project Manager" option টিক দেওয়া নেই</td><td>User Management-এ টিক দিন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই আছে</td><td>লাল ধাপের স্ক্রিনশট দিন</td></tr>
+</table></div>
+</section>
+
+<section id="files">
+<h2>ফাইল তালিকা</h2>
+<h3>Supabase প্যাকেজ</h3>
+<p class="small"><code>UPDATE_V240.sql</code> (এই আপডেট) · <code>backup-kit/</code> (হালনাগাদ) · <code>full-source/supabase/</code> (শুরু থেকে v2.4.1 পর্যন্ত সব SQL ও Edge Function) · <code>SQL_RUN_ORDER.txt</code></p>
+<h3>GitHub-এ বদলানো বা নতুন ফাইল (v2.3.0-এর পর)</h3>
+<p class="small">web/ri-workspace.js, web/maintenance.js, web/maintenance.css, web/pwa.js, web/sw.js, web/troubleshooting-seed.json, shared/access-core.js, scripts/build-pwa.mjs, supabase/UPDATE_V240.sql (নতুন), supabase/seed.sql, tests/v240-update.test.cjs (নতুন), tests/supabase-e2e.cjs, package.json, package-lock.json, README.md, START_HERE_V240_BN.html (নতুন), dist/ ফোল্ডারের বদলানো ফাইল</p>
+</section>
+
+<section>
+<h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul>
+<li>কপি-ডাটাবেসে v2.3.0-এর পর v2.4.0-এর SQL দুবার চালানো হয়েছে।</li>
+<li>৭৩টি ইউনিট টেস্ট পাস, এর মধ্যে নতুন ৩টি: ফোল্ডারের নিয়ম, Assignee-এর নিয়ম, বানান ঠিক হওয়া।</li>
+<li>পুরো ব্রাউজার টেস্ট পাস, যাতে ফোল্ডার বানানো, ফোল্ডারে ডকুমেন্ট রাখা, পথ ধরে ফেরা, খোঁজা, ভরা ফোল্ডার মুছতে না দেওয়া আর Assignee বাধ্যতামূলক হওয়া, সবই আছে।</li>
+<li>ফোন ও কম্পিউটারে, লাইট ও ডার্ক মোডে স্ক্রিনশট দেখে যাচাই।</li>
+</ul>
+<div class="attention">আসল Supabase-এ চালানো যায়নি। Actions-এর সবুজ ✓ আর SQL-এর পাঁচটা <code>true</code> দেখে নেবেন।</div>
+</section>
+<footer>WLF Electrical Solution · v2.4.1 · Lift Electrical R&amp;I</footer>
+</main>
+</body>
+</html>

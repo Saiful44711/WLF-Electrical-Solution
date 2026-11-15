@@ -359,18 +359,38 @@ const WlfRi = (() => {
   }
   function taskDialog(row,task) {
     if(!owner(row))return;
-    const p=row.data, data=task||{name:'',owner:p.lead,start:p.start,end:p.end,progress:0,status:'Pending'};
-    const id=task?.id||crypto.randomUUID(),operation=crypto.randomUUID(),people=peopleList();
+    const p=row.data, data=task||{name:'',owner:'',start:p.start,end:p.end,progress:0,status:'Pending'};
+    const id=task?.id||crypto.randomUUID(),operation=crypto.randomUUID(),people=peopleList(),added=new Set();
+    // Assignee: only the project lead and collaborators (plus the earlier user when editing). No auto-fill.
+    const members=[...new Set([p.lead,...(p.collaborators||[])].filter(Boolean))];
+    if(data.owner&&!members.includes(data.owner))members.push(data.owner);
+    const memberOptions=members.map(m=>option(m,labelPerson(m)+(m===p.lead?' · Project lead':''),data.owner)).join('');
     dialog(task?'Edit task':'Add task',`<div class="review-fields">
       ${input('Task name','name','text',data.name,'required maxlength="180"')}
-      ${input('Assignee','owner','text',people.inputFor(data.owner),'list="riPeopleOptions" autocomplete="off"')}
+      <label>Assignee<select name="owner" required>${option('','Select user',data.owner)}${memberOptions}</select></label>
+      ${input('Add user to this project','new-user','text','','list="riPeopleOptions" autocomplete="off" placeholder="Type a name, then Add user"')}
+      <button class="btn ghost" type="button" data-add-user style="align-self:end;justify-self:start;height:auto">Add user</button>
       ${input('Start date','start','date',data.start,'required')}${input('End date','end','date',data.end,'required')}
       ${select('Status','status',taskStates,data.status)}${input('Progress %','progress','number',data.progress,'min="0" max="100" step="1" required')}
-      </div>${people.html}`,async form=>{
+      </div>${people.html}<p class="note">A user added here also becomes a collaborator of this project when you save.</p>`,async form=>{
         const values=Object.fromEntries(new FormData(form));
-        const update={...values,id,owner:people.idFor(values.owner.trim(),data.owner),progress:Number(values.progress)};
+        delete values['new-user'];
+        if(!values.owner||!members.includes(values.owner))throw Error('Select the user for this task (project lead or a collaborator).');
+        const update={...values,id,owner:values.owner,progress:Number(values.progress)};
         const tasks=task?p.tasks.map(t=>t.id===id?update:t):[...p.tasks,update];
-        await saveProject(row,row.id,operation,{...p,tasks});
+        const collaborators=[...new Set([...(p.collaborators||[]),...[...added].filter(x=>x!==p.lead)])];
+        await saveProject(row,row.id,operation,{...p,collaborators,tasks});
+      },form=>{
+        form.querySelector('[data-add-user]').onclick=()=>{
+          const status=form.querySelector('[role=status]'),field=form.elements['new-user'];
+          try{
+            const user=people.idFor(field.value.trim());
+            if(!user)return;
+            if(!members.includes(user)){members.push(user);added.add(user);
+              form.elements.owner.insertAdjacentHTML('beforeend',option(user,labelPerson(user)+' · New collaborator',''));}
+            form.elements.owner.value=user;field.value='';status.textContent='';
+          }catch(err){status.textContent=err.message;}
+        };
       });
   }
   async function projectAction(action,key,b) {

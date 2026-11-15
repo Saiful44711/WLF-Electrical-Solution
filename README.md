@@ -1,4 +1,31 @@
-# WLF Electrical Solution v2.3.0
+# WLF Electrical Solution v2.4.1
+
+## v2.4.1 (15 November 2026)
+
+The task field label is back to the correct word **Assignee** (behaviour unchanged: project lead or a collaborator, no auto-fill, Add user). UPDATE_V240.sql is safe to run again and only updates the task error text.
+
+## v2.4.0 Document folders, task Assignee, spelling (15 November 2026)
+
+Open START_HERE_V241_BN.html for the rollout guide.
+
+| Order | Place | File or action |
+| --- | --- | --- |
+| 1 | Supabase SQL Editor | Backup kit (01 and 02), check both CSVs |
+| 2 | Supabase SQL Editor | supabase/UPDATE_V240.sql (all five result columns must be true) |
+| 3 | GitHub repository | Upload the changed files to main; wait for the Pages workflow |
+
+- Documents Links: folders and sub-folders (up to 6 levels) inside each sub menu,
+  breadcrumb navigation, search across folder and document names with the folder
+  path, folder choice in Add/Edit document. Super Admin only manages folders;
+  only empty folders can be deleted.
+- R&I Project Manager: the task field is Assignee, no auto-fill, a choice of the
+  project lead and collaborators (Name (ID)); "Add user" adds a collaborator in the
+  same save. The server rejects users outside the project.
+- Spelling: Installation option "1. Aesthetics"; NICE3000+ Err38 text "runs in up direction".
+- Backup kit: 01_STRUCTURE_BACKUP.sql no longer triggers Supabase's false RLS warning.
+
+New staging databases apply UPDATE_V240.sql after UPDATE_SECTIONS_V230.sql.
+
 
 ## v2.3.0 Sections, Name & ID update (15 November 2026)
 
