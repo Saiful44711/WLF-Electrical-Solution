@@ -34,3 +34,14 @@
   :is(#tab-ri-activity,#tab-ri-projects,#wlfRiDialog) .review-fields { grid-template-columns:minmax(0,1fr); }
   #wlfRiDialog { padding:16px; overflow-wrap:anywhere; }
 }
+/* v2.5.0 R&I Team Activity: one form list; form left, recent entries right on wide screens */
+.ri-category-picker { display:flex; flex-direction:column; gap:6px; max-width:520px; margin:12px 0 4px; font-weight:600; }
+.ri-category-picker select { font-weight:500; }
+.ri-activity-split { display:grid; grid-template-columns:minmax(0,1fr); gap:16px; align-items:start; }
+.ri-activity-split > * { min-width:0; }
+.ri-activity-split .card { margin:0; }
+@media (min-width:1200px) {
+  .ri-activity-split { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .ri-activity-split > #riEntryList { position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; }
+  .ri-activity-split #riEntryList .review-fields { grid-template-columns:1fr 1fr; gap:10px; }
+}

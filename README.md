@@ -1,4 +1,22 @@
-# WLF Electrical Solution v2.4.1
+# WLF Electrical Solution v2.5.0
+
+## v2.5.0 Notifications, change history, Bangla troubleshooting, speed (15 November 2026)
+
+Open START_HERE_V250_BN.html for the rollout guide.
+
+| Order | Place | File or action |
+| --- | --- | --- |
+| 1 | Supabase SQL Editor | Backup kit (01 and 02), check both CSVs |
+| 2 | Supabase SQL Editor | supabase/UPDATE_V250.sql (bangla_entries = 166, all other columns true) |
+| 3 | Supabase Edge Functions | Deploy `wlf-push` (supabase/functions/wlf-push/index.ts) with Verify JWT OFF |
+| 4 | GitHub repository | Upload the changed files to main; wait for the Pages workflow |
+
+- User Management: copy access from another user, red Duplicate ID mark, change history (Super Admin only; `getUserAccessLog`).
+- Push notifications (standard Web Push, VAPID keys created by the function and kept in `wlf_private.push_keys`): new access request -> approved Super Admins; forwarded support request -> receiver. Opt in per device in My Profile.
+- Technical Support: requests not Solved turn yellow after 2 days and red after 3 (Super Admin can change; `saveSupportAging`).
+- Troubleshooting: English / বাংলা toggle; `content.bn` for 166 MOT and NICE3000+ entries (missing parts fall back to English).
+- R&I Activity: "Canceled" -> "Cancelled"; one grouped category list; form left and recent entries right on wide screens.
+- Speed: startup reads run in parallel with getSession; the Excel/PowerPoint bundle loads on first download (`wlf-exports-lite.js`); app JS/CSS minified (shared modules stay byte-identical).
 
 ## v2.4.1 (15 November 2026)
 

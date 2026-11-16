@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.0 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.4.1 → 2.5.0 · ১৫ নভেম্বর ২০২৬</p>
+  <h1>Notification, পরিবর্তনের ইতিহাস, বাংলা Troubleshooting আর দ্রুত গতি: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.0.zip</b> (ডাটাবেস + নতুন Edge Function), <b>WLF-GitHub-v2.5.0-UPLOAD.zip</b> (v2.4.1-এর পর বদলানো ফাইল, আপলোডের জন্য) আর <b>WLF-GitHub-v2.5.0.zip</b> (পুরো সফটওয়্যার, ব্যাকআপ হিসেবে রাখুন)।</p>
+</header>
+
+<section>
+<nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. Edge Function</a><a href="#s4">৪. GitHub</a><a href="#s5">৫. যাচাই</a><a href="#push">Notification চালু</a><a href="#trouble">সমস্যা হলে</a><a href="#limits">যা জানা দরকার</a><a href="#files">ফাইল তালিকা</a></nav>
+</section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>User Management → Copy access from:</b> একজন ইউজারের সব টিক আরেকজনের ফর্মে কপি করা যায়। ইউজার বাছাই করে <b>Copy ticks</b> চাপুন, তারপর <b>Save user &amp; access</b>। Save না চাপলে কিছু বদলায় না।</li>
+<li><b>Duplicate ID:</b> দুজনের একই ID থাকলে দুজনের নামের পাশে লাল <b>Duplicate ID</b> চিহ্ন, বাক্সের চারপাশে লাল দাগ, আর ভেতরে কার সাথে মিলছে সেটা লেখা থাকে। উপরে মোট সংখ্যাও দেখায়।</li>
+<li><b>Change history:</b> Super Admin কারো Name, ID, Section, User type (Super Admin / R&amp;I / User), Status বা option বদলালে কে, কখন, কী থেকে কী করেছে তা জমা হয়। ইউজারের বাক্সে <b>Change history</b> চাপলে দেখা যায়। শুধু Super Admin দেখতে পারে। ইতিহাস v2.5.0 থেকে শুরু, আগের পরিবর্তন নেই।</li>
+<li><b>Push notification:</b> নতুন access request এলে সব Super Admin-এর ফোন/কম্পিউটারে, আর কোনো support request কারো কাছে Forward হলে সেই R&amp;I ইউজারের কাছে নোটিফিকেশন যায়। প্রত্যেকে নিজের ডিভাইসে <b>My Profile → Notifications → Turn on notifications</b> দিয়ে চালু করবেন। নোটিফিকেশনে চাপলে অ্যাপের ঠিক পাতাটা (User Management বা Technical Support) খোলে।</li>
+<li><b>পুরনো request-এর রং:</b> Technical Support-এ যে request এখনো Solved হয়নি, সেটা <b>২ দিন পর হলুদ</b> আর <b>৩ দিন পর লাল</b> হয়, সাথে "4 days old" লেখা। Super Admin <b>Change days</b> চেপে দিন বদলাতে পারেন।</li>
+<li><b>Troubleshooting বাংলায়:</b> উপরে <b>English / বাংলা</b> বোতাম। আপনার দেওয়া দুটো বাংলা ম্যানুয়াল (MOT ও NICE3000+) থেকে ১৬৬টি কোডের বাংলা যোগ হয়েছে। বাংলায় খোঁজাও যায়। কোনো অংশের বাংলা না থাকলে সেটা ইংরেজিতে দেখায় আর উপরে জানিয়ে দেয়। বেছে নেওয়া ভাষা ডিভাইসে মনে থাকে।</li>
+<li><b>Cancelled:</b> R&amp;I Team Activity-র সব ফর্মে, আগের সব entry-তে আর নতুন category-র শুরুর ফর্মে বানান এখন "Cancelled"।</li>
+<li><b>R&amp;I Team Activity-র নতুন চেহারা:</b> সব category (Team, SCM, Sales, Reports) এখন একটা ড্রপডাউনে, ভাগ করে সাজানো। বড় স্ক্রিনে ফর্ম বাঁদিকে আর <b>Recent entries</b> ডানদিকে। ফোনে আগের মতো উপরে-নিচে।</li>
+<li><b>দ্রুত গতি (কোনো ফিচার বন্ধ না করে):</b> লগইনের পরের তিনটা সার্ভার কল এখন একসাথে যায়, একটার পর একটা নয়। Excel/PowerPoint-এর বড় ফাইলটা (প্রায় ৩৮০ KB) শুধু ডাউনলোডের সময় লোড হয়। অ্যাপের ফাইলগুলো ছোট (minify) করা হয়েছে। পরীক্ষায় প্রতি সার্ভার কলে ১৫০ ms দেরি ধরে: অ্যাপ আবার খোলা ১১৩৮ → প্রায় ৮৫৫ ms (প্রায় ২৫% দ্রুত), লগইন ১২৩৫ → প্রায় ১০৭০ ms, প্রথমবার ডাউনলোড হওয়া JavaScript ১৮৫২ → ১০৭৬ KB। অফলাইনেও Excel ডাউনলোড কাজ করে (ফাইলটা আগেই ক্যাশে থাকে)।</li>
+</ul>
+</section>
+
+<section id="s1">
+<h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol>
+<li>Supabase প্যাকেজের <code>backup-kit</code> ফোল্ডার থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন।</li>
+<li><code>03_RESTORE_TOOL.html</code>-এ দুটো CSV দিয়ে দুবারই সবুজ "✓ ব্যাকআপ সম্পূর্ণ" দেখুন।</li>
+<li>GitHub থেকে <b>Code → Download ZIP</b> করে রাখুন (এখনকার v2.4.1)।</li>
+</ol>
+<div class="danger">Data backup CSV-তে ইমেইল আর পাসওয়ার্ডের hash থাকে। এটা GitHub-এ, চ্যাটে বা কাউকে দেবেন না।</div>
+</section>
+
+<section id="s2">
+<h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol>
+<li>Supabase → আপনার প্রজেক্ট → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V250.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C করুন, SQL Editor-এ পেস্ট করে <b>Run</b> চাপুন। ফাইলটা বড় (প্রায় ২০০ KB, বাংলা লেখার জন্য), পেস্ট হতে কয়েক সেকেন্ড লাগতে পারে।</li>
+<li>"Potential issue detected / RLS" বার্তা এলে <b>Run without RLS</b> চাপুন। নতুন সব টেবিলের RLS এই SQL নিজেই চালু করে।</li>
+<li>ফলাফলে এই কলামগুলো দেখুন:
+ <div class="scroll"><table>
+ <tr><th>কলাম</th><th>যা হওয়া উচিত</th><th>মানে</th></tr>
+ <tr><td><code>change_history_ready</code></td><td>true</td><td>পরিবর্তনের ইতিহাস রাখার টেবিল তৈরি</td></tr>
+ <tr><td><code>push_ready</code></td><td>true</td><td>Notification-এর টেবিল আর নতুন access request-এর trigger তৈরি</td></tr>
+ <tr><td><code>support_colours_ready</code></td><td>true</td><td>হলুদ/লালের দিন (২ ও ৩) সেট হয়েছে</td></tr>
+ <tr><td><code>cancelled_spelling_fixed</code></td><td>true</td><td>"Canceled" আর কোথাও নেই</td></tr>
+ <tr><td><code>bangla_entries</code></td><td>166</td><td>এতগুলো কোডে বাংলা যোগ হয়েছে</td></tr>
+ <tr><td><code>v250_rules_ready</code></td><td>true</td><td>নতুন সার্ভার-নিয়ম চালু</td></tr>
+ </table></div></li>
+</ol>
+<div class="note">পুরো SQL একটাই transaction। error হলে কিছুই বদলায় না। দুবার চালালেও ক্ষতি নেই। শুরুতে <code>STOP: apply UPDATE_V240.sql</code> এলে বুঝবেন v2.4.x-এর SQL চালানো নেই।</div>
+</section>
+
+<section id="s3">
+<h2>৩. নতুন Edge Function: <code>wlf-push</code> (Notification পাঠানোর জন্য)</h2>
+<p>এটা ছাড়া অ্যাপের বাকি সব কাজ করবে, শুধু Notification যাবে না। কোনো key বা secret হাতে লিখতে হবে না: function প্রথমবার চলার সময় নিজেই key বানিয়ে ডাটাবেসে রাখে।</p>
+<ol>
+<li>Supabase → বাঁদিকে <b>Edge Functions</b> → <b>Deploy a new function</b> → <b>Via Editor</b>।</li>
+<li>Function name ঠিক এভাবে দিন: <code>wlf-push</code></li>
+<li>Editor-এর পুরনো কোড মুছে Supabase প্যাকেজের <code>edge-function/wlf-push/index.ts</code> ফাইলের পুরো কোড পেস্ট করুন → <b>Deploy function</b>।</li>
+<li>Deploy হলে function-এর পাতায় <b>Details</b> (বা Settings) → <b>Verify JWT</b> / "Enforce JWT verification" <b>বন্ধ (OFF)</b> করে Save করুন। <code>wlf-admin</code>-এর মতোই। এটা নিরাপদ, কারণ function শুধু ডাটাবেস যা আগে থেকে সারিতে রেখেছে সেটাই পাঠায়, বাইরের কেউ ডেকে অন্য কিছু পাঠাতে পারে না।</li>
+<li>পরীক্ষা: function পাতার <b>Test</b> (বা Invoke) থেকে Method <b>POST</b>, body <code>{}</code> দিয়ে চালান। উত্তরে <code>"ok":true</code> আর একটা লম্বা <code>publicKey</code> এলে ঠিক আছে।</li>
+</ol>
+<div class="attention">Verify JWT চালু থাকলে ফোনে নোটিফিকেশন চালুর সময় বা request পাঠানোর পর function "401" দেবে আর নোটিফিকেশন যাবে না। তখন ধাপ ৪ আবার দেখুন।</div>
+</section>
+
+<section id="s4">
+<h2>৪. GitHub-এ ফাইল আপলোড</h2>
+<ol>
+<li><code>WLF-GitHub-v2.5.0-UPLOAD.zip</code> extract করুন, ভেতরের <code>WLF-v2.5.0-upload</code> ফোল্ডারে ঢুকুন।</li>
+<li>GitHub-এ repo খুলে <b>Add file → Upload files</b>।</li>
+<li>ফোল্ডারের ভেতরের সব কিছু (Ctrl+A) টেনে আপলোড পেজে ছেড়ে দিন। ১০০টির কম ফাইল, তাই একবারেই হবে।</li>
+<li>উপরের প্রথম ঘরে (Commit message) লিখুন: <code>v2.5.0 Notifications, change history, Bangla troubleshooting, speed</code>। নিচের বড় description ঘরটা খালি রাখলেও চলে। তারপর <b>Commit directly to the main branch</b> → <b>Commit changes</b>।</li>
+<li><b>Actions</b> ট্যাবে সবুজ ✓ পর্যন্ত অপেক্ষা করুন (২–১৫ মিনিট)।</li>
+</ol>
+<div class="attention">ক্রম: ধাপ ২ (SQL) → ধাপ ৩ (Edge Function) → ধাপ ৪ (GitHub)। SQL-এর আগে নতুন সাইট চালু হলে নতুন বোতামগুলো "Unsupported action" দেখাবে, তবে কোনো ডেটা নষ্ট হবে না।</div>
+</section>
+
+<section id="s5">
+<h2>৫. লাইভ সাইটে যাচাই</h2>
+<ol>
+<li>Ctrl+F5 চাপুন, বা অ্যাপ বন্ধ করে আবার খুলুন (দরকার হলে "Update" বোতাম)। ⋮ মেনুর নিচে <b>WLF v2.5.0</b> দেখাবে।</li>
+<li><b>User Management:</b> কোনো ইউজার খুলুন → <b>Copy access from</b> → একজন বাছুন → <b>Copy ticks</b> → <b>Save user &amp; access</b> → <b>Change history</b>-এ আজকের পরিবর্তন দেখাবে।</li>
+<li><b>Technical Support</b> → একটা টিম: উপরে "Not Solved for 2+ days / 3+ days" লেখা থাকবে। পুরনো request থাকলে হলুদ/লাল দেখাবে।</li>
+<li><b>Troubleshooting</b> → NICE3000+ → Error Solution → <code>Err20</code> → উপরে <b>বাংলা</b> চাপুন।</li>
+<li><b>R&amp;I Team Activity</b>: উপরের ড্রপডাউন থেকে ফর্ম বাছুন। কম্পিউটারে ফর্ম আর Recent entries পাশাপাশি দেখাবে।</li>
+<li><b>Notification:</b> নিচের অংশ দেখুন।</li>
+</ol>
+</section>
+
+<section id="push">
+<h2>Notification চালু করা (প্রত্যেক ইউজার নিজের ডিভাইসে)</h2>
+<ol>
+<li><b>Android / কম্পিউটার (Chrome, Edge):</b> অ্যাপে লগইন → <b>My Profile</b> → <b>Notifications</b> → <b>Turn on notifications</b> → ব্রাউজার জিজ্ঞেস করলে <b>Allow</b>। "On for this device" দেখাবে।</li>
+<li><b>iPhone / iPad (iOS 16.4 বা নতুন):</b> আগে Safari-তে সাইট খুলে <b>Share → Add to Home Screen</b>। তারপর Home Screen-এর WLF আইকন থেকে অ্যাপ খুলে উপরের মতো চালু করুন। Safari-র সাধারণ ট্যাব থেকে iPhone-এ নোটিফিকেশন চালু হয় না।</li>
+<li><b>পরীক্ষা:</b> Super Admin নিজের ফোনে চালু করুন। তারপর অন্য কাউকে দিয়ে (বা একটা টেস্ট ইমেইল দিয়ে) নতুন account request পাঠান। কয়েক সেকেন্ডে "New access request" নোটিফিকেশন আসা উচিত।</li>
+<li>Forward-এর পরীক্ষা: R&amp;I ইউজার নিজের ফোনে চালু করবেন, তারপর অন্য কেউ তার কাছে একটা request Forward করবেন।</li>
+<li>"Blocked in settings" দেখালে: ফোন/ব্রাউজারের সেটিংসে এই সাইটের Notifications <b>Allow</b> করুন, তারপর আবার চেষ্টা করুন।</li>
+</ol>
+<div class="note">একই ডিভাইসে অন্য কেউ লগইন করলে নোটিফিকেশন নিজে থেকেই নতুন লগইন করা জনের নামে চলে যায়। শেয়ার করা কম্পিউটারে লগআউটের আগে <b>Turn off</b> চাপুন, নইলে লগআউটের পরও সেই ডিভাইসে আগের জনের নোটিফিকেশন আসতে পারে।</div>
+</section>
+
+<section id="trouble">
+<h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_V240.sql</code></td><td>v2.4.x-এর SQL চালানো নেই</td><td>আমাকে জানান। কিছু বদলায়নি</td></tr>
+<tr><td>"Unsupported action"</td><td>সাইট নতুন, SQL চালানো হয়নি</td><td>ধাপ ২ চালান</td></tr>
+<tr><td>"Notifications are not ready yet. Super Admin must deploy the wlf-push…"</td><td>Edge Function নেই, নাম ভুল, বা Verify JWT চালু</td><td>ধাপ ৩ দেখুন, নাম ঠিক <code>wlf-push</code> কিনা দেখুন</td></tr>
+<tr><td>চালু আছে কিন্তু নোটিফিকেশন আসে না</td><td>ফোনের battery saver / Do Not Disturb, বা অ্যাপের notification বন্ধ</td><td>ফোনের সেটিংসে Chrome/WLF-এর notification Allow করুন। Supabase → Edge Functions → wlf-push → Logs-এর স্ক্রিনশট দিন</td></tr>
+<tr><td>Change days-এ "Enter whole days…"</td><td>লালের দিন হলুদের চেয়ে বেশি হতে হবে</td><td>যেমন হলুদ 2, লাল 3</td></tr>
+<tr><td>বাংলায় কিছু অংশ ইংরেজি</td><td>ওই অংশ বাংলা ম্যানুয়ালে নেই</td><td>নিচের "যা জানা দরকার" দেখুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই আছে</td><td>লাল ধাপের স্ক্রিনশট দিন</td></tr>
+</table></div>
+</section>
+
+<section id="limits">
+<h2>যা জানা দরকার</h2>
+<ul>
+<li><b>বাংলা ম্যানুয়ালে নেই:</b> MOT <code>Er88</code> আর NICE3000+ <code>Err45</code>-এর subcode <code>107</code>। এগুলো ইংরেজিতেই দেখাবে। বাংলা ম্যানুয়ালে <code>Err94</code> আছে, কিন্তু অ্যাপে এই কোড নেই, তাই যোগ হয়নি।</li>
+<li><b>বাংলা লেখা এডিট:</b> Super Admin অ্যাপে Edit করলে এখন শুধু ইংরেজি অংশ বদলায়। বাংলা অংশ যেমন আছে তেমনই থাকে, মুছে যায় না। বাংলা এডিট করার ব্যবস্থা পরের আপডেটে করা যায়।</li>
+<li><b>Notification কখন যায়:</b> নতুন request বা Forward-এর সাথে সাথেই অ্যাপ <code>wlf-push</code> ডাকে, তাই সাধারণত কয়েক সেকেন্ডেই যায়। সেই মুহূর্তে নেট না থাকলে পরে কেউ অ্যাপ খুললেই পাঠানো হয় (৩ দিন পর্যন্ত, সর্বোচ্চ ৫ বার চেষ্টা)।</li>
+<li><b>খরচ:</b> এটা Web Push, তাই প্রতি নোটিফিকেশনে কোনো খরচ নেই। Supabase-এর ফ্রি প্ল্যানে মাসে ৫ লাখ Edge Function কল, এই অ্যাপের ব্যবহারে এর অনেক নিচে থাকবে।</li>
+<li><b>Change history</b> শুধু v2.5.0 থেকে শুরু। আগের পরিবর্তনের রেকর্ড নেই।</li>
+</ul>
+</section>
+
+<section id="files">
+<h2>ফাইল তালিকা</h2>
+<h3>Supabase প্যাকেজ</h3>
+<p class="small"><code>UPDATE_V250.sql</code> (এই আপডেট) · <code>edge-function/wlf-push/index.ts</code> (নতুন) · <code>backup-kit/</code> · <code>full-source/supabase/</code> (শুরু থেকে v2.5.0 পর্যন্ত সব SQL ও Edge Function) · <code>SQL_RUN_ORDER.txt</code></p>
+<h3>GitHub-এ বদলানো বা নতুন ফাইল (v2.4.1-এর পর)</h3>
+<p class="small">web/push.js (নতুন), web/exports-lite-entry.js (নতুন), web/exports-entry.js, web/index.html, web/transport.js, web/live-workspace.js, web/ri-workspace.js, web/troubleshooting.js, web/troubleshooting.css, web/support.css, web/release-v220.css, web/workspace-overview.css, web/pwa.js, web/sw.js, web/troubleshooting-seed.json, shared/access-core.js, shared/troubleshooting-core.js, scripts/build-pwa.mjs, supabase/UPDATE_V250.sql (নতুন), supabase/functions/wlf-push/index.ts (নতুন), supabase/config.toml, supabase/01_SETUP.sql, supabase/seed.sql, tests/v250-update.test.cjs (নতুন), tests/supabase-e2e.cjs, package.json, package-lock.json, README.md, START_HERE_V250_BN.html (নতুন), dist/ ফোল্ডারের বদলানো ফাইল</p>
+</section>
+
+<section>
+<h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul>
+<li>কপি-ডাটাবেসে (PostgreSQL 16) v2.4.1-এর পর <code>UPDATE_V250.sql</code> দুবার চালানো হয়েছে। সব ফলাফল ঠিক এসেছে।</li>
+<li>সার্ভার-নিয়ম: শুধু Super Admin ইতিহাস দেখতে ও দিন বদলাতে পারে। কেউ অন্যের ডিভাইস মুছতে পারে না। নতুন access request আর Forward-এ ঠিক জনের জন্য notification সারিতে যায়, শুধু Receive করলে যায় না। সাধারণ ইউজার notification-এর টেবিল বা service function ছুঁতে পারে না।</li>
+<li><code>wlf-push</code>-এর এনক্রিপশন (RFC 8291) আর স্বাক্ষর (VAPID) আলাদা একটা প্রোগ্রাম দিয়ে খুলে আর যাচাই করে মেলানো হয়েছে।</li>
+<li>পূর্ণ ব্রাউজার পরীক্ষা (Playwright): Duplicate ID, Copy access + Save + History, হলুদ/লাল আর দিন বদলানো, বাংলা/ইংরেজি বদল, Notifications কার্ড, পাশাপাশি লেআউট (কম্পিউটার) ও উপরে-নিচে (ফোন), Excel/PowerPoint ডাউনলোড, অফলাইন রিলোড। মোবাইল ও ডেস্কটপ, light ও dark mode-এর স্ক্রিনশট দেখা হয়েছে।</li>
+<li>সব স্বয়ংক্রিয় পরীক্ষা: <code>npm test</code> ৭৮/৭৮ পাস, e2e পাস।</li>
+</ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase প্রজেক্টে SQL ও Edge Function চালানো; আসল ফোনে নোটিফিকেশন পৌঁছানো (Google/Apple-এর push সার্ভার এখান থেকে পাওয়া যায় না); iPhone-এ Home Screen অ্যাপ। তাই ধাপ ৩-এর Test আর "Notification চালু করা"-র পরীক্ষাটা অবশ্যই করে দেখবেন।</div>
+</section>
+
+<footer>WLF Electrical Solution · v2.5.0</footer>
+</main>
+</body>
+</html>

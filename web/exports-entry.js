@@ -67,4 +67,5 @@ async function projectPpt(project,people) {
   const stem=project.name.replace(/[<>:"/\\|?*\u0000-\u001f]+/g,'-').trim().slice(0,90)||'project';
   await deck.writeFile({fileName:'WLF-'+stem+'.pptx'});
 }
-window.WlfExports={download,excel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
+window.WlfExportsFull={download,excel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
+if(!window.WlfExports)window.WlfExports=window.WlfExportsFull;

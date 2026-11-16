@@ -5,3 +5,29 @@
 
 /* Header: navigation, company logo and current section at left; appearance menu at far right. */
 .review-topbar>.header-page-title{flex:1;min-width:0;text-align:left}.review-topbar>.header-page-title h2{overflow-wrap:anywhere}.review-topbar>.appearance-menu{margin-left:auto;flex-shrink:0}.review-topbar .appearance-options{left:auto;right:0;max-width:calc(100vw - 32px)}
+/* v2.5.0 user management: duplicate ID, copy access, change history */
+.access-user>summary>mark.dup-id{background:#d64545;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.access-user:has(.dup-id){border-color:#d64545}
+.dup-id-warning{margin:10px 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,#d64545 14%,transparent);color:#d64545;font-weight:600;font-size:13px}
+.dup-id-summary{color:#d64545;font-weight:600;margin:6px 0}
+.access-tools{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:14px 0 4px}
+.access-tools label{display:flex;flex-direction:column;gap:4px;font-size:12px;min-width:220px;flex:1 1 260px;max-width:420px}
+.access-history{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
+.access-history h4{margin:0 0 8px}
+.access-history ol{margin:0;padding-left:18px;display:grid;gap:10px}
+.access-history ul{margin:4px 0 0;padding-left:16px;font-size:13px}
+.access-history-when{font-size:12px;color:var(--muted)}
+/* v2.5.0 old-request colours */
+.support-request.aged-yellow{border-left:5px solid #e0a800;background:color-mix(in srgb,#f5c518 12%,var(--card))}
+.support-request.aged-red{border-left:5px solid #d64545;background:color-mix(in srgb,#d64545 11%,var(--card))}
+.age-badge{display:inline-block;align-self:flex-start;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:700}
+.age-badge.age-yellow{background:#f5c518;color:#3a2c00}
+.age-badge.age-red{background:#d64545;color:#fff}
+.age-legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:6px 0;font-size:12px;color:var(--muted)}
+.age-dot{display:inline-block;width:11px;height:11px;border-radius:50%}
+.age-dot.age-yellow{background:#f5c518}.age-dot.age-red{background:#d64545;margin-left:8px}
+.age-settings>summary{list-style:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;cursor:pointer}
+.age-settings>summary::-webkit-details-marker{display:none}
+.age-edit{font-size:12px;font-weight:600;color:var(--indigo);text-decoration:underline}
+.age-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:6px 0 12px}
+.age-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;width:150px}

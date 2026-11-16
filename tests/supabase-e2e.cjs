@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.4.1-folders','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.0-push','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -199,9 +199,11 @@ await page.evaluate(()=>setAppearance('dark'));
 await checkRiMobileFit('#tab-ri-activity');
 await page.screenshot({path:'test-results/ri-team-activity-mobile.png',fullPage:true});
 await page.evaluate(()=>setAppearance('light'));
-await page.getByRole('button',{name:'Reports',exact:true}).click();
-assert.equal(await page.locator('[data-ri-action=category]').count(),3);
-await page.getByRole('button',{name:'Electrical & Electronic Components Service Report',exact:true}).click();
+/* v2.5.0: all activity/report forms in one list, grouped by tab */
+assert.equal(await page.locator('#riCategoryPicker optgroup[label="Reports"] option').count(),3);
+assert.equal(await page.locator('#riCategoryPicker optgroup').count(),4);
+await page.locator('#riCategoryPicker').selectOption({label:'Electrical & Electronic Components Service Report'});
+await page.locator('#riActivityForm h3').filter({hasText:'Electrical & Electronic Components Service Report'}).waitFor();
 await fillDynamic('#riSubmitForm',{status:'Solved'});
 await page.locator('#riSubmitForm [type=submit]').click();
 await page.locator('#riSubmitStatus').filter({hasText:'Saved · Solved'}).waitFor();
@@ -280,8 +282,7 @@ await tab('ri-projects');
 await page.locator('[data-project] summary').click();
 assert.equal(await page.locator('[data-ri-action=add-task],[data-ri-action=delete-project]').count(),0);
 await tab('ri-activity');
-await page.getByRole('button',{name:'Reports',exact:true}).click();
-await page.getByRole('button',{name:'Electrical & Electronic Components Service Report',exact:true}).click();
+await page.locator('#riCategoryPicker').selectOption({label:'Electrical & Electronic Components Service Report'});
 await page.locator('#riEntryList tbody tr').filter({hasText:'Solved'}).waitFor();
 assert.equal(await page.locator('[data-ri-action=edit-entry],[data-ri-action=delete-entry]').count(),0);
 assert.equal(await page.locator('#nav [data-tab=dashboard]').isVisible(),false);assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);assert.equal(await page.locator('#nav [data-tab=storage]').isVisible(),false);await tab('documents');await page.locator('[data-doc-category]').filter({hasText:'Training'}).click();await page.locator('#wlfDocList a').filter({hasText:'Updated Checklist'}).waitFor();assert.equal(await page.locator('#wlfAddDocument,#wlfAddCategory,[data-edit-doc],[data-delete-doc]').count(),0);assert.equal(await page.locator('#nav [data-tab=users]').isVisible(),false);await page.evaluate(()=>openTab('users'));assert.equal(await page.locator('#tab-users').isVisible(),false);
@@ -502,6 +503,62 @@ assert.match(await page.locator('#supportDetail').innerText(),/Duration \(Min\) 
 
 await page.setViewportSize({width:390,height:844});await page.evaluate(()=>closeSidebar());await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingClientRect().right<=1);const mobile=await page.evaluate(()=>{let logo=document.querySelector('.header-company-logo').getBoundingClientRect(),title=document.getElementById('pageTitle').getBoundingClientRect(),menu=document.querySelector('.appearance-menu').getBoundingClientRect();return{left:logo.x<title.x,right:menu.x>title.right,edge:innerWidth-menu.right};});assert.ok(mobile.left&&mobile.right&&mobile.edge<25);await page.locator('.appearance-menu summary').click();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('.appearance-menu summary').click();await page.screenshot({path:'test-results/supabase-mobile-support.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
 // Actual service worker caches project-subpath shell; downloaded references work offline.
+/* ---- v2.5.0: duplicate ID, copy access, change history, old-request colours, Bangla troubleshooting, notifications, activity layout ---- */
+{
+await logout();await login('sa');fs.mkdirSync('test-results/v250',{recursive:true});
+const v250shot=async(name,{full=false,mobileOnlyTop=false}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>closeSidebar());await page.waitForTimeout(120);for(const theme of ['light','dark']){await page.evaluate(t=>setAppearance(t),theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v250/${name}-${label}-${theme}.png`,fullPage:full});}if(w<500)assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits phone width');}await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>setAppearance('light'));};
+await sequential(()=>h.db.query('alter table public.wlf_profiles disable trigger wlf_deletion_guard'));
+await sequential(()=>h.db.query("update public.wlf_profiles set employee_id='RN-3' where id=$1",[IDS.rni2]));
+await sequential(()=>h.db.query('alter table public.wlf_profiles enable trigger wlf_deletion_guard'));
+await tab('users');await page.locator('#userAccessSearch').fill('');await page.locator('.access-user').first().waitFor();
+await page.locator('#userDupCount').filter({hasText:'2 user(s)'}).waitFor();assert.equal(await page.locator('.access-user mark.dup-id').count(),2);
+const target=page.locator('.access-user').filter({has:page.locator('[data-access-user="user@example.test"]')});
+await target.locator('summary').click();
+await target.locator('.access-copy').selectOption('rni@example.test');await target.locator('.access-copy-btn').click();
+await page.locator('#accessStatus').filter({hasText:'Copied'}).waitFor();
+const rniPerms=(await sequential(()=>h.db.query('select permissions from public.wlf_profiles where id=$1',[IDS.rni]))).rows[0].permissions;
+assert.deepEqual((await target.locator('.access-group input:checked').evaluateAll(n=>n.map(x=>x.value))).sort(),[...rniPerms].sort());
+await target.locator('.access-save').click();await page.locator('#accessStatus').filter({hasText:'Saved'}).waitFor();
+await target.locator('.access-history-btn').click();await target.locator('.access-history li').first().waitFor();
+assert.match(await target.locator('.access-history').innerText(),/by .*\(SA-1\)/);
+await target.locator('.dup-id-warning').count().then(n=>assert.equal(n,0));
+const dupBox=page.locator('.access-user').filter({has:page.locator('[data-access-user="rni2@example.test"]')});await dupBox.locator('summary').click();await dupBox.locator('.dup-id-warning').waitFor();
+await dupBox.scrollIntoViewIfNeeded();await v250shot('01-user-duplicate-id');
+await target.scrollIntoViewIfNeeded();await target.locator('.access-tools').scrollIntoViewIfNeeded();await v250shot('02-user-copy-access-history');
+// old-request colours
+const reqForm=(await h.rpc('user','getSupportWorkspace',[{category:'commissioning'}])).forms.commissioning;
+for(let i=0;i<2;i++)await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:reqForm.revision,mutationId:crypto.randomUUID(),values:Object.fromEntries(reqForm.fields.map(f=>[f.id,f.type==='multi'?f.options.slice(0,1):f.type==='date'?'2026-11-15':f.type==='number'?'1200':f.type==='checkbox'?(f.options?.length?[]:false):f.options?.[0]||('Aged request '+(i+1))]))}]));
+const open=(await sequential(()=>h.db.query("select id from public.wlf_requests where category='commissioning' and status<>'Solved' and deleted_at is null order by created_at desc limit 2"))).rows;
+assert(open.length>=2,'two open commissioning requests');
+await sequential(()=>h.db.query("update public.wlf_requests set created_at=now()-interval '4 days' where id=$1",[open[0].id]));
+await sequential(()=>h.db.query("update public.wlf_requests set created_at=now()-interval '2 days 1 hour' where id=$1",[open[1].id]));
+await page.evaluate(()=>{if(window.LiveWorkspace&&LiveWorkspace.reset)LiveWorkspace.reset();});
+await tab('technical');await page.locator('[data-support-category="commissioning"]').click();await page.locator('#supportRefresh').click();
+await page.locator('.support-request.aged-red').first().waitFor();await page.locator('.support-request.aged-yellow').first().waitFor();
+assert.match(await page.locator('.support-request.aged-red .age-badge').first().innerText(),/4 days old/);
+await v250shot('03-support-old-request-colours');
+await page.locator('.age-settings summary').click();await page.locator('#ageYellow').fill('1');await page.locator('#ageRed').fill('5');await page.locator('#ageSave').click();
+await page.locator('.age-legend').filter({hasText:'5+ days'}).first().waitFor();assert.equal(await page.locator('.support-request.aged-red').count(),0);
+await page.locator('.age-settings summary').click();await page.locator('#ageYellow').fill('2');await page.locator('#ageRed').fill('3');await page.locator('#ageSave').click();await page.locator('.support-request.aged-red').first().waitFor();
+// Bangla troubleshooting
+await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err20 5');
+await page.locator('#tbDetail [data-subcode="5"]').waitFor();await page.locator('[data-tb-lang="bn"]').click();
+await page.locator('#tbDetail [data-subcode="5"][lang="bn"]').waitFor();assert.match(await page.locator('#tbDetail').innerText(),/সাবকোড 5: SIN\/COS encoder-এর cable/);
+await page.locator('#tbSearch').fill('');await page.locator('#tbSearch').fill('Err02');await page.locator('#tbDetail h4').filter({hasText:'সমাধান'}).waitFor();assert.match(await page.locator('#tbDetail .tb-steps li').first().innerText(),/^কারণ: /);
+await v250shot('04-troubleshooting-bangla');
+await page.locator('#tbBack').click();await page.locator('#tbBack').click();await page.locator('[data-section="MOT"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Er04');await page.locator('#tbDetail [lang="bn"]').first().waitFor();
+await page.locator('[data-tb-lang="en"]').click();await page.locator('#tbDetail').filter({hasText:'No connection with ENCA board'}).waitFor();
+// notifications card
+await tab('account');await page.locator('#pushCard h3').filter({hasText:'Notifications'}).waitFor();assert.equal(await page.locator('#pushOn').count(),1);
+await page.locator('#pushCard').scrollIntoViewIfNeeded();await v250shot('05-profile-notifications');
+// R&I Team Activity: form left, recent entries right on wide screens
+await tab('ri-activity');await page.locator('#riCategoryPicker').selectOption({label:'Team Activity'});await page.locator('#riEntryList .tbl-wrap').waitFor();
+await page.setViewportSize({width:1440,height:900});const cols=await page.evaluate(()=>{const a=document.getElementById('riActivityForm').getBoundingClientRect(),b=document.getElementById('riEntryList').getBoundingClientRect();return {sameRow:Math.abs(a.top-b.top)<4,leftFirst:a.right<=b.left+1};});
+assert.deepEqual(cols,{sameRow:true,leftFirst:true});await page.setViewportSize({width:1280,height:900});
+await page.evaluate(()=>window.scrollTo(0,0));await v250shot('06-ri-team-activity-split');
+await page.setViewportSize({width:390,height:844});const stacked=await page.evaluate(()=>document.getElementById('riEntryList').getBoundingClientRect().top>document.getElementById('riActivityForm').getBoundingClientRect().bottom-2);assert.equal(stacked,true);await page.setViewportSize({width:1280,height:900});
+await logout();await login('user');
+}
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
 })().catch(async err=>{console.error(err);console.error('Page errors',errors);if(page&&!page.isClosed()){console.error((await page.locator('body').innerText()).slice(-3500));await page.screenshot({path:'test-results/failure.png',fullPage:true});}process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.close();if(h)await h.close();});

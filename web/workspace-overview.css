@@ -117,3 +117,8 @@
   .support-team-grid .support-icon { width:24px; height:24px; font-size:.73rem; }
   .support-team-arrow { display:none; }
 }
+/* v2.5.0 notifications card */
+.profile-push .push-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:6px}
+.profile-push .push-state.on{background:color-mix(in srgb,#2fa86b 18%,transparent);color:inherit}
+.profile-push .push-note{min-height:1.2em;margin:10px 0 0;font-size:.9rem;opacity:.85}
+.profile-push .push-note.error{color:#d64545;opacity:1}

@@ -20,11 +20,17 @@ function validate(raw){
  if(raw.source&&typeof raw.source==='object')e.source={manual:text(raw.source.manual,300),version:text(raw.source.version,200),file:text(raw.source.file,300),pages:list(raw.source.pages||[],50).map(Number).filter(function(n){return Number.isInteger(n)&&n>0;})};
  if(raw.mutationId){e.mutationId=text(raw.mutationId,100);if(!/^[-a-zA-Z0-9]{6,100}$/.test(e.mutationId))throw Error('Invalid mutation ID.');}
  e.sourceNote=text(raw.sourceNote,2000);if(raw.reserved)e.reserved=true;
+ // v2.5.0: optional Bangla text (bn) is kept with the entry; English stays the main record.
+ if(raw.bn&&typeof raw.bn==='object'){var bn={};var d=text(raw.bn.description,4000),c=text(raw.bn.conditions,8000);if(d)bn.description=d;if(c)bn.conditions=c;
+  if(Array.isArray(raw.bn.solution)&&raw.bn.solution.length)bn.solution=stepList(raw.bn.solution);
+  if(Array.isArray(raw.bn.subcodes))bn.subcodes=list(raw.bn.subcodes,100).map(function(sc){var code=text(sc&&sc.code,24);return {code:/^\d+$/.test(code)?String(Number(code)):code,description:text(sc&&sc.description,4000),solution:stepList(sc&&sc.solution)};}).filter(function(sc){return sc.code&&sc.description;});
+  if(bn.subcodes&&!bn.subcodes.length)delete bn.subcodes;if(Object.keys(bn).length)e.bn=bn;}
  if(JSON.stringify(e).length>40000)throw Error('This entry exceeds the supported record size. Split the procedure into smaller entries.');return e;
 }
 function isProcedure(e){return e.controller==='GENERAL'||e.kind==='procedure';}
 function sameKey(a,b){return a.controller===b.controller&&isProcedure(a)===isProcedure(b)&&norm(a.code||a.category)===norm(b.code||b.category);}
-function index(entries){return entries.map(function(e){return {entry:e,hay:norm([e.code,e.description,e.conditions,e.category].concat(e.solution||[],(e.fields||[]).map(function(f){return f.label+' '+f.text;}),(e.subcodes||[]).map(function(s){return s.code+' '+s.description+' '+(s.solution||[]).join(' ');})).join(' '))};});}
+function index(entries){return entries.map(function(e){return {entry:e,hay:norm([e.code,e.description,e.conditions,e.category].concat(e.solution||[],(e.fields||[]).map(function(f){return f.label+' '+f.text;}),(e.subcodes||[]).map(function(s){return s.code+' '+s.description+' '+(s.solution||[]).join(' ');}),bnText(e.bn)).join(' '))};});}
+function bnText(b){if(!b)return [];return [b.description||'',b.conditions||''].concat(b.solution||[],(b.subcodes||[]).map(function(s){return s.description+' '+(s.solution||[]).join(' ');}));}
 function search(indexed,controller,query,subquery){
  var rawTokens=String(query||'').trim().toLowerCase().split(/[-.\s,/:]+/).filter(Boolean),tokens=rawTokens.map(norm),sub=norm(subquery),target=null;if(controller!=='GENERAL'&&rawTokens[0]&&/^(?:err?|e)?0*\d+$/i.test(rawTokens[0]))target=errorCode(controller,rawTokens[0]);
  return indexed.filter(function(row){if(row.entry.controller!==controller||target&&row.entry.code!==target)return false;if(!tokens.every(function(t,i){if(target&&i===0)return true;if(target&&i>0&&/^\d+$/.test(t))return (row.entry.subcodes||[]).some(function(s){return s.code===String(Number(t));});return row.hay.indexOf(t)>=0||norm(row.entry.code).replace(/^err?/,'').replace(/^0+/,'')===t.replace(/^0+/,'');}))return false;return !sub||(row.entry.subcodes||[]).some(function(s){return norm(s.code)===sub.replace(/^0+/,'')||norm(s.code)===sub;});}).map(function(r){return r.entry;});

@@ -9,6 +9,11 @@ function client(){if(!configured())throw Error('Setup incomplete. The owner must
 function modeScope(){return DEFAULT_BACKEND;}
 function scopedKey(kind){return 'wlf2-'+kind+':'+modeScope();}
 function rpcSafeRetry(action,args){return /^(get|list|refresh|adminGet|adminStats)/.test(action)||action==='receiveDamageDemand'||(['createDamageDemand','createSupportRequest','transitionSupportRequest','editSupportRequest','deleteSupportRequest','saveRiEntry','deleteRiEntry','saveRiProject','deleteRiProject','saveQmsComponent'].includes(action)&&args[1]&&(args[1].mutationId||args[1].operation));}
+// v2.5.0 speed: at sign-in/app open, the two follow-up reads start together with getSession.
+var PREFETCH={};
+function prefetchStart(uid){['getAppContext','getSupportSummary'].forEach(function(a){var p=dbCall(a,[]);p.catch(function(){});PREFETCH[a]={uid:uid,at:Date.now(),promise:p};});}
+function prefetchTake(action,uid,args){var x=PREFETCH[action];if(!x)return null;delete PREFETCH[action];return args.length===0&&x.uid===uid&&Date.now()-x.at<10000?x.promise:null;}
+function pushFlush(){try{WLF_CLIENT&&WLF_CLIENT.functions.invoke('wlf-push',{body:{}}).catch(function(){});}catch(e){}}
 async function dbCall(action,args){var r=await client().rpc('wlf_rpc',{action:action,args:args});if(r.error)throw Error(r.error.message||'Database action failed');return r.data;}
 function statsView(d){var topics=['Login','Component Selection','Travel Time Calculation','Power Calculation','Speed & Slip Calculation','Motor Power Justification','Energy Bill Calculation','Solar Sizing Calculation'];d.logs.forEach(function(x){if(!topics.includes(x.action))topics.push(x.action);});var totals=topics.map(function(){return 0;}),people={};d.people.forEach(function(p){people[p.email]=Object.assign({},p,{counts:topics.map(function(){return 0;}),total:0,lastActive:'-'});});d.logs.forEach(function(x){var n=topics.indexOf(x.action),p=people[x.email];if(p){p.counts[n]++;p.total++;if(p.lastActive==='-'||x.at>p.lastActive)p.lastActive=x.at;}totals[n]++;});return {topics:topics,rows:Object.values(people).sort(function(a,b){return b.total-a.total;}),totals:totals,totalEvents:d.logs.length};}
 async function rpcOnce(action,args){
@@ -16,10 +21,11 @@ async function rpcOnce(action,args){
  if(action==='login'){
  if(SIGN_OUT_PROMISE){await SIGN_OUT_PROMISE;SIGN_OUT_PROMISE=null;}
  r=await sb.auth.signInWithPassword({email:String(args[0]).trim().toLowerCase(),password:args[1]});if(r.error)throw r.error;
- try{ctx=await dbCall('getSession',[]);}catch(err){await sb.auth.signOut({scope:'local'});throw err;}
+ prefetchStart(r.data.user.id);
+ try{ctx=await dbCall('getSession',[]);}catch(err){PREFETCH={};await sb.auth.signOut({scope:'local'});throw err;}
  ctx.token=r.data.user.id;ctx.offlineUntil=Date.now()+Math.min(24,Number(CFG.offlineHours)||24)*3600000;return ctx;
  }
- if(action==='register'){var clean=LiftCore.registration(args[0],args[1],args[2],args[3],args[4]);r=await sb.auth.signUp({email:clean.email,password:clean.password,options:{data:{name:clean.name,employeeId:clean.employeeId,section:clean.section}}});if(r.error)throw r.error;await sb.auth.signOut({scope:'local'});return 'Account request sent. Wait for Super Admin approval. If email confirmation is enabled, confirm your email first.';}
+ if(action==='register'){var clean=LiftCore.registration(args[0],args[1],args[2],args[3],args[4]);r=await sb.auth.signUp({email:clean.email,password:clean.password,options:{data:{name:clean.name,employeeId:clean.employeeId,section:clean.section}}});if(r.error)throw r.error;pushFlush();await sb.auth.signOut({scope:'local'});return 'Account request sent. Wait for Super Admin approval. If email confirmation is enabled, confirm your email first.';}
  var auth=await sb.auth.getSession();if(!auth.data.session||auth.data.session.user.id!==args[0])throw Error('SESSION_EXPIRED');
  if(action==='changePassword'){
  if(!SESSION||!AccessCore.approved(SESSION))throw Error('Permission denied');if(String(args[2]||'').length<8)throw Error('New password must be at least 8 characters.');
@@ -35,7 +41,9 @@ async function rpcOnce(action,args){
  var cleanArgs=args.slice(1);
  if(action==='saveTroubleshootingEntry')cleanArgs[0]=TroubleCore.validate(cleanArgs[0]);
  if(action==='saveEngineeringRecord')cleanArgs[0]=LiftCore.record(cleanArgs[0]);
- var result=await dbCall(action,cleanArgs);
+ if(action==='getSession'&&!SESSION)prefetchStart(auth.data.session.user.id);
+ var result;try{result=await(prefetchTake(action,auth.data.session.user.id,cleanArgs)||dbCall(action,cleanArgs));}catch(err){if(action==='getSession')PREFETCH={};throw err;}
+ if(action==='transitionSupportRequest'&&cleanArgs[0]&&cleanArgs[0].action==='forward')pushFlush();
  if(action==='getSession'){result.token=auth.data.session.user.id;result.offlineUntil=Date.now()+Math.min(24,Number(CFG.offlineHours)||24)*3600000;}
  if(action==='getAppContext'&&result.components){Object.assign(result,componentSnapshot(result.components));delete result.components;}
  if(action==='refreshIndex')result=componentSnapshot(result);

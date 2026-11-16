@@ -83,20 +83,20 @@ const WlfRi = (() => {
     const archived=activities.categories.filter(c=>!c.active&&c.section===activities.section);
     root.innerHTML=`<div class="wlf-module">
       <section class="card"><div class="review-heading"><div><h3>R&I Team Activity</h3>
-        <p class="note">Choose an activity or report form and submit it below.</p></div>${admin()?button('+ Add category','new-category') : ''}</div>
-        <div class="wlf-section-tabs" aria-label="Activity tabs">${Object.entries(sections).map(([id,label])=>
-          `<button type="button" class="btn ghost ${id===activities.section?'active':''}" aria-pressed="${id===activities.section}"
-            data-ri-action="section" data-ri-id="${id}">${h(label)}</button>`).join('')}</div>
-        ${active.length>1||activities.section==='reports'?rowActions(active.map(c=>
-          `<button type="button" class="btn ghost ${c.id===category?.id?'active':''}" aria-pressed="${c.id===category?.id}"
-            data-ri-action="category" data-ri-id="${h(c.id)}">${h(c.name)}</button>`).join('')):''}
+        <p class="note">Choose an activity or report form from the list, fill it in, and see recent entries beside it.</p></div>${admin()?button('+ Add category','new-category') : ''}</div>
+        <label class="ri-category-picker">Activity / report form<select id="riCategoryPicker" aria-label="Choose activity or report form">${
+          Object.entries(sections).map(([sid,label])=>{const list=activities.categories.filter(c=>c.active&&c.section===sid);
+            return list.length?`<optgroup label="${h(label)}">${list.map(c=>`<option value="${h(c.id)}" ${c.id===category?.id?'selected':''}>${h(c.name)}</option>`).join('')}</optgroup>`:'';}).join('')||'<option value="">No active forms</option>'}</select></label>
         ${admin()&&category?rowActions(button('Manage form fields','edit-category',category.id)+button('Remove category','archive-category',category.id)):''}
         ${admin()&&archived.length?`<details><summary>Removed categories (${archived.length})</summary>${rowActions(
           archived.map(c=>button('Restore '+c.name,'restore-category',c.id)).join(''))}</details>`:''}
         <p id="riActivityStatus" role="status" aria-live="polite"></p></section>
-      ${category?' <div id="riActivityForm"></div><div id="riEntryList" class="card" aria-live="polite">Loading entries…</div>':
+      ${category?' <div class="ri-activity-split"><div id="riActivityForm"></div><div id="riEntryList" class="card" aria-live="polite">Loading entries…</div></div>':
         '<section class="card"><p>No active forms in this tab.</p></section>'}</div>`;
     if(category)renderActivityForm(category);
+    const picker=el('riCategoryPicker');
+    if(picker)picker.onchange=()=>{const c=activities.categories.find(x=>x.id===picker.value);if(!c)return;
+      activities.section=c.section;activityAction('category',c.id).catch(err=>showError('riActivityStatus',err));};
     attachActions(root,(action,id,b)=>activityAction(action,id,b).catch(err=>showError('riActivityStatus',err)));
   }
   async function activityAction(action,id,b) {
@@ -162,7 +162,7 @@ const WlfRi = (() => {
       {id:'login_id',label:'ID',type:'text',autoFill:'empid',required:true},
       {id:'subject',label:'Task name',type:'text',required:true},
       {id:'problem',label:'Task details',type:'textarea',required:true},
-      {id:'status',label:'Task status',type:'select',options:['Completed','Ongoing','Hold','Canceled'],required:true}
+      {id:'status',label:'Task status',type:'select',options:['Completed','Ongoing','Hold','Cancelled'],required:true}
     ];
     dialog(category?'Manage activity form fields':'Add activity category',`<div class="review-fields">${
       input('Category name','name','text',category?.name,'required maxlength="120"')}${
@@ -216,7 +216,7 @@ const WlfRi = (() => {
       if(target!==activities||seq!==target.seq||!root.isConnected||activeCategory()?.id!==category.id)return;
       target.rows=data.entries;target.next=data.hasMore?toCursor(data.entries):null;
       const f=target.filters;
-      root.innerHTML=`<div class="review-heading"><h3>Submitted entries</h3>${button('Download filtered Excel','export-activity')}</div>
+      root.innerHTML=`<div class="review-heading"><h3>Recent entries</h3>${button('Download filtered Excel','export-activity')}</div>
         <form id="riActivityFilters"><div class="review-fields">${
           input('Search','query','search',f.query,'maxlength="200"')}${select('Status','status',data.statuses,f.status,'All statuses')}${
           input('From date','from','date',f.from)}${input('To date','to','date',f.to)}</div>

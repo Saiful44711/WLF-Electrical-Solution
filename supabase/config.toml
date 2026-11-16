@@ -419,3 +419,6 @@ verify_jwt = false
 
 [functions.wlf-maintenance]
 verify_jwt = false
+
+[functions.wlf-push]
+verify_jwt = false
