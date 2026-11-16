@@ -138,7 +138,11 @@ var Troubleshooting=(function(){
   if(Object.keys(nb).length){nb.src=src;value.bn=nb;}else delete value.bn;
   return value;}
  async function saveEditor(){
-  if(!admin())return;var value=copy(editor);value.description=el('tbEditDescription').value;
+  if(!admin()){el('tbEditStatus').textContent='Only Super Admin can save. Sign in again.';return;}
+  try{await saveEditorInner();}catch(err){el('tbEditStatus').textContent='Save failed: '+(cleanError(err)||String(err&&err.message||err));console.error('tb save',err);}
+ }
+ async function saveEditorInner(){
+  var value=copy(editor);value.description=el('tbEditDescription').value;
   if(TroubleCore.isProcedure(value)){value.category=el('tbCategory').value;value.fields=Array.from(el('tbCustomFields').querySelectorAll('.tb-custom-field')).map(function(n){return {label:n.querySelector('.tb-field-label').value,text:n.querySelector('.tb-field-text').value};}).filter(function(f){return f.label.trim()||f.text.trim();});}
   else{value.code=el('tbEditCode').value;value.solution=values(el('tbEditorBody').querySelector('[data-step-list="base"]'));if(value.controller!=='NICE3000+')value=withBangla(value);else value.subcodes=Array.from(el('tbSubEditors').querySelectorAll('[data-subeditor]')).map(function(n){var code=n.querySelector('.tb-sc-code').value,old=editor.subcodes.find(function(s){return s.code===code;});return {code:code,description:n.querySelector('.tb-sc-description').value,solution:values(n.querySelector('[data-step-list^="sub-"]')),pages:old&&old.pages||[],
     bn:{description:n.querySelector('.tb-sc-bn-description').value.trim(),solution:values(n.querySelector('[data-step-list^="bnsub-"]'))}};});
