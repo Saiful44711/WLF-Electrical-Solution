@@ -594,17 +594,18 @@ const savedDlg=page.locator('#wlfSavedDialog[open]');await savedDlg.waitFor();as
 await v251shot('05-support-saved-popup');await savedDlg.locator('[data-saved-close]').click();await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);
 assert.equal((await sequential(()=>h.db.query("select values->>'problem_category' v from public.wlf_requests where values->>'project'='Popup Tower'"))).rows[0].v,'Other: Landing door lock');
 // Troubleshooting: Bangla editor; change English only -> that part shows English in Bangla view
+const tbSaved=async()=>{await page.locator('#tbSave').click();try{await page.locator('#tbEditor').waitFor({state:'hidden',timeout:20000});}catch(err){throw Error('Troubleshooting save did not close. Editor message: '+(await page.locator('#tbEditStatus').innerText().catch(()=>'?'))+' | outbox: '+(await page.locator('#tbPending').innerText().catch(()=>'?')));}/* wait until the change has reached the server before the next step */await page.waitForFunction(()=>!document.querySelector('#tbPending .tb-outbox')&&!document.querySelector('#tbDetail .tb-pending-tag'),null,{timeout:30000});};
 await tab('troubleshooting');for(let i=0;i<4&&!(await page.locator('[data-section="NICE3000+"]').isVisible());i++)await page.locator('#tbBack').click();await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err02');
 await page.locator('[data-tb-lang="bn"]').click();await page.locator('#tbDetail [lang="bn"]').first().waitFor();await page.locator('#tbEdit').click();
 await page.locator('.tb-bn-editor[open] #tbBnDescription').waitFor();assert.match(await page.locator('#tbBnDescription').inputValue(),/[ঀ-৿]/);
 await page.locator('#tbEditDescription').fill((await page.locator('#tbEditDescription').inputValue())+' (checked)');
 await page.locator('[data-step-list="base"] .tb-step-input').last().fill('Check the new step');
 await page.locator('#tbEditorBody').evaluate(n=>n.scrollTop=0);await v251shot('03-troubleshooting-bangla-editor');
-await page.locator('#tbSave').click();await page.locator('#tbEditor').waitFor({state:'hidden'});
+await tbSaved();
 await page.locator('#tbDetail .tb-lang-note').filter({hasText:'হালনাগাদ হয়নি'}).waitFor();
 assert.match(await page.locator('#tbDetail h4').first().innerText(),/\(checked\)$/);assert.match(await page.locator('#tbDetail').innerText(),/Check the new step/);
 await v251shot('04-troubleshooting-bangla-stale');
-await page.locator('#tbEdit').click();await page.locator('#tbBnDescription').fill('ড্রাইভ ওভারকারেন্ট (পরীক্ষিত)');await page.locator('#tbBnChecked').check();await page.locator('#tbSave').click();await page.locator('#tbEditor').waitFor({state:'hidden'});
+await page.locator('#tbEdit').click();await page.locator('#tbBnDescription').fill('ড্রাইভ ওভারকারেন্ট (পরীক্ষিত)');await page.locator('#tbBnChecked').check();await tbSaved();
 await page.locator('#tbDetail h4[lang="bn"]').filter({hasText:'পরীক্ষিত'}).waitFor();assert.equal(await page.locator('#tbDetail .tb-lang-note').filter({hasText:'হালনাগাদ'}).count(),0);
 await page.locator('[data-tb-lang="en"]').click();
 await logout();await login('user');
