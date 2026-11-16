@@ -32,16 +32,16 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.0-push','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.1-forms','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
-browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
+browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
 if(url.pathname==='/auth/v1/token'){let name=body.email?.split('@')[0]||'sa',id=IDS[name];if(!id||body.password!==(passwords[name]||'test-password-123')){status=400;data={msg:'Invalid login credentials'};}else data={access_token:jwt(id),refresh_token:'refresh-'+name,expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user:{id,email:name+'@example.test',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{name}}};}
 else if(url.pathname==='/auth/v1/user'){const id=JSON.parse(Buffer.from(request.headers().authorization.split('.')[1],'base64url').toString()).sub;const name=Object.keys(IDS).find(k=>IDS[k]===id);passwords[name]=body.password;data={id,email:name+'@example.test',aud:'authenticated',role:'authenticated',user_metadata:{name}};}else if(url.pathname==='/auth/v1/logout')data={};else if(url.pathname==='/rest/v1/rpc/wlf_rpc'){rpcCount++;let id=JSON.parse(Buffer.from(request.headers().authorization.split('.')[1],'base64url').toString()).sub,name=Object.keys(IDS).find(k=>IDS[k]===id);data=await sequential(()=>h.rpc(name,body.action,body.args));}
@@ -136,7 +136,8 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
  await page.locator('#newSupportRequest').click();
  const controls = await page.locator('#supportRequestForm [name]').evaluateAll(nodes => nodes.map(node => ({
   id: node.name,
-  label: node.closest('.field').querySelector('label').textContent.replace(/\s+\*$/, ''),
+  label: node.type === 'hidden' ? '' : node.closest('.field').querySelector('label').textContent.replace(/\s+\*$/, ''),
+  hidden: node.type === 'hidden',
   required: node.required,
   readOnly: Boolean(node.readOnly),
   tag: node.tagName,
@@ -148,9 +149,9 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
  for (const [index, field] of expectedFields.entries()) {
   const control = controls[index];
   assert.equal(control.id, field.id, team+' field order');
-  assert.equal(control.label, field.label, team+' field label');
-  assert.equal(control.required, field.required, team+' required field');
-  assert.equal(control.readOnly, Boolean(field.autoFill), team+' autofill');
+  /* v2.5.1: Name, ID and today's date are filled by the server and hidden in the form */
+  assert.equal(control.hidden, Boolean(field.autoFill), team+' autofill hidden');
+  if (!field.autoFill) { assert.equal(control.label, field.label, team+' field label'); assert.equal(control.required, field.required, team+' required field'); }
   assert.deepEqual(control.options, field.options, team+' dropdown choices');
   if (field.type === 'select') assert.equal(control.tag, 'SELECT');
   if (field.type === 'textarea') assert.equal(control.tag, 'TEXTAREA');
@@ -292,7 +293,7 @@ await page.evaluate(()=>{APK_SETTINGS.theme='dark';applyTheme();});await page.sc
 await tab('calculation');await page.evaluate(()=>openCalcPane('power'));for(const [id,v]of Object.entries({'pw-motor':'3.9','pw-k2':'.95','pw-k3':'.95','pw-brake':'324','pw-tube':'4','pw-panel':'0','pw-spot':'4','pw-fan':'2','pw-others':'500'}))await page.locator('#'+id).fill(v);await page.locator('#pane-power button').click();await page.locator('#pwResult').filter({hasText:'8.668'}).waitFor();
 const result=await page.evaluate(()=>LiftCore.calculate('calculatePowerAndAVR',{motorPowerKW:3.9,k2:.95,k3:.95,brakePowerBothW:324,tubeLightQty:4,panelLightQty:0,spotLightQty:4,crossFlowFanQty:2,othersFixedW:500}));assert.equal(result.suggestGeneratorKVA,8.668);
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();const searchBefore=rpcCount;await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.ok((await page.locator('#tbDetail').innerText()).includes('102'));await page.locator('#tbSubSearch').fill('102');await page.locator('#tbDetail').filter({hasText:'102'}).waitFor();assert.equal(rpcCount,searchBefore);
-await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=login_name]').inputValue(),'user');assert.equal(await page.locator('#supportRequestForm [name=login_id]').inputValue(),'US-5');assert.equal(await page.locator('#supportRequestForm [name=login_id]').evaluate(n=>n.readOnly),true);
+await category();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();assert.equal(await page.locator('#supportRequestForm [name=login_name]').inputValue(),'user');assert.equal(await page.locator('#supportRequestForm [name=login_id]').inputValue(),'US-5');assert.equal(await page.locator('#supportRequestForm [name=login_id]').evaluate(n=>n.type),'hidden');
 await fillDynamic('#supportRequestForm',{lift:'991234',project_address:'Plot 14, Dhaka'});await page.locator('#submitSupportRequest').click();await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-991234-\d{8}/}).waitFor();const id=await page.locator('#supportDetail').getAttribute('data-record-id');assert.equal(await page.locator('#editSupportForm,#deleteSupportTicket,#receiveSupport').count(),0);assert.equal(await page.locator('#supportBadge').innerText(),'1');await logout();
 // v2.3.0: no Admin read-all role. A section user with team access submits and sees only own requests.
 await login('admin');assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false);await category();assert.equal(await page.locator('#newSupportRequest').count(),1);assert.equal(await page.locator(`[data-ticket="${id}"]`).count(),0);assert.equal(await page.locator('#downloadSupportCSV').count(),0);assert.equal(await page.locator('#supportFilterRequester').isVisible(),false);await logout();
@@ -557,6 +558,55 @@ await page.setViewportSize({width:1440,height:900});const cols=await page.evalua
 assert.deepEqual(cols,{sameRow:true,leftFirst:true});await page.setViewportSize({width:1280,height:900});
 await page.evaluate(()=>window.scrollTo(0,0));await v250shot('06-ri-team-activity-split');
 await page.setViewportSize({width:390,height:844});const stacked=await page.evaluate(()=>document.getElementById('riEntryList').getBoundingClientRect().top>document.getElementById('riActivityForm').getBoundingClientRect().bottom-2);assert.equal(stacked,true);await page.setViewportSize({width:1280,height:900});
+/* ---- v2.5.1: hidden auto-fill fields, Other name box, Sales dates, saved popup, compact list, Bangla editor ---- */
+fs.mkdirSync('test-results/v251',{recursive:true});
+const v251shot=async name=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>closeSidebar());await page.waitForTimeout(120);for(const theme of ['light','dark']){await page.evaluate(t=>setAppearance(t),theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v251/${name}-${label}-${theme}.png`});}if(w<500)assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits phone');}await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>setAppearance('light'));};
+await tab('ri-activity');await page.locator('#riCategoryPicker').selectOption({label:'Team Activity'});await page.locator('#riSubmitForm').waitFor();
+assert.equal(await page.locator('#riSubmitForm [name=project]').count(),0,'Project / Task Name removed');
+for(const n of ['date','login_name','login_id'])assert.equal(await page.locator('#riSubmitForm [name='+n+']').getAttribute('type'),'hidden',n+' hidden');
+assert.equal(await page.locator('#riSubmitForm [name=subject]').evaluate(n=>n.closest('.field').classList.contains('span-all')),true,'Task Name full width');
+assert.equal(await page.locator('[data-other-for=task_category]').isHidden(),true);
+await page.locator('#riSubmitForm [name=subject]').fill('Vendor audit for door operator supplier');
+await page.locator('#riSubmitForm input[name=task_category][value="Others"]').check();await page.locator('[data-other-for=task_category]').waitFor();
+await page.locator('#riSubmitForm [name=duration_minute]').fill('45');
+const before=globalThis.savedPopups.length;
+await page.locator('#riSubmitForm [type=submit]').click();await page.locator('#riSubmitStatus').filter({hasText:'Write the others name'}).waitFor();
+await page.locator('[data-other-for=task_category]').fill('Vendor audit');await v251shot('01-team-activity-form');
+await page.locator('#riSubmitForm [type=submit]').click();await page.waitForFunction(n=>globalThis.savedPopups?true:true,before);
+await page.locator('#riEntryList summary').filter({hasText:'Vendor audit for door operator supplier'}).first().waitFor();
+assert.equal(globalThis.savedPopups.length,before+1);assert.equal(globalThis.savedPopups.at(-1),'Entry submitted');
+const saved=(await sequential(()=>h.db.query("select values from public.wlf_ri_entries where category='wb-team' order by created_at desc limit 1"))).rows[0].values;
+assert.deepEqual(saved.task_category,['Others: Vendor audit']);assert.equal(saved.date,(await sequential(()=>h.db.query("select to_char((now() at time zone 'Asia/Dhaka')::date,'YYYY-MM-DD') d"))).rows[0].d);
+const rowH=await page.locator('#riEntryList tbody tr').first().evaluate(n=>n.getBoundingClientRect().height);assert(rowH<110,'compact entry row '+rowH);
+await page.setViewportSize({width:1440,height:900});await page.locator('#riEntryList').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v251/02-recent-entries-desktop-light.png'});await page.setViewportSize({width:1280,height:900});
+await page.locator('#riCategoryPicker').selectOption({label:'Sales Support'});await page.locator('#riSubmitForm [name=start_date]').waitFor();
+assert.equal(await page.locator('#riSubmitForm [name=start_date]').getAttribute('type'),'date');assert.equal(await page.locator('#riSubmitForm [name=end_date]').evaluate(n=>n.required),false);
+await page.locator('#riSubmitForm [name=support_category]').selectOption('Other:');await page.locator('[data-other-for=support_category]').waitFor();
+await page.locator('#riCategoryPicker').selectOption({label:'Supplier & SCM Cooperation'});await page.locator('#riSubmitForm [name=problem]').waitFor();
+assert.equal(await page.locator('#riSubmitForm [name=problem]').evaluate(n=>n.closest('.field').classList.contains('span-all')),true,'SCM Task Details full width');
+// Technical Support: Other box and saved popup
+await tab('technical');if(await page.locator('#supportHome').isVisible())await page.locator('#supportHome').click();await page.locator('[data-support-category="commissioning"]').click();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();
+await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Popup Tower');await page.locator('#supportRequestForm [name=lift]').fill('77');
+await page.locator('#supportRequestForm [name=controller]').selectOption('MOT');await page.locator('#supportRequestForm [name=problem_category]').selectOption('Other:');
+await page.locator('[data-other-for=problem_category]').fill('Landing door lock');await page.locator('#supportRequestForm [name=problem]').fill('Door lock contact opens at floor 3');
+await page.removeLocatorHandler(globalThis.savedLocator);await page.locator('#supportRequestForm [type=submit]').click();
+const savedDlg=page.locator('#wlfSavedDialog[open]');await savedDlg.waitFor();assert.equal(await savedDlg.locator('h3').innerText(),'Request submitted');assert.match(await savedDlg.innerText(),/Reference\s*TCS/);
+await v251shot('05-support-saved-popup');await savedDlg.locator('[data-saved-close]').click();await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);
+assert.equal((await sequential(()=>h.db.query("select values->>'problem_category' v from public.wlf_requests where values->>'project'='Popup Tower'"))).rows[0].v,'Other: Landing door lock');
+// Troubleshooting: Bangla editor; change English only -> that part shows English in Bangla view
+await tab('troubleshooting');for(let i=0;i<4&&!(await page.locator('[data-section="NICE3000+"]').isVisible());i++)await page.locator('#tbBack').click();await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err02');
+await page.locator('[data-tb-lang="bn"]').click();await page.locator('#tbDetail [lang="bn"]').first().waitFor();await page.locator('#tbEdit').click();
+await page.locator('.tb-bn-editor[open] #tbBnDescription').waitFor();assert.match(await page.locator('#tbBnDescription').inputValue(),/[ঀ-৿]/);
+await page.locator('#tbEditDescription').fill((await page.locator('#tbEditDescription').inputValue())+' (checked)');
+await page.locator('[data-step-list="base"] .tb-step-input').last().fill('Check the new step');
+await page.locator('#tbEditorBody').evaluate(n=>n.scrollTop=0);await v251shot('03-troubleshooting-bangla-editor');
+await page.locator('#tbSave').click();await page.locator('#tbEditor').waitFor({state:'hidden'});
+await page.locator('#tbDetail .tb-lang-note').filter({hasText:'হালনাগাদ হয়নি'}).waitFor();
+assert.match(await page.locator('#tbDetail h4').first().innerText(),/\(checked\)$/);assert.match(await page.locator('#tbDetail').innerText(),/Check the new step/);
+await v251shot('04-troubleshooting-bangla-stale');
+await page.locator('#tbEdit').click();await page.locator('#tbBnDescription').fill('ড্রাইভ ওভারকারেন্ট (পরীক্ষিত)');await page.locator('#tbBnChecked').check();await page.locator('#tbSave').click();await page.locator('#tbEditor').waitFor({state:'hidden'});
+await page.locator('#tbDetail h4[lang="bn"]').filter({hasText:'পরীক্ষিত'}).waitFor();assert.equal(await page.locator('#tbDetail .tb-lang-note').filter({hasText:'হালনাগাদ'}).count(),0);
+await page.locator('[data-tb-lang="en"]').click();
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.1 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.0 → 2.5.1 · ১৬ নভেম্বর ২০২৬</p>
+  <h1>ফর্ম সহজ করা, বাংলা Troubleshooting এডিট আর Submit-এর নিশ্চিতকরণ: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.1.zip</b> (ডাটাবেস), <b>WLF-GitHub-v2.5.1-UPLOAD.zip</b> (v2.5.0-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.1.zip</b> (পুরো সফটওয়্যার, ব্যাকআপ)। এবার Edge Function-এ কিছু বদলায়নি।</p>
+</header>
+
+<section>
+<nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#tb">বাংলা এডিটের নিয়ম</a><a href="#trouble">সমস্যা হলে</a><a href="#files">ফাইল তালিকা</a></nav>
+</section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>Submit-এর পর নিশ্চিতকরণ:</b> R&amp;I Team Activity আর Technical Support-এ Submit চাপার পর সার্ভারে জমা নিশ্চিত হলে "✓ Entry submitted / Request submitted" popup আসে। সাথে Reference (support), Status আর সময় দেখায়। জমা না হলে popup আসে না, error দেখায়।</li>
+<li><b>Auto-fill ঘর লুকানো:</b> Name, ID আর আজকের তারিখের ঘর (যেমন Perform Date, Date) ফর্মে আর দেখায় না। সার্ভার নিজেই বসায়: তারিখ সবসময় জমার দিনের (ঢাকা)। পরে Edit করলেও আগের তারিখ থাকে। Entry দেখার সময় আর Excel-এ এগুলো আগের মতোই থাকে। এই নিয়ম R&amp;I Team Activity-র সব ফর্ম আর Technical Support-এর সব ফর্মে।</li>
+<li><b>Task Start / Complete Date:</b> দেখা যায়, auto-fill হয় না, বাধ্যতামূলক না। <b>Sales Support</b>-এ এই দুটো ঘর নতুন যোগ হয়েছে (Task Details-এর পরে)। তারিখের বক্সের যেকোনো জায়গায় ক্লিক করলেই ক্যালেন্ডার খোলে।</li>
+<li><b>Team Activity:</b> "Project / Task Name" ঘর সরানো হয়েছে, শুধু <b>Task Name</b> আছে, বাঁ থেকে ডান পুরো চওড়া। পুরনো entry খুললে তার "Project / Task Name" আগের মতোই দেখাবে।</li>
+<li><b>পুরো চওড়া ঘর:</b> Task Name, Task Details (SCM-সহ), Problem Details, Solution Statement, Note ইত্যাদি বড় লেখার ঘর।</li>
+<li><b>Other বাছলে নাম লেখার বক্স:</b> Team Activity-র Task Category ("Others"), SCM-এর Product category, Sales-এর Support Category, Service Report-এর Damage Item Name, আর Technical Support-এর Problem Category ("Other:")-সহ যেকোনো ফর্মে যেখানে Other আছে। বক্সে নাম লেখা বাধ্যতামূলক। ডেটা একই ঘরে <code>Other: আপনার লেখা</code> হিসেবে জমা হয়, তাই তালিকা আর Excel-এ নামটা দেখা যায়।</li>
+<li><b>Recent entries ছোট:</b> প্রতিটি entry এক লাইনে: Task Name (বা মূল লেখা), নিচে কে আর কখন, পাশে Status। পুরোটা দেখতে নামে চাপুন। একসাথে অনেক বেশি entry দেখা যায়।</li>
+<li><b>Troubleshooting বাংলা এডিট:</b> Edit ফর্মে "বাংলা লেখা" অংশ: বিবরণ, শর্ত, সমাধান আর প্রতিটি Subcode-এর বাংলা। নিচের নিয়ম দেখুন।</li>
+</ul>
+</section>
+
+<section id="s1">
+<h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol>
+<li>Supabase প্যাকেজের <code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li>
+<li>GitHub থেকে <b>Code → Download ZIP</b> করে রাখুন (এখনকার v2.5.0)।</li>
+</ol>
+<div class="danger">Data backup CSV-তে ইমেইল, পাসওয়ার্ডের hash আর notification key থাকে। কাউকে দেবেন না।</div>
+</section>
+
+<section id="s2">
+<h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V251.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, SQL Editor-এ পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলে <b>পাঁচটা কলামই <code>true</code></b>:
+ <div class="scroll"><table>
+ <tr><th>কলাম</th><th>মানে</th></tr>
+ <tr><td><code>other_name_ready</code></td><td>"Other: নাম" সার্ভার গ্রহণ করে</td></tr>
+ <tr><td><code>team_task_name_only</code></td><td>Team Activity-তে শুধু Task Name</td></tr>
+ <tr><td><code>sales_dates_ready</code></td><td>Sales Support-এ দুটো তারিখের ঘর</td></tr>
+ <tr><td><code>bangla_tracking_ready</code></td><td>প্রতিটি বাংলা অংশ কোন ইংরেজির জন্য লেখা, তা মনে রাখা শুরু</td></tr>
+ <tr><td><code>v251_ready</code></td><td>নতুন সার্ভার-নিয়ম চালু</td></tr>
+ </table></div></li>
+</ol>
+<div class="note">একটাই transaction, দুবার চালালেও ক্ষতি নেই। শুরুতে <code>STOP: apply UPDATE_V250.sql</code> এলে বুঝবেন v2.5.0-এর SQL চালানো নেই।</div>
+<div class="attention">SQL চালানোর মুহূর্তে কেউ Team Activity বা Sales Support ফর্ম খোলা রেখে Submit করলে "Form changed. Reopen the form." আসতে পারে। ফর্ম আবার খুললেই ঠিক হবে, কোনো ডেটা নষ্ট হয় না।</div>
+</section>
+
+<section id="s3">
+<h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol>
+<li><code>WLF-GitHub-v2.5.1-UPLOAD.zip</code> extract করে <code>WLF-v2.5.1-upload</code> ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ফোল্ডারের ভেতরের সব কিছু (Ctrl+A) টেনে ছেড়ে দিন (১০০টির কম ফাইল)।</li>
+<li>উপরের প্রথম ঘরে Commit message: <code>v2.5.1 Form cleanup, Other name, Bangla edit, submit confirmation</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা করুন।</li>
+</ol>
+<div class="attention">ক্রম: আগে SQL (ধাপ ২), তারপর GitHub (ধাপ ৩)।</div>
+</section>
+
+<section id="s4">
+<h2>৪. লাইভ সাইটে যাচাই</h2>
+<ol>
+<li>Ctrl+F5 বা অ্যাপ বন্ধ করে আবার খুলুন। ⋮ মেনুর নিচে <b>WLF v2.5.1</b>।</li>
+<li><b>R&amp;I Team Activity → Team Activity:</b> Name, ID, Perform Date দেখাবে না; Task Name পুরো চওড়া। Task Category-তে <b>Others</b> টিক দিলে বক্স আসবে। Submit-এর পর ✓ popup।</li>
+<li><b>Sales Support:</b> Task Start Date আর Task Complete Date আছে, ক্লিক করলে ক্যালেন্ডার।</li>
+<li><b>Technical Support → + New request:</b> Name/ID/Date দেখাবে না; Problem Category-তে "Other:" বাছলে বক্স; Submit-এর পর Reference-সহ popup।</li>
+<li><b>Troubleshooting:</b> Super Admin একটা কোড খুলে <b>Edit</b> → "বাংলা লেখা" অংশ দেখবেন।</li>
+</ol>
+</section>
+
+<section id="tb">
+<h2>বাংলা এডিটের নিয়ম (Troubleshooting)</h2>
+<ul>
+<li><b>ইংরেজি আর বাংলা দুটোই বদলালেন:</b> বাংলা ভিউতে নতুন বাংলা দেখাবে।</li>
+<li><b>শুধু ইংরেজি বদলালেন</b> (যেমন নতুন solution যোগ): বাংলা ভিউতে ওই অংশ <b>ইংরেজিতে</b> দেখাবে, উপরে হলুদ লেখা "বাংলা হালনাগাদ হয়নি"। Edit ফর্মেও ওই বাংলা ঘরের পাশে "⚠ পুরনো" দেখাবে। বাংলা ঠিক করে Save করলেই আবার বাংলা দেখাবে।</li>
+<li><b>ইংরেজি বদলেছেন কিন্তু বাংলা ঠিকই আছে</b> (যেমন শুধু বানান ঠিক করলেন): "বাংলা মিলিয়ে দেখেছি" টিক দিয়ে Save করুন, সব বাংলা অংশ হালনাগাদ ধরা হবে।</li>
+<li>যে অংশ শুধু বাংলায় বদলায় না বা অন্য অংশ ছুঁয়ে দেখেননি, সেগুলো আগের মতো থাকে। একটা অংশ পুরনো হলে বাকিগুলো বাংলাতেই দেখায়।</li>
+<li>যন্ত্র দিয়ে নিজে থেকে অনুবাদ হয় না। বাংলা লেখা Super Admin হাতে লিখবেন।</li>
+</ul>
+</section>
+
+<section id="trouble">
+<h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_V250.sql</code></td><td>v2.5.0-এর SQL নেই</td><td>আমাকে জানান</td></tr>
+<tr><td>"Write the other name for: …"</td><td>Other বাছাই করা কিন্তু বক্স খালি</td><td>বক্সে নাম লিখুন</td></tr>
+<tr><td>"Invalid choice: …" Other দিয়ে Submit-এ</td><td>সাইট নতুন কিন্তু SQL চালানো হয়নি</td><td>ধাপ ২ চালান</td></tr>
+<tr><td>"Required: ID."</td><td>ইউজারের প্রোফাইলে ID নেই (ঘরটা এখন লুকানো)</td><td>User Management-এ তার ID বসান</td></tr>
+<tr><td>"Form changed. Reopen the form."</td><td>ফর্ম খোলা অবস্থায় SQL চলেছে</td><td>ফর্ম বন্ধ করে আবার খুলুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লাল ধাপের স্ক্রিনশট দিন</td></tr>
+</table></div>
+</section>
+
+<section id="files">
+<h2>ফাইল তালিকা</h2>
+<h3>Supabase প্যাকেজ</h3>
+<p class="small"><code>UPDATE_V251.sql</code> (এই আপডেট) · <code>edge-function/wlf-push/index.ts</code> (অপরিবর্তিত, রেফারেন্সের জন্য) · <code>backup-kit/</code> · <code>full-source/supabase/</code> · <code>SQL_RUN_ORDER.txt</code></p>
+<h3>GitHub-এ বদলানো বা নতুন ফাইল (v2.5.0-এর পর)</h3>
+<p class="small">web/form-fields.js, web/ri-workspace.js, web/live-workspace.js, web/troubleshooting.js, web/troubleshooting.css, web/support.css, web/release-v220.css, web/pwa.js, web/sw.js, web/troubleshooting-seed.json, shared/troubleshooting-core.js, supabase/UPDATE_V251.sql (নতুন), supabase/01_SETUP.sql, supabase/seed.sql, scripts/build-pwa.mjs, tests/v251-update.test.cjs (নতুন), tests/supabase-e2e.cjs, package.json, package-lock.json, README.md, START_HERE_V251_BN.html (নতুন), dist/ ফোল্ডারের বদলানো ফাইল</p>
+</section>
+
+<section>
+<h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul>
+<li>কপি-ডাটাবেসে v2.5.0-এর পর <code>UPDATE_V251.sql</code> দুবার চালানো হয়েছে; ১৬৬টি বাংলা কোডের প্রতিটি অংশ ইংরেজির সাথে মিলে "হালনাগাদ" অবস্থায় আছে।</li>
+<li>সার্ভার: "Other: নাম" গ্রহণ করে, ভুল choice বাতিল করে; তারিখ সবসময় জমার দিনের; Team Activity-তে Project ঘর নেই; Sales-এ দুটো তারিখ।</li>
+<li>ব্রাউজার (Playwright): লুকানো ঘর, পুরো চওড়া Task Name/Task Details, Others বক্স (খালি থাকলে আটকায়), Support-এ "Other:" + popup-এ Reference, ছোট Recent entries, বাংলা এডিট → শুধু ইংরেজি বদলালে ইংরেজি দেখায় → বাংলা ঠিক করলে আবার বাংলা। মোবাইল/ডেস্কটপ, light/dark স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> ৮১/৮১ পাস, e2e পাস।</li>
+</ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase প্রজেক্টে SQL চালানো, আর আসল ফোনের ক্যালেন্ডার (Android/iPhone-এর নিজস্ব তারিখ বাছাই)।</div>
+</section>
+
+<footer>WLF Electrical Solution · v2.5.1</footer>
+</main>
+</body>
+</html>

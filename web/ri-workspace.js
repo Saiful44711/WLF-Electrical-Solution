@@ -194,11 +194,21 @@ const WlfRi = (() => {
         if(!form.isConnected||activeCategory()?.id!==category.id)return;
         renderActivityForm(category);
         report('riSubmitStatus','Saved · '+saved.status);
+        WlfFields.savedPopup(entry?'Entry updated':'Entry submitted',[['Form',category.name],['Status',saved.status],
+          ['Saved at (Dhaka)',stamp(saved.updated_at||saved.created_at||new Date().toISOString())]]);
         activities.cursors=[];
         await loadEntries();
       }catch(err){if(form.isConnected){showError('riSubmitStatus',err);submit.disabled=false;}}
     };
     if(entry)panel.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  // v2.5.1: one-line title for each entry so the list stays short (full entry opens on click).
+  function entryTitle(e) {
+    const fields=e.form_schema?.fields||[];
+    const pick=fields.find(f=>/^(task name|task details|problem details|project name)$/i.test(f.label?.trim()||'')&&WlfFields.display(e.values?.[f.id]))
+      ||fields.find(f=>['text','textarea'].includes(f.type)&&!f.autoFill&&!/^(login_name|login_id)$/.test(f.id)&&WlfFields.display(e.values?.[f.id]));
+    const text=pick?WlfFields.display(e.values[pick.id]):'View entry';
+    return text.length>90?text.slice(0,88)+'…':text;
   }
   function toCursor(records) {
     const last=records.at(-1);
@@ -222,12 +232,12 @@ const WlfRi = (() => {
           input('From date','from','date',f.from)}${input('To date','to','date',f.to)}</div>
           <button type="submit" class="btn ghost">Apply filters</button> ${button('Refresh','refresh-activity')}</form>
         ${pageActions('entry',target.cursors,target.next)}
-        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Submitted by</th><th>Submitted (Dhaka)</th><th>Status</th><th>Details</th></tr></thead><tbody>
-        ${data.entries.map(e=>`<tr><td>${h(e.author_name)}</td><td>${h(stamp(e.created_at))}</td><td>${badge(e.status)}</td>
-          <td><details><summary>View entry</summary><dl class="wlf-entry-values">${e.form_schema.fields.map(field=>
+        <div class="tbl-wrap ri-entry-table"><table class="tbl"><thead><tr><th>Entry</th><th>Status</th></tr></thead><tbody>
+        ${data.entries.map(e=>`<tr><td><details><summary>${h(entryTitle(e))}</summary><dl class="wlf-entry-values">${e.form_schema.fields.map(field=>
             '<dt>'+h(field.label)+'</dt><dd>'+h(WlfFields.display(e.values[field.id])||'—')+'</dd>').join('')}</dl></details>
-          ${rowActions((owner(e)?button('Edit entry','edit-entry',e.id):'')+(admin()?button('Delete entry','delete-entry',e.id):''))}</td></tr>`).join('')
-          ||'<tr><td colspan="4">No matching entries.</td></tr>'}</tbody></table></div>`;
+          <div class="ri-entry-meta">${h(e.author_name)} · ${h(stamp(e.created_at))}</div>
+          ${rowActions((owner(e)?button('Edit entry','edit-entry',e.id):'')+(admin()?button('Delete entry','delete-entry',e.id):''))}</td><td>${badge(e.status)}</td></tr>`).join('')
+          ||'<tr><td colspan="2">No matching entries.</td></tr>'}</tbody></table></div>`;
       el('riActivityFilters').onsubmit=event=>{
         event.preventDefault(); target.filters=Object.fromEntries(new FormData(event.target));target.cursors=[];loadEntries();
       };

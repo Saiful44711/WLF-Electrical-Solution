@@ -17,4 +17,4 @@ const hash=createHash('sha256');
 for(const file of assets){hash.update(file+'\0');hash.update(await fs.readFile('dist/'+file));}
 const files=assets.map(f=>'./'+f);files.push('./');
 let sw=await fs.readFile('web/sw.js','utf8');sw=sw.replace('__PRECACHE__',JSON.stringify(files)).replace('__CACHE_HASH__',hash.digest('hex').slice(0,16));await fs.writeFile('dist/sw.js',sw);await fs.writeFile('dist/.nojekyll','');
-console.log('Built WLF 2.5.0 Supabase PWA. Configure web/config.js before deployment.');
+console.log('Built WLF 2.5.1 Supabase PWA. Configure web/config.js before deployment.');

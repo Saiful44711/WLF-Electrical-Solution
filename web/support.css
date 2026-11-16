@@ -31,3 +31,15 @@
 .age-edit{font-size:12px;font-weight:600;color:var(--indigo);text-decoration:underline}
 .age-form{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;margin:6px 0 12px}
 .age-form label{display:flex;flex-direction:column;gap:4px;font-size:12px;width:150px}
+/* v2.5.1: Other name box, saved confirmation */
+.wlf-other{margin-top:8px;width:100%}
+.wlf-choices .wlf-other{max-width:520px}
+.wlf-saved-dialog{border:1px solid var(--line);border-radius:18px;padding:0;max-width:min(420px,calc(100vw - 32px));background:var(--card);color:var(--text);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.wlf-saved-dialog::backdrop{background:rgba(10,20,30,.45)}
+.wlf-saved-body{padding:24px 24px 20px;text-align:center}
+.wlf-saved-tick{width:56px;height:56px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;background:#2fa86b;color:#fff;font-size:30px;font-weight:700}
+.wlf-saved-body h3{margin:0 0 12px}
+.wlf-saved-body dl{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;text-align:left;margin:0 0 18px;font-size:14px}
+.wlf-saved-body dt{color:var(--muted)}
+.wlf-saved-body dd{margin:0;font-weight:600;overflow-wrap:anywhere}
+.wlf-saved-body .btn{min-width:120px}

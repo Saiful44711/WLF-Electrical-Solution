@@ -24,7 +24,12 @@ function validate(raw){
  if(raw.bn&&typeof raw.bn==='object'){var bn={};var d=text(raw.bn.description,4000),c=text(raw.bn.conditions,8000);if(d)bn.description=d;if(c)bn.conditions=c;
   if(Array.isArray(raw.bn.solution)&&raw.bn.solution.length)bn.solution=stepList(raw.bn.solution);
   if(Array.isArray(raw.bn.subcodes))bn.subcodes=list(raw.bn.subcodes,100).map(function(sc){var code=text(sc&&sc.code,24);return {code:/^\d+$/.test(code)?String(Number(code)):code,description:text(sc&&sc.description,4000),solution:stepList(sc&&sc.solution)};}).filter(function(sc){return sc.code&&sc.description;});
-  if(bn.subcodes&&!bn.subcodes.length)delete bn.subcodes;if(Object.keys(bn).length)e.bn=bn;}
+  if(bn.subcodes&&!bn.subcodes.length)delete bn.subcodes;
+  // v2.5.1: src = fingerprint of the English text each Bangla part was written for.
+  var src=raw.bn.src;if(Object.keys(bn).length&&src&&typeof src==='object'){var fx=function(v){return typeof v==='string'&&/^[0-9a-f]{8}$/.test(v)?v:'';};var keep={};['d','c','s'].forEach(function(k){if(fx(src[k]))keep[k]=src[k];});
+   if(src.sub&&typeof src.sub==='object'){var subs={};Object.keys(src.sub).slice(0,100).forEach(function(k){var code=text(k,24);if(code&&fx(src.sub[k]))subs[/^\d+$/.test(code)?String(Number(code)):code]=src.sub[k];});if(Object.keys(subs).length)keep.sub=subs;}
+   if(Object.keys(keep).length)bn.src=keep;}
+  if(Object.keys(bn).length)e.bn=bn;}
  if(JSON.stringify(e).length>40000)throw Error('This entry exceeds the supported record size. Split the procedure into smaller entries.');return e;
 }
 function isProcedure(e){return e.controller==='GENERAL'||e.kind==='procedure';}
@@ -35,5 +40,9 @@ function search(indexed,controller,query,subquery){
  var rawTokens=String(query||'').trim().toLowerCase().split(/[-.\s,/:]+/).filter(Boolean),tokens=rawTokens.map(norm),sub=norm(subquery),target=null;if(controller!=='GENERAL'&&rawTokens[0]&&/^(?:err?|e)?0*\d+$/i.test(rawTokens[0]))target=errorCode(controller,rawTokens[0]);
  return indexed.filter(function(row){if(row.entry.controller!==controller||target&&row.entry.code!==target)return false;if(!tokens.every(function(t,i){if(target&&i===0)return true;if(target&&i>0&&/^\d+$/.test(t))return (row.entry.subcodes||[]).some(function(s){return s.code===String(Number(t));});return row.hay.indexOf(t)>=0||norm(row.entry.code).replace(/^err?/,'').replace(/^0+/,'')===t.replace(/^0+/,'');}))return false;return !sub||(row.entry.subcodes||[]).some(function(s){return norm(s.code)===sub.replace(/^0+/,'')||norm(s.code)===sub;});}).map(function(r){return r.entry;});
 }
-return {isProcedure:isProcedure,sameKey:sameKey,allowed:allowed,can:can,validate:validate,norm:norm,errorCode:errorCode,index:index,search:search};
+// FNV-1a 32-bit over the UTF-8 JSON text (same as the Python generator).
+function fp(v){var b=new TextEncoder().encode(JSON.stringify(v==null?'':v)),h=0x811c9dc5;for(var i=0;i<b.length;i++){h^=b[i];h=Math.imul(h,0x01000193)>>>0;}return ('0000000'+h.toString(16)).slice(-8);}
+function enPart(e,k,code){if(k==='d')return e.description||'';if(k==='c')return e.conditions||'';if(k==='s')return e.solution||[];var sc=(e.subcodes||[]).find(function(x){return x.code===code;});return sc?[sc.description||'',sc.solution||[]]:null;}
+function bnFresh(e,k,code){var src=e&&e.bn&&e.bn.src;if(!src)return true;var want=k==='sub'?src.sub&&src.sub[code]:src[k];if(!want)return true;var en=enPart(e,k,code);return en!=null&&fp(en)===want;}
+return {fp:fp,enPart:enPart,bnFresh:bnFresh,isProcedure:isProcedure,sameKey:sameKey,allowed:allowed,can:can,validate:validate,norm:norm,errorCode:errorCode,index:index,search:search};
 });

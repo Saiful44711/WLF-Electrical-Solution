@@ -1,4 +1,15 @@
-# WLF Electrical Solution v2.5.0
+# WLF Electrical Solution v2.5.1
+
+## v2.5.1 Form cleanup, Other name, Bangla edit, submit confirmation (16 November 2026)
+
+Open START_HERE_V251_BN.html. Order: backup kit -> supabase/UPDATE_V251.sql (five columns true) -> upload changed files.
+
+- Confirmation popup after a server-confirmed submit (R&I Team Activity, Technical Support).
+- Auto-fill fields (Name, ID, today's date) are hidden in R&I activity and support forms; the server fills them (date = submission day, kept on edit).
+- "Other" choices ask for a name; saved as `Other: <name>` (`wlf_private.other_choice` accepts it in `form_values`).
+- Team Activity: "Project / Task Name" removed (old entries keep their saved form). Sales Support: optional Task Start / Complete Date.
+- Recent entries list is one compact row per entry. Large text fields are full width. Date boxes open the calendar on click.
+- Troubleshooting Bangla can be edited; `content.bn.src` stores FNV-1a fingerprints of the English parts so stale Bangla falls back to English.
 
 ## v2.5.0 Notifications, change history, Bangla troubleshooting, speed (15 November 2026)
 
