@@ -20,3 +20,6 @@
 .tb-bn-title{margin:10px 0 0;font-weight:700}
 .tb-sub-editor .tb-bn-block{border-top:1px dashed var(--line);padding-top:6px}
 .tb-stale{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:999px;background:#f5c518;color:#3a2c00;font-size:12px;font-weight:700}
+/* v2.5.1: Save / Cancel always visible at the bottom of the editor, so the buttons never move under the pointer */
+#tbEditor .engineering-actions{position:sticky;bottom:-24px;z-index:2;margin:16px -24px -24px;padding:12px 24px 16px;background:var(--card);border-top:1px solid var(--line)}
+@media (max-width:900px){#tbEditor .engineering-actions{bottom:-17px;margin:16px -17px -17px;padding:12px 17px 14px}}
