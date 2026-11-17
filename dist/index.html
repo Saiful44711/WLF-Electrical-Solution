@@ -53,12 +53,12 @@
         <div id="registerForm" class="hidden">
           <h2>Request access</h2>
           <p class="sub">The admin will be notified and will approve your account.</p>
-          <div class="field"><label for="regName">NAME</label><input type="text" id="regName" placeholder="Full name" maxlength="120" autocomplete="name"></div>
-          <div class="field"><label for="regId">ID</label><input type="text" id="regId" placeholder="Employee ID" maxlength="30" autocomplete="off"></div>
-          <div class="field"><label for="regSection">SECTION</label><select id="regSection"><option value="">Select your section…</option><option>Sales</option><option>R&amp;I Electrical</option><option>R&amp;I Mechanical</option><option>Production</option><option>QM</option><option>Installation</option><option>Commissioning</option><option>After Sales</option><option>SCM</option><option>Dispatch</option><option>Process</option><option>Business Planning &amp; Development</option><option>Factory Maintenance</option></select></div>
-          <div class="field"><label for="regEmail">Email</label><input type="email" id="regEmail" autocomplete="username" placeholder="you@example.com"></div>
-          <div class="field"><label for="regPassword">Password (min. 8 characters)</label><input type="password" id="regPassword" autocomplete="new-password" placeholder="Choose a password"></div>
-          <button class="btn block" id="regBtn" onclick="doRegister()">Send request</button>
+          <div class="field"><label for="regName">NAME <span class="req" aria-hidden="true">*</span></label><input type="text" id="regName" required aria-required="true" placeholder="Full name" maxlength="120" autocomplete="name"></div>
+          <div class="field"><label for="regId">ID <span class="req" aria-hidden="true">*</span></label><input type="text" id="regId" required aria-required="true" placeholder="Employee ID" maxlength="30" autocomplete="off"></div>
+          <div class="field"><label for="regSection">SECTION <span class="req" aria-hidden="true">*</span></label><select id="regSection" required aria-required="true"><option value="">Select your section…</option><option>Sales</option><option>R&amp;I Electrical</option><option>R&amp;I Mechanical</option><option>Production</option><option>QM</option><option>Installation</option><option>Commissioning</option><option>After Sales</option><option>SCM</option><option>Dispatch</option><option>Process</option><option>Business Planning &amp; Development</option><option>Factory Maintenance</option></select></div>
+          <div class="field"><label for="regEmail">Email <span class="req" aria-hidden="true">*</span></label><input type="email" id="regEmail" required aria-required="true" autocomplete="username" placeholder="you@example.com"></div>
+          <div class="field"><label for="regPassword">Password (min. 8 characters) <span class="req" aria-hidden="true">*</span></label><input type="password" id="regPassword" required aria-required="true" minlength="8" autocomplete="new-password" placeholder="Choose a password"></div>
+          <p class="note reg-note">All fields marked <span class="req">*</span> are required.</p><button class="btn block" id="regBtn" onclick="doRegister()">Send request</button>
         </div>
       </div>
       <div class="credit">Design and develop by Md. Saiful Islam - Lift Electrical R&amp;I</div>
@@ -273,6 +273,7 @@
         <!-- ===== Account ===== -->
         <section id="tab-troubleshooting" class="tab-content hidden"><div id="tbRoot"></div></section>
         <section id="tab-account" class="tab-content hidden">
+          <div class="card profile-forwarded" id="forwardedCard" hidden></div>
           <div id="profileOverview"></div>
           <div class="card profile-push" id="pushCard" hidden></div>
           <div class="card profile-password">

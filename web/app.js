@@ -118,6 +118,16 @@ function doLogin() {
 function doRegister() {
   var btn = $('regBtn');
   setAuthMsg('', '');
+  // v2.5.2: every field is required; mark the empty ones and put the cursor on the first
+  var missing = ['regName', 'regId', 'regSection', 'regEmail', 'regPassword'].filter(function (id) {
+    var n = $(id), bad = !String(n.value || '').trim() || (id === 'regPassword' && n.value.length < 8) || (id === 'regEmail' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(n.value.trim()));
+    n.classList.toggle('invalid', bad); n.setAttribute('aria-invalid', String(bad)); return bad;
+  });
+  if (missing.length) {
+    $(missing[0]).focus();
+    setAuthMsg('Fill in every field marked * (' + missing.map(function (id) { return document.querySelector('label[for="' + id + '"]').textContent.replace('*', '').trim(); }).join(', ') + ').', 'error');
+    return;
+  }
   busy(btn, true, 'Sending...');
   google.script.run
     .withSuccessHandler(function (msg) {
@@ -828,3 +838,6 @@ function calcSolarSizing() {
     track('Solar Sizing Calculation', 'Motor=' + input.motorPowerKW + ' kW; modules=' + r.moduleCount + '; PV=' + r.installedPVKWp + ' kWp');
   }).withFailureHandler(function (err) { busy(btn, false); fail(err); }).calculateSolarSizing(T(), input);
 }
+// v2.5.2: clear the red mark as soon as a required field is filled
+document.addEventListener('input', function (e) { var t = e.target; if (t && t.closest && t.closest('#registerForm') && t.classList.contains('invalid') && String(t.value || '').trim()) { t.classList.remove('invalid'); t.setAttribute('aria-invalid', 'false'); } });
+document.addEventListener('change', function (e) { var t = e.target; if (t && t.id === 'regSection' && t.value) { t.classList.remove('invalid'); t.setAttribute('aria-invalid', 'false'); } });

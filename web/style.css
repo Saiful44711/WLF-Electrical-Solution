@@ -245,3 +245,7 @@
 
 .auth-hero>.auth-company-logo,.login-brand img,.header-company-logo,.report-company-logo{background:transparent!important;border:0;box-shadow:none;padding:0}
 [data-theme=dark] .login-brand img,[data-theme=dark] .header-company-logo,[data-theme=dark] .report-company-logo,.auth-hero>.auth-company-logo{filter:drop-shadow(0 0 0.65px #ffffffb0)}
+/* v2.5.2 Request access: required marks */
+#registerForm .req{color:#e5484d;font-weight:700}
+#registerForm .invalid{border-color:#e5484d !important;box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+#registerForm .reg-note{margin:4px 0 10px;font-size:12px}

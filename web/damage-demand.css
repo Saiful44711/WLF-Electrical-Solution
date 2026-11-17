@@ -64,3 +64,9 @@ button.damage-metric:focus-visible { outline:2px solid var(--tone); outline-offs
 #wlfDamageDialog .engineering-actions { flex-wrap: wrap; margin-top: 14px; }
 .damage-details { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 .damage-solution { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* v2.5.2 demands by team */
+.damage-team-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.damage-team-tab{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:6px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);font:inherit;font-weight:600;cursor:pointer}
+.damage-team-tab.active{background:#5b45d6;border-color:#5b45d6;color:#fff}
+.damage-team-tab b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:#e5484d;color:#fff;font-size:12px;display:inline-grid;place-items:center}
+.damage-team-tab small{font-weight:500;opacity:.75}

@@ -43,3 +43,22 @@
 .wlf-saved-body dt{color:var(--muted)}
 .wlf-saved-body dd{margin:0;font-weight:600;overflow-wrap:anywhere}
 .wlf-saved-body .btn{min-width:120px}
+/* v2.5.2 sub-category popup */
+.wlf-pick{width:100%;min-height:44px;text-align:left;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit;cursor:pointer}
+.wlf-pick::after{content:'▾';float:right;opacity:.6}
+.wlf-picker{width:min(560px,calc(100vw - 24px));max-height:86dvh;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--text)}
+.wlf-picker::backdrop{background:rgba(10,20,30,.45)}
+.wlf-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.wlf-picker-head h3{margin:0}
+.wlf-picker .tb-close{border:0;background:transparent;color:var(--text);font-size:24px;cursor:pointer;min-width:40px;min-height:40px}
+.wlf-picker-search{width:100%;margin:8px 0 10px;min-height:42px;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font:inherit}
+.wlf-picker-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-height:56dvh;overflow:auto;padding:2px}
+.wlf-picker-list button{min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);font:inherit;font-size:14px;cursor:pointer;text-align:left}
+.wlf-picker-list button:hover,.wlf-picker-list button:focus-visible{border-color:var(--indigo);outline:2px solid var(--indigo);outline-offset:0}
+.schema-sublists{margin:10px 0;padding:10px 12px;border:1px dashed var(--line);border-radius:10px}
+.schema-sublist{margin:6px 0}.schema-sublist>summary{cursor:pointer;font-weight:600}
+.schema-sublist textarea{width:100%;margin-top:6px}
+/* v2.5.2 team card notification badge */
+.support-category{position:relative}
+.support-category .team-badge{position:absolute;top:8px;right:10px;min-width:24px;height:24px;padding:0 7px;border-radius:999px;background:#e5484d;color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.support-category .team-badge[hidden]{display:none}

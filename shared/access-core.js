@@ -18,10 +18,11 @@ function read(u,key){
  return superUser(u)||(u.permissions||[]).includes(key);
 }
 function operate(u,key){return approved(u)&&(key.slice(-8)===':request'?(u.role==='User'&&read(u,key)||superUser(u)):key.slice(-7)===':handle'?u.role==='R&I':superUser(u));}
-function damageAccess(u,option){
+function damageAccess(u,option,team){
  if(!approved(u)||u.damageDemand!==true)return false;
  var permissions=u.permissions||[];
- if(option==='receive')return damageAccess(u,'demand')&&permissions.includes('damage:receive');
+ // v2.5.2: Receive is given per team (damage:receive:<team>); without a team: any team
+ if(option==='receive')return damageAccess(u,'demand')&&(superUser(u)||(team?permissions.includes('damage:receive:'+team):permissions.some(function(k){return k.indexOf('damage:receive:')===0;})));
  return superUser(u)||permissions.includes('damage:'+option);
 }
 function workspaceAccess(u,key){return approved(u)&&u.workspaceUpdate===true&&(superUser(u)||(u.permissions||[]).includes(key));}
@@ -71,7 +72,7 @@ function performance(tickets,users){return users.filter(function(u){return u.rol
 var liveActions=['getDocuments','saveDocumentCategory','deleteDocumentCategory','saveDocument','deleteDocument','saveDocumentFolder','deleteDocumentFolder','getDashboardSupport','getAppContext','listAppUsers','saveAppUserAccess','resetAppUserPassword','getSupportWorkspace','getSupportRequest','getSupportSummary','getSupportReport','createSupportRequest','transitionSupportRequest','editSupportRequest','deleteSupportRequest','saveSupportSchema','getTroubleshootingSummary','getRiCategories','getRiEntries','saveRiCategory','setRiCategoryActive','saveRiEntry','deleteRiEntry','getRiProjects','saveRiProject','deleteRiProject','getRiDashboard',
  'createDamageDemand','getDamageDemands','getDamageDemand','getDamageDashboard','getDamageReport','receiveDamageDemand',
  'getMyWorkspaceProfile','getWorkspaceDashboard','getWorkspaceReport','getQmsComponents','saveQmsComponent',
- 'savePushSubscription','deletePushSubscription','getPushStatus','getUserAccessLog','saveSupportAging'];
+ 'savePushSubscription','deletePushSubscription','getPushStatus','getUserAccessLog','saveSupportAging','getMyForwarded'];
 function apiAllowed(a){return liveActions.indexOf(a)>=0;}
 function apiCan(u,a){if(!approved(u))return false;
  if(a==='createDamageDemand')return u.damageDemand===true&&u.role==='R&I';

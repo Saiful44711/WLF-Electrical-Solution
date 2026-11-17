@@ -64,3 +64,27 @@ window.addEventListener('wlf-logout',function(){var c=el('pushCard');if(c){c.hid
 if('serviceWorker' in navigator)navigator.serviceWorker.addEventListener('message',function(ev){if(ev.data&&ev.data.type==='wlf-open')route(ev.data.url);});
 window.WlfPush={flush:flush,render:render,enable:enable,disable:disable};
 })();
+// WLF v2.5.2: My Profile > "Forwarded to you" — requests forwarded to me that I have not received yet.
+(function(){'use strict';
+var last=0,busy=false;
+function el(id){return document.getElementById(id);}
+function canReceive(){return !!SESSION&&(SESSION.role==='R&I'||SESSION.role==='Super Admin');}
+async function refresh(force){
+ var card=el('forwardedCard');if(!card)return;
+ if(!canReceive()){card.hidden=true;card.innerHTML='';return;}
+ if(busy||(!force&&Date.now()-last<20000))return;busy=true;last=Date.now();
+ try{var list=await rpc('getMyForwarded',[T()]);render(list||[]);}catch(err){if(!card.innerHTML)card.hidden=true;}finally{busy=false;}
+}
+function title(c){return String((AccessCore.supportTitles&&AccessCore.supportTitles[c])||c).replace(/ Team Support Request$/,'').replace(/ Support Request$/,'');}
+function render(list){
+ var card=el('forwardedCard');if(!card)return;card.hidden=false;
+ card.innerHTML='<div class="card-head"><div class="card-icon ci-amber"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></div><div><h3>Forwarded to you <span class="team-badge"'+(list.length?'':' hidden')+'>'+list.length+'</span></h3><p>Support requests waiting for you to receive. They leave this list when you press Receive.</p></div></div>'+
+  (list.length?'<ul class="forwarded-list">'+list.map(function(x){return '<li><button type="button" class="forwarded-item" data-fw-cat="'+esc(x.category)+'" data-fw-id="'+esc(x.id)+'"><b>'+esc(x.reference)+'</b><span>'+esc(title(x.category))+(x.project?' · '+esc(x.project):'')+(x.lift?' · Lift '+esc(x.lift):'')+'</span>'+
+    '<small>From '+esc(x.forwardedBy||'—')+' · '+esc(new Date(x.forwardedAt).toLocaleString('en-GB',{timeZone:'Asia/Dhaka',dateStyle:'medium',timeStyle:'short'}))+'</small>'+(x.comment?'<q>'+esc(x.comment)+'</q>':'')+'</button></li>';}).join('')+'</ul>':'<p class="note">Nothing waiting. Requests forwarded to you will appear here.</p>');
+ card.querySelectorAll('[data-fw-id]').forEach(function(b){b.onclick=function(){if(window.LiveWorkspace&&LiveWorkspace.openRequest)LiveWorkspace.openRequest(b.dataset.fwCat,b.dataset.fwId);};});
+}
+window.addEventListener('wlf-ready',function(){refresh(true);});
+window.addEventListener('wlf-logout',function(){var c=el('forwardedCard');if(c){c.hidden=true;c.innerHTML='';}last=0;});
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#nav button[data-tab="account"]');if(b)refresh(true);});
+window.WlfForwarded={refresh:refresh};
+})();

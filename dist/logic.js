@@ -335,7 +335,7 @@ return {categories:[
     ]
   },
   {
-    title: '2. Recommended ARKEL Control System',
+    title: '2. Recommended MOT Control System',
     fields: [
       ['Recommended ARKEL Controller KW', 'Controller Power (kW)'],
       ['Recommended ARKEL Controller Amp', 'Controller Current (A)'],

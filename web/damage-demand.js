@@ -269,6 +269,10 @@ const WlfDamage = (() => {
                  aria-controls="damageResults" aria-pressed="${listStatus === status}">${content}</button>`;
           }).join('')}
         </section>` : ''}
+      ${queue && data ? `<nav class="damage-team-tabs" aria-label="Demands by team">${[['', 'All teams', Object.values(data.teamPending || {}).reduce((a, b) => a + Number(b || 0), 0)],
+          ...teams.map(t => [t, teamName(t), Number(data.teamPending?.[t] || 0)])].map(([value, label, n]) =>
+          `<button type="button" class="damage-team-tab${(filters.category || '') === value ? ' active' : ''}" aria-pressed="${(filters.category || '') === value}" data-damage-team="${h(value)}">
+            <span>${h(label)}</span>${n ? `<b aria-label="${n} pending">${n}</b>` : ''}${allowed('receive') && value && !AccessCore.damageAccess(SESSION, 'receive', value) ? '<small>view only</small>' : ''}</button>`).join('')}</nav>` : ''}
       ${data ? `<section class="card damage-results" id="damageResults">
         <div class="review-heading"><h3 tabindex="-1">${queue ? 'Demand list' : listStatus ? listStatus + ' demands' : 'Filtered demand records'}</h3>
           <span class="note">${h(data.pageTotal ?? data.total)} match · showing ${data.rows.length}</span></div>
@@ -289,6 +293,11 @@ const WlfDamage = (() => {
     });
     root.querySelectorAll('[data-damage-pane]').forEach(button => button.onclick = () => setPane(button.dataset.damagePane));
     root.querySelectorAll('[data-damage-view]').forEach(button => button.onclick = () => openDetail(button.dataset.damageView));
+    root.querySelectorAll('[data-damage-team]').forEach(button => button.onclick = () => {
+      state.filters = {...state.filters, category: button.dataset.damageTeam};
+      state.cursors = [];
+      load(true);
+    });
     root.querySelectorAll('[data-damage-status]').forEach(button => button.onclick = () => {
       if (button.dataset.damageStatus === state.listStatus) return;
       state.listStatus = button.dataset.damageStatus;
@@ -390,7 +399,7 @@ const WlfDamage = (() => {
       </details>
       <p id="damageDetailStatus" role="status" aria-live="polite">${h(message)}</p>
       <div class="engineering-actions">
-        ${d.status === 'Pending' && state?.pane === 'demand' && allowed('receive') ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
+        ${d.status === 'Pending' && state?.pane === 'demand' && AccessCore.damageAccess(SESSION, 'receive', d.category) ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
         <button type="button" class="btn ghost" data-damage-close>Close</button>
       </div>`);
     const close = node.querySelector('[data-damage-close]');

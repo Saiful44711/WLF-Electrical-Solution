@@ -44,6 +44,7 @@ async function rpcOnce(action,args){
  if(action==='getSession'&&!SESSION)prefetchStart(auth.data.session.user.id);
  var result;try{result=await(prefetchTake(action,auth.data.session.user.id,cleanArgs)||dbCall(action,cleanArgs));}catch(err){if(action==='getSession')PREFETCH={};throw err;}
  if(action==='transitionSupportRequest'&&cleanArgs[0]&&cleanArgs[0].action==='forward')pushFlush();
+ if(action==='transitionSupportRequest'&&window.WlfForwarded)setTimeout(function(){WlfForwarded.refresh(true);},0);
  if(action==='getSession'){result.token=auth.data.session.user.id;result.offlineUntil=Date.now()+Math.min(24,Number(CFG.offlineHours)||24)*3600000;}
  if(action==='getAppContext'&&result.components){Object.assign(result,componentSnapshot(result.components));delete result.components;}
  if(action==='refreshIndex')result=componentSnapshot(result);

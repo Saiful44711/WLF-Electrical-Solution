@@ -1,4 +1,14 @@
-# WLF Electrical Solution v2.5.1
+# WLF Electrical Solution v2.5.2
+
+## v2.5.2 Problem sub-category, team badges, damage receive by team (17 November 2026)
+
+Open START_HERE_V252_BN.html. Order: backup kit -> supabase/UPDATE_V252.sql (four columns true) -> upload changed files.
+
+- Support forms (commissioning, aftersales, production, qc, maintenance): 36 problem categories; `problem_sub` is a dependent select (`dependsOn` + `optionMap`) chosen in a searchable popup and required when its list is not empty. `form_fields`/`form_values` validate it; Super Admin edits the lists in Manage form fields.
+- Team cards show the unsolved badge; My Profile lists requests forwarded to me and not yet received (`getMyForwarded`).
+- Damage Demand: `damage:receive:<team>` replaces `damage:receive` (holders migrated); demand list has team tabs with pending counts (`teamPending`).
+- Request access: every field required in the form and in `wlf_private.new_user` for app sign-ups; duplicate IDs allowed.
+- Component report title: Recommended MOT Control System.
 
 ## v2.5.1 Form cleanup, Other name, Bangla edit, submit confirmation (16 November 2026)
 
