@@ -465,9 +465,8 @@ const WlfDamage = (() => {
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelector('#nav [data-tab="ri-projects"]').insertAdjacentHTML('afterend',
-      '<button data-tab="damage-demand" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm0 0l9 4 9-4m-9 4v10"/></svg>Damage Demand</button>'+
-      '<button data-damage-nav="demand" aria-label="Damage Demand / Demand" hidden>Demand</button>'+
-      '<button data-damage-nav="dashboard" aria-label="Damage Demand / Dashboard" hidden>Dashboard</button>');
+      '<button data-tab="damage-demand" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7l9-4 9 4v10l-9 4-9-4zm0 0l9 4 9-4m-9 4v10"/></svg>Damage Demand</button>');
+    // v2.5.3: Demand / Dashboard are chosen with the buttons at the top of the page, not in the menu.
     document.querySelector('.content').insertAdjacentHTML('beforeend', '<section id="tab-damage-demand" class="tab-content hidden"></section>');
     document.body.insertAdjacentHTML('beforeend', '<dialog id="wlfDamageDialog" aria-labelledby="damageDialogTitle"></dialog>');
     PAGES['damage-demand'] = ['Damage Demand', 'Replacement demands and component damage reports'];

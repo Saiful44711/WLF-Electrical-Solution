@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.2-subcat','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.3-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -453,7 +453,7 @@ await dialog.getByRole('button',{name:'Close',exact:true}).click();
 await logout();
 
 await login('sa');
-assert.equal(await page.locator('#nav [data-damage-nav=dashboard] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);
+assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
 await tab('qms');
 await page.locator('#qmsAdd').click();
 await page.locator('#qmsComponentForm [name=project]').fill('WLF North Tower');
@@ -467,15 +467,17 @@ await page.locator('#qmsComponentForm [name=status]').selectOption('Verified');
 await page.locator('#qmsComponentForm [type=submit]').click();
 await page.locator('#tab-qms tbody').getByText('Verified',{exact:true}).waitFor();
 await tab('workspace-dashboard');
-await page.getByRole('heading',{name:'Team KPIs'}).waitFor();
-await page.locator('#workspaceFilters [name=section]').selectOption('qms');
-await page.locator('#workspaceFilters [type=submit]').click();
-await page.getByRole('cell',{name:'WLF North Tower · Drive unit',exact:true}).waitFor();
+await page.getByRole('heading',{name:'Management Dashboard'}).waitFor();
+await page.locator('.mgmt-card').nth(5).waitFor();
+assert.deepEqual((await page.locator('.mgmt-card h3').allInnerTexts()).map(t=>t.replace(/\s+/g,'')),['1R&ITeamActivity','2R&IProjectManager','3TechnicalSupport','4DamageDemand','5QMS','6Supplierclaim']);
+assert.equal(await page.locator('.mgmt-card').nth(4).locator('.overview-metric').filter({hasText:'Verified'}).locator('strong').innerText(),'1');
+assert.equal(await page.locator('.mgmt-card').nth(2).locator('svg.mgmt-chart').count(),1);
+assert.equal(await page.locator('#workspaceFilters [name=from]').inputValue(),(await page.evaluate(()=>AccessCore.dateKey(new Date()))).slice(0,8)+'01','this month by default');
 const kpiFile=page.waitForEvent('download');
 await page.locator('#workspaceExport').click();
 await (await kpiFile).saveAs('test-results/workspace-kpis.xlsx');
 const kpiZip=await Zip.loadAsync(fs.readFileSync('test-results/workspace-kpis.xlsx'));
-assert.match(await kpiZip.file('xl/worksheets/sheet4.xml').async('string'),/WLF North Tower/);
+assert.match(await kpiZip.file('xl/worksheets/sheet10.xml').async('string'),/Verified/);
 await page.evaluate(()=>setAppearance('light'));
 await page.screenshot({path:'test-results/workspace-kpis.png'});
 await page.setViewportSize({width:320,height:760});
@@ -685,6 +687,71 @@ await login('sa');await page.locator('#nav [data-tab=damage-demand]').click();aw
 assert.equal(await page.locator('.damage-team-tab').count(),5);await v252shot('06-damage-demand-teams');
 await page.locator('.damage-team-tab[data-damage-team="aftersales"]').click();await page.locator('.damage-team-tab.active[data-damage-team="aftersales"]').waitFor();
 await page.locator('.damage-team-tab[data-damage-team=""]').click();await page.locator('.damage-team-tab.active[data-damage-team=""]').waitFor();
+/* ---- v2.5.3: My Profile first, menu red counts, Announcement, Recycle bin, Usage log 30 days, my work breakdown ---- */
+fs.mkdirSync('test-results/v253',{recursive:true});
+const v253shot=async(name,{phone=true}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(150);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v253/${name}-${label}-${theme}.png`});}if(w<500)assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits phone');}await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});};
+// the app opens on My Profile
+await logout();await page.locator('#loginEmail').fill('sa@example.test');await page.locator('#loginPassword').fill('test-password-123');await page.locator('#loginBtn').click();await page.locator('#app').waitFor({state:'visible'});await page.waitForFunction(()=>SESSION&&!SESSION.bootstrapPending);
+assert.equal(await page.locator('#nav button.active').getAttribute('data-tab'),'account');assert.equal(await page.locator('#pageTitle').innerText(),'My Profile');assert.equal(await page.locator('#tab-account').isVisible(),true);
+// Damage Demand red count = pending demands
+const pendingDemands=Number((await sequential(()=>h.db.query('select count(*)::int n from wlf_private.damage_demands where received_at is null'))).rows[0].n);
+if(pendingDemands){await page.locator('#damageNavBadge:not([hidden])').waitFor();assert.equal(await page.locator('#damageNavBadge').innerText(),String(pendingDemands));}
+assert.equal(await page.locator('#nav [data-damage-nav]').count(),0);
+// Announcement for Commissioning
+await page.locator('#nav [data-tab=announcements]').click();await page.locator('#annForm').waitFor();
+await page.locator('#annTitle').fill('Site safety week');await page.locator('#annBody').fill('Wear helmets on every site.\nReport any unsafe lift pit.');
+await page.locator('#annAll').uncheck();await page.locator('#annForm [name=section][value="Commissioning"]').check();await page.locator('#annEnd').fill('2099-12-31');
+await page.locator('#annForm [type=submit]').click();await page.locator('#annStatus').filter({hasText:'Published'}).waitFor();
+await page.locator('.ann-admin-item').filter({hasText:'Site safety week'}).waitFor();assert.match(await page.locator('.ann-admin-item').first().innerText(),/Read by 0 of 1/);
+await v253shot('01-announcement-admin');
+// Recycle bin: things deleted elsewhere wait here
+const binForm=(await sequential(()=>h.rpc('user','getSupportWorkspace',[{category:'commissioning'}]))).forms.commissioning;
+const binReq=(await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:binForm.revision,mutationId:crypto.randomUUID(),values:Object.fromEntries(binForm.fields.filter(f=>!f.dependsOn&&!f.autoFill).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.id==='project'?'Bin Tower':f.type==='date'?'2026-11-17':f.type==='number'?'77':f.type==='checkbox'?(f.options?.length?[]:false):f.type==='multi'?f.options.slice(0,1):f.options?.[0]||'Bin test']))}]))).ticket;
+await sequential(()=>h.rpc('sa','deleteSupportRequest',[{id:binReq.id,revision:binReq.revision,mutationId:crypto.randomUUID()}]));
+const binCat=(await sequential(()=>h.rpc('sa','getDocuments'))).categories[0];
+const binDoc=await sequential(()=>h.rpc('sa','saveDocument',[{category:binCat.id,name:'Bin manual',url:'https://drive.google.com/file/d/bin/view',extra:{}}]));
+await sequential(()=>h.rpc('sa','deleteDocument',[binDoc]));
+const binDoc2=await sequential(()=>h.rpc('sa','saveDocument',[{category:binCat.id,name:'Old drawing',url:'https://drive.google.com/file/d/bin2/view',extra:{}}]));
+await sequential(()=>h.rpc('sa','deleteDocument',[binDoc2]));
+await page.locator('#nav [data-tab=recycle-bin]').click();await page.locator('#binTable').waitFor();
+await page.locator('#binTable tr').filter({hasText:binReq.reference}).waitFor();await page.locator('#binTable tr').filter({hasText:'Bin manual'}).waitFor();
+await v253shot('02-recycle-bin');
+await page.locator('#binTable tr').filter({hasText:'Bin manual'}).locator('[data-bin-restore]').click();await page.locator('#binStatus').filter({hasText:'Restored: Bin manual'}).waitFor();
+assert.ok((await sequential(()=>h.rpc('sa','getDocuments'))).documents.some(d=>d.id===binDoc.id),'document restored');
+await page.locator('#binTable tr').filter({hasText:'Old drawing'}).locator('[data-bin-purge]').click();await page.locator('#wlfAdminDialog[open]').waitFor();
+assert.match(await page.locator('#wlfAdminDialog').innerText(),/1 item/);await v253shot('03-recycle-bin-confirm',{phone:false});
+await page.locator('#wlfAdminYes').click();await page.locator('#binStatus').filter({hasText:'deleted permanently'}).waitFor();
+assert.equal(await page.locator('#binTable tr').filter({hasText:'Old drawing'}).count(),0);
+await page.locator('#binEmpty').click();await page.locator('#wlfAdminDialog[open]').waitFor();assert.equal(await page.locator('#wlfAdminYes').isDisabled(),true);
+await page.locator('#wlfAdminTyped').fill('delete');assert.equal(await page.locator('#wlfAdminYes').isDisabled(),true);
+await page.locator('#wlfAdminTyped').fill('DELETE');await v253shot('04-recycle-bin-empty',{phone:false});await page.locator('#wlfAdminYes').click();
+await page.locator('#binStatus').filter({hasText:'Recycle bin emptied'}).waitFor();assert.equal((await sequential(()=>h.db.query('select 1 from public.wlf_requests where id=$1',[binReq.id]))).rows.length,0);
+await page.locator('.bin-log summary').click();assert.match(await page.locator('.bin-log').innerText(),/Empty bin/);
+// Usage Dashboard: last 30 days + old log download, then DELETE
+await sequential(()=>h.db.query("insert into public.wlf_usage(actor,action,details,at) values($1,'Login','',now()-interval '45 days'),($1,'Power Calculation','old',now()-interval '40 days')",[IDS.user]));
+await page.locator('#nav [data-tab=dashboard]').click();await page.locator('#usageLogTable').waitFor();await page.locator('.usage-old').waitFor();
+assert.match(await page.locator('.usage-old').innerText(),/2 activity log rows are older than 30 days/);
+await page.locator('#usageMember').selectOption({label:'user (US-5)'});
+await page.waitForFunction(()=>{const c=[...document.querySelectorAll('#usageLogTable tbody td:nth-child(2)')].map(x=>x.textContent);return c.length>0&&c.every(t=>t==='user (US-5)')&&document.getElementById('usageMember').value!=='';});
+assert.equal(await page.locator('#usageOldDelete').isDisabled(),true);await v253shot('05-usage-log');
+const oldLog=page.waitForEvent('download');await page.locator('#usageOldDownload').click();await (await oldLog).saveAs('test-results/v253/old-activity-log.xlsx');
+assert.match(await (await Zip.loadAsync(fs.readFileSync('test-results/v253/old-activity-log.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/Power Calculation/);
+await page.locator('#usageOldDelete:not([disabled])').click();await page.locator('#wlfAdminTyped').fill('DELETE');await page.locator('#wlfAdminYes').click();
+await page.locator('#globalMsg').filter({hasText:'2 old activity log rows deleted'}).waitFor();
+assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where at<now()-interval '30 days'"))).rows[0].n,0);
+// Management Dashboard screenshots
+await tab('workspace-dashboard');await page.locator('.mgmt-card').nth(5).waitFor();await v253shot('06-management-dashboard');
+// the Commissioning user: red count, announcement card, Read, my work breakdown
+await logout();await login('user');await tab('account');
+await page.locator('#announceCard .announce-item').filter({hasText:'Site safety week'}).waitFor();
+await page.locator('#profileNavBadge:not([hidden])').waitFor();const before253=Number(await page.locator('#profileNavBadge').innerText());assert.ok(before253>=1);
+await page.locator('#myActivityCard .my-block').filter({hasText:'Support requests I sent'}).waitFor();
+await page.locator('#announceCard').scrollIntoViewIfNeeded();await v253shot('07-profile-announcement');
+await page.locator('#myActivityCard').scrollIntoViewIfNeeded();await v253shot('08-my-work-breakdown');
+await page.locator('[data-ann-read]').first().click();await page.locator('#announceCard .announce-old').waitFor();
+await page.waitForFunction(n=>{const b=document.getElementById('profileNavBadge');return b&&(b.hidden?0:Number(b.textContent))===n-1;},before253);
+await logout();await login('admin');await tab('account');await page.waitForTimeout(400);assert.equal(await page.locator('#announceCard').isHidden(),true,'Sales section does not get the Commissioning announcement');
+await logout();await login('sa');
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);

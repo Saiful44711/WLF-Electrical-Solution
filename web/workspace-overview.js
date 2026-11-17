@@ -145,23 +145,51 @@ const WlfOverview = (() => {
     }
   }
 
+  /* v2.5.3 Management Dashboard: menu-wise performance, this month by default, 12-month curves. */
+  const palette = ['#5b6ee1','#159e82','#e08a1e','#d0457a','#7a5cd6','#2f8fd8','#8a9a2b'];
+  const teamName = c => String((AccessCore.supportTitles && AccessCore.supportTitles[c]) || c)
+    .replace(/ Team Support Request$/,'').replace(/ Support Request$/,'');
+  const riSection = {team:'Team Activity',scm:'SCM & Supplier',sales:'Sales Support',reports:'Reports'};
+
+  function lineChart(months, series, label) {
+    const keys = Object.keys(series);
+    if (!keys.length) return '<p class="note">No records in the last 12 months.</p>';
+    const W = 640, H = 220, L = 34, R = 10, T = 12, B = 30;
+    const max = Math.max(1, ...keys.flatMap(k => series[k].map(Number)));
+    const step = max <= 5 ? 1 : Math.ceil(max / 4);
+    const top = Math.ceil(max / step) * step;
+    const x = i => L + i * (W - L - R) / (months.length - 1);
+    const y = v => T + (H - T - B) * (1 - v / top);
+    let grid = '';
+    for (let v = 0; v <= top; v += step) grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    const ticks = months.map((m, i) => i % 2 === (months.length - 1) % 2 ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${h(m)}</text>` : '').join('');
+    const lines = keys.map((k, s) => {
+      const c = palette[s % palette.length], pts = series[k].map((v, i) => `${x(i).toFixed(1)},${y(Number(v)).toFixed(1)}`);
+      return `<polyline fill="none" stroke="${c}" stroke-width="2.25" stroke-linejoin="round" points="${pts.join(' ')}"/>` +
+        series[k].map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(Number(v)).toFixed(1)}" r="3" fill="${c}"><title>${h(teamName(k))} · ${h(months[i])}: ${count(v)}</title></circle>`).join('');
+    }).join('');
+    return `<svg class="mgmt-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(label)}">${grid}${ticks}${lines}</svg>
+      <ul class="mgmt-legend">${keys.map((k, s) => `<li><i style="background:${palette[s % palette.length]}"></i>${h(teamName(k))}</li>`).join('')}</ul>`;
+  }
+
+  function hbars(rows) {
+    const max = Math.max(1, ...rows.map(r => Number(r.value)));
+    return `<div class="mgmt-hbar">${rows.map(r => `<div><span>${h(r.label)}</span><i style="width:${Math.max(1, Number(r.value) * 100 / max)}%"></i><b>${count(r.value)}</b></div>`).join('')}</div>`;
+  }
+
+  function people(list) {
+    return list.length ? `<ul class="mgmt-people">${list.map(p => `<li>${h(p.name)}<b>${count(p.n)}</b></li>`).join('')}</ul>` : '';
+  }
+
   function dashboardFilters(filters, data) {
-    const opt = WlfFields.option;
-    const sectionOptions = (data?.sections || []).map(s => opt(s.section,s.label,filters.section)).join('');
-    const people = data?.people || [];
-    const memberOptions = people.map(person => opt(person.id,person.name,filters.member)).join('');
-    const missingMember = filters.member && !people.some(person => person.id === filters.member);
     return `<form id="workspaceFilters" class="card overview-panel">
-      <div class="overview-heading"><div><h3>Filters &amp; report</h3>
-        <p class="note">Activity dates use Dhaka time. Clear both dates to see all time.</p></div></div>
+      <div class="overview-heading"><div><h3>Management Dashboard</h3>
+        <p class="note">Menu-wise performance. Dates use Dhaka time; this month by default. Curves always show the last 12 months.</p></div></div>
       <div class="overview-filters">
-        <label>From<input type="date" name="from" value="${h(filters.from)}"></label>
-        <label>To<input type="date" name="to" value="${h(filters.to)}"></label>
-        <label>Team member<select name="member">${opt('','All members',filters.member)}
-          ${missingMember ? opt(filters.member,'Selected member',filters.member) : ''}${memberOptions}</select></label>
-        <label>Section<select name="section">${opt('','All sections',filters.section)}${sectionOptions}</select></label>
+        <label>From<input type="date" name="from" value="${h(filters.from)}" required></label>
+        <label>To<input type="date" name="to" value="${h(filters.to)}" required></label>
         <div class="overview-actions">
-          <button class="btn" type="submit">Apply filters</button>
+          <button class="btn" type="submit">Apply</button>
           <button class="btn ghost" type="button" id="workspaceExport" ${data ? '' : 'disabled'}>Download Excel</button>
         </div>
       </div>
@@ -169,43 +197,43 @@ const WlfOverview = (() => {
     </form>`;
   }
 
-  function renderDashboard(data, filters, offset) {
-    const root = el('tab-workspace-dashboard');
-    const t = data.totals;
-    const prior = data.previous || {};
-    root.innerHTML = `<div class="overview-stack">
-      ${dashboardFilters(filters,data)}
-      <section class="overview-section">
-        <div class="overview-heading"><div><h3>Team KPIs</h3><p class="note">${h(filters.from ? date(filters.from) : 'All earlier dates')} to ${h(filters.to ? date(filters.to) : 'latest activity')} · Accessible sections</p></div></div>
-        <div class="overview-metrics">
-          ${metric('Recorded activities',count(t.activities),'blue',delta(t.activities,prior.activities))}
-          ${metric('Completed outcomes',count(t.completed),'teal',delta(t.completed,prior.completed))}
-          ${metric('Recorded time',duration(t.minutes),'violet',delta(t.minutes,prior.minutes,duration))}
-          ${metric('Active members',count(t.members),'amber',delta(t.members,prior.members))}
-        </div>
-      </section>
-      <div class="overview-columns">
-        <section class="card overview-panel"><h3>Weekly activity trend</h3><p class="note">Activity count by week, up to 12 weeks with records</p>
-          ${bars(data.weeks,row => date(row.week))}</section>
-        <section class="card overview-panel"><h3>Activity by section</h3><p class="note">Count of recorded actions and work entries</p>
-          ${bars(data.modules.filter(row => row.activities),row => row.label)}</section>
-      </div>
-      <section class="card overview-panel">
-        <div class="overview-heading"><div><h3>Team performance</h3>
-          <p class="note">Completed outcomes include solved requests, completed R&amp;I work, received demands and verified QMS entries.</p></div></div>
-        ${data.members.length ? table(['Member','Role','Activities','Completed','Recorded time','Last activity'],
-          data.members.map(row => [h(row.name),h(row.role),count(row.activities),count(row.completed),
-            duration(row.minutes),h(date(row.last_at,true))]),'Team performance') :
-          '<p class="note">No team activity matches these filters.</p>'}
-      </section>
-      ${activityList(data,false,offset)}
-    </div>`;
-    bindDashboard(filters);
-    if (el('dashboardActivityPrev')) bindPaging('dashboardActivity',
-      () => loadDashboard(filters,offset-pageSize),() => loadDashboard(filters,offset+pageSize));
+  function card(num, title, note, body) {
+    return `<section class="card overview-panel mgmt-card"><h3><span class="mgmt-num">${num}</span>${h(title)}</h3>
+      ${note ? `<p class="note">${h(note)}</p>` : ''}${body}</section>`;
   }
 
-  function bindDashboard(filters) {
+  function renderDashboard(data, filters) {
+    const root = el('tab-workspace-dashboard');
+    const period = date(data.from) + ' – ' + date(data.to);
+    const riRows = data.ri.filter(r => Number(r.total));
+    const ri = card(1, 'R&I Team Activity', period + ' · ' + count(data.ri.reduce((t, r) => t + Number(r.total), 0)) + ' entries',
+      riRows.length ? riRows.map(r => `<div class="mgmt-ri-form"><div class="mgmt-ri-head"><b>${h(r.form)}</b><span>${h(riSection[r.section] || r.section)} · <b>${count(r.total)}</b></span></div>${people(r.people)}</div>`).join('')
+        : '<p class="note">No R&amp;I entries in this period.</p>');
+    const pr = data.projects, st = ['In Progress','On Hold','Done','Cancelled'];
+    const projects = card(2, 'R&I Project Manager', 'All current projects · ' + count(pr.startedInPeriod) + ' started in this period',
+      `<div class="overview-metrics">${st.map((s, i) => metric(s, count(pr.statuses[s]), ['blue','amber','teal','violet'][i])).join('')}</div>
+      ${pr.leads.length ? table(['Project lead','Projects',...st], pr.leads.map(l => [h(l.name || '—'), count(l.total), ...st.map(s => count(l.statuses[s]))]), 'Projects by lead') : '<p class="note">No projects.</p>'}
+      ${Object.keys(pr.tasks).length ? `<p class="note">Tasks: ${Object.entries(pr.tasks).map(([s, n]) => h(s) + ' ' + count(n)).join(' · ')}</p>` : ''}`);
+    const sp = data.support;
+    const support = card(3, 'Technical Support', period,
+      (sp.teams.length ? table(['Team','Requests','Solved','Not solved','Open'], sp.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.solved), count(t.notSolved), count(t.open)]), 'Support by team') : '<p class="note">No support requests in this period.</p>') +
+      (sp.people.length ? `<h4 class="mgmt-sub">Who handled them</h4>` + table(['R&I user','Received','Solved','Forwarded','Not solved'], sp.people.map(p => [h(p.name), count(p.received), count(p.solved), count(p.forwarded), count(p.notSolved)]), 'Support by person') : '') +
+      `<h4 class="mgmt-sub">Requests per month · last 12 months</h4>` + lineChart(data.months, sp.curve, 'Support requests per month by team'));
+    const dm = data.damage;
+    const damage = card(4, 'Damage Demand', period,
+      (dm.teams.length ? table(['Team','Demands','Pending','Received','Units'], dm.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.pending), count(t.received), count(t.quantity)]), 'Damage demands by team') : '<p class="note">No damage demands in this period.</p>') +
+      (dm.top.length ? `<h4 class="mgmt-sub">Top ${dm.top.length} damaged components (units)</h4>` + hbars(dm.top.map(t => ({label:t.item, value:t.quantity}))) : '') +
+      `<h4 class="mgmt-sub">Demands per month · last 12 months</h4>` + lineChart(data.months, dm.curve, 'Damage demands per month by team'));
+    const q = data.qms;
+    const qms = card(5, 'QMS', period + ' · ' + count(q.quantity) + ' units recorded',
+      `<div class="overview-metrics">${qmsStatuses.map((s, i) => metric(s, count(q.statuses[s]), ['violet','amber','teal'][i])).join('')}</div>${people(q.people)}`);
+    const supplier = card(6, 'Supplier claim', '', '<div class="mgmt-soon">Coming soon</div>');
+    root.innerHTML = `<div class="overview-stack">${dashboardFilters(filters, data)}
+      <div class="mgmt-grid">${ri}${projects}${support}${damage}${qms}${supplier}</div></div>`;
+    bindDashboard(filters, data);
+  }
+
+  function bindDashboard(filters, data) {
     const form = el('workspaceFilters');
     form.onsubmit = event => {
       event.preventDefault();
@@ -214,55 +242,50 @@ const WlfOverview = (() => {
     el('workspaceExport').onclick = () => {
       const edited = Object.fromEntries(new FormData(form));
       if (Object.keys(filters).some(key => edited[key] !== filters[key])) {
-        el('workspaceStatus').textContent = 'Apply your filter changes before downloading.';
+        el('workspaceStatus').textContent = 'Apply your date changes before downloading.';
         return;
       }
-      exportDashboard(filters);
+      exportDashboard(data);
     };
   }
 
-  async function loadDashboard(filters, offset = 0) {
+  async function loadDashboard(filters) {
     const session = SESSION;
     const run = ++dashboardRun;
     const status = el('workspaceStatus');
-    status.textContent = 'Loading KPI data…';
+    status.textContent = 'Loading dashboard…';
     try {
-      const data = await rpc('getWorkspaceDashboard',[T(),{...filters,offset}]);
-      if (SESSION === session && run === dashboardRun) renderDashboard(data,filters,offset);
+      const data = await rpc('getManagementDashboard',[T(),filters]);
+      if (SESSION === session && run === dashboardRun) renderDashboard(data,filters);
     } catch (err) {
-      if (SESSION === session && run === dashboardRun) status.textContent = cleanError(err);
+      if (SESSION === session && run === dashboardRun && el('workspaceStatus')) el('workspaceStatus').textContent = cleanError(err);
     }
   }
 
-  async function exportDashboard(filters) {
-    const session = SESSION;
-    const run = dashboardRun;
+  async function exportDashboard(data) {
     const status = el('workspaceStatus');
     const button = el('workspaceExport');
     button.disabled = true;
     status.textContent = 'Building Excel report…';
     try {
-      const data = await rpc('getWorkspaceReport',[T(),filters]);
-      if (SESSION !== session || run !== dashboardRun) return;
-      const t = data.totals;
-      const labels = new Map(data.sections.map(s => [s.section,s.label]));
+      const curve = (series) => Object.entries(series).map(([k, v]) => [teamName(k), ...v]);
       await WlfExports.excel([
-        {name:'KPIs',headers:['Metric','Selected period','Previous period'],rows:[
-          ['From (Dhaka)',filters.from],['To (Dhaka)',filters.to],
-          ['Section',labels.get(filters.section) || 'All sections'],
-          ['Member',data.people.find(p => p.id === filters.member)?.name || (filters.member ? 'Selected member' : 'All members')],
-          ['Recorded activities',t.activities,data.previous?.activities ?? ''],
-          ['Completed outcomes',t.completed,data.previous?.completed ?? ''],
-          ['Recorded minutes',t.minutes,data.previous?.minutes ?? ''],
-          ['Active members',t.members,data.previous?.members ?? '']
-        ]},
-        {name:'Team performance',headers:['Member','Role','Activities','Completed','Recorded minutes','Last activity (Dhaka)'],
-          rows:data.members.map(r => [r.name,r.role,r.activities,r.completed,r.minutes,date(r.last_at,true)])},
-        {name:'Sections',headers:['Section','Activities','Completed','Recorded minutes'],
-          rows:data.modules.map(r => [r.label,r.activities,r.completed,r.minutes])},
-        {name:'Activity log',headers:['Logged (Dhaka)','Section','Work','Member','Outcome','Recorded minutes'],
-          rows:data.recent.map(r => [date(r.happened_at,true),labels.get(r.section),r.entry,r.name,r.outcome,r.minutes ?? ''])}
-      ],'WLF-Workspace-KPIs-'+AccessCore.dateKey(new Date()));
+        {name:'Period',headers:['Item','Value'],rows:[['From (Dhaka)',data.from],['To (Dhaka)',data.to],['Downloaded',date(new Date(),true)]]},
+        {name:'R&I Team Activity',headers:['Form','Section','Total','Person','Entries'],
+          rows:data.ri.flatMap(r => r.people.length ? r.people.map((p, i) => [i ? '' : r.form, i ? '' : (riSection[r.section] || r.section), i ? '' : r.total, p.name, p.n]) : [[r.form, riSection[r.section] || r.section, r.total, '', '']])},
+        {name:'R&I Projects',headers:['Project','Lead','Status','End date','Tasks','Average progress %'],
+          rows:data.projects.list.map(p => [p.name, p.lead, p.status, p.end, p.tasks, p.progress ?? ''])},
+        {name:'Technical Support',headers:['Team','Requests','Solved','Not solved','Open'],
+          rows:data.support.teams.map(t => [teamName(t.team), t.total, t.solved, t.notSolved, t.open])},
+        {name:'Support by person',headers:['R&I user','Received','Solved','Forwarded','Not solved'],
+          rows:data.support.people.map(p => [p.name, p.received, p.solved, p.forwarded, p.notSolved])},
+        {name:'Support per month',headers:['Team',...data.months],rows:curve(data.support.curve)},
+        {name:'Damage Demand',headers:['Team','Demands','Pending','Received','Units'],
+          rows:data.damage.teams.map(t => [teamName(t.team), t.total, t.pending, t.received, t.quantity])},
+        {name:'Top damaged components',headers:['Component','Units','Demands'],rows:data.damage.top.map(t => [t.item, t.quantity, t.demands])},
+        {name:'Damage per month',headers:['Team',...data.months],rows:curve(data.damage.curve)},
+        {name:'QMS',headers:['Status','Components'],rows:[...qmsStatuses.map(s => [s, data.qms.statuses[s] || 0]),['Units',data.qms.quantity]]}
+      ],'WLF-Management-Dashboard-'+data.from+'-to-'+data.to);
       if (status.isConnected) status.textContent = 'Excel downloaded.';
     } catch (err) {
       if (status.isConnected) status.textContent = cleanError(err);
@@ -272,12 +295,10 @@ const WlfOverview = (() => {
   }
 
   function openDashboard() {
-    const now = new Date();
-    const filters = {
-      from:AccessCore.dateKey(new Date(now.getTime()-29*86400000)), to:AccessCore.dateKey(now), member:'',section:''
-    };
+    const today = AccessCore.dateKey(new Date());
+    const filters = {from:today.slice(0,8)+'01', to:today};
     el('tab-workspace-dashboard').innerHTML = dashboardFilters(filters);
-    bindDashboard(filters);
+    bindDashboard(filters, null);
     loadDashboard(filters);
   }
 
@@ -410,7 +431,7 @@ const WlfOverview = (() => {
   }
 
   document.addEventListener('DOMContentLoaded',() => {
-    const damageNav = document.querySelector('#nav [data-damage-nav="dashboard"]');
+    const damageNav = document.querySelector('#nav [data-tab="damage-demand"]');
     damageNav.insertAdjacentHTML('afterend',
       '<button data-tab="qms" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></svg>QMS</button>'+
       '<button data-tab="workspace-dashboard" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V11m5 9V5m5 15v-8m5 8V8M2 20h20"/></svg>Dashboard</button>');
@@ -418,7 +439,7 @@ const WlfOverview = (() => {
       '<section id="tab-qms" class="tab-content hidden"></section><section id="tab-workspace-dashboard" class="tab-content hidden"></section>');
     document.body.insertAdjacentHTML('beforeend','<dialog id="qmsDialog" aria-labelledby="qmsDialogTitle"></dialog>');
     PAGES.qms = ['QMS','Project-wise component tracking'];
-    PAGES['workspace-dashboard'] = ['Dashboard','Workspace KPIs, team performance and reporting'];
+    PAGES['workspace-dashboard'] = ['Dashboard','Management dashboard: menu-wise performance'];
   });
 
   window.addEventListener('wlf-logout',() => {

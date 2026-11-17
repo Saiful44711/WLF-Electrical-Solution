@@ -1,4 +1,15 @@
-# WLF Electrical Solution v2.5.2
+# WLF Electrical Solution v2.5.3
+
+## v2.5.3 Recycle bin, Announcement, Management Dashboard, My Profile first (17 November 2026)
+
+Open START_HERE_V253_BN.html. Order: backup kit -> supabase/UPDATE_V253.sql (check row: all true) -> upload changed files.
+
+- Recycle bin (Super Admin; `wlf_private.recycle_bin`, `getRecycleBin` / `restoreRecycleItem` / `purgeRecycleItems`): every delete lands here — support request, R&I entry, project, project task, troubleshooting entry, document link, document sub menu (with its folders and links), folder, announcement. Restore, Delete permanently (confirm with count) or Empty bin (type DELETE). No automatic purge. `wlf_private.purge_log` keeps only who/when/type/count. Soft-deleted rows from before v2.5.3 are added to the bin by the migration.
+- Announcement (Super Admin; `wlf_private.announcements` + `announcement_reads`): title, message, sections (or all), optional end date. Shown as a My Profile card, counted in the My Profile red badge, push on publish (or "send again"). Read receipts per announcement.
+- Menu red counts (`getNavBadges`): My Profile = forwarded-to-me + unread announcements; Damage Demand = pending demands. Demand/Dashboard sub-items removed from the menu (the in-page buttons stay).
+- Usage Dashboard: counts and the activity log cover the last 30 days (`usage_stats`, `getUsageLog` with user filter). Older rows: Super Admin downloads them as Excel (`exportOldUsageLog`), then deletes them by typing DELETE (`purgeUsageLog`). Nothing automatic.
+- Dashboard (workspace:dashboard) is now the Management Dashboard (`getManagementDashboard`): R&I Team Activity per form and person, projects by lead/status, Technical Support per team/person + 12-month curve, Damage Demand per team + top-10 components + 12-month curve, QMS, Supplier claim placeholder. This month by default; Excel download.
+- The app opens on My Profile. My Profile adds "My work breakdown" (`getMyActivity`, own work only, this month by default).
 
 ## v2.5.2 Problem sub-category, team badges, damage receive by team (17 November 2026)
 

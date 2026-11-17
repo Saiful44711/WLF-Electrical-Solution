@@ -176,7 +176,7 @@ function startApp(s) {
     navBound = true;
   }
   setIndex(s.index); seedComponentDetails(s.componentDetails);
-  openTab('selection');
+  openTab('account');
 }
 
 function setPending(n) {
@@ -605,13 +605,13 @@ function loadStats() {
     for (var k = 2; k < s.totals.length; k++) if(/ Calculation$| Justification$|^Solar Sizing Calculation$/.test(s.topics[k])) calcs += s.totals[k];
 
     var html = '<div class="kpis">' +
-      '<div class="kpi k1"><b>' + s.totalEvents + '</b><span>Total actions</span></div>' +
+      '<div class="kpi k1"><b>' + s.totalEvents + '</b><span>Actions · last 30 days</span></div>' +
       '<div class="kpi k2"><b>' + active + '</b><span>Active users</span></div>' +
       '<div class="kpi k3"><b>' + s.totals[1] + '</b><span>Component selections</span></div>' +
       '<div class="kpi k4"><b>' + calcs + '</b><span>Calculations run</span></div></div>';
 
     html += '<div class="card"><div class="card-head"><div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg></div>' +
-      '<div><h3>Usage by feature</h3><p>How often each feature has been used</p></div></div><div class="bars">';
+      '<div><h3>Usage by feature</h3><p>How often each feature was used · last 30 days</p></div></div><div class="bars">';
     s.topics.forEach(function (t, i) {
       html += '<div class="bar"><div class="bar-top"><span>' + esc(t) + '</span><b>' + s.totals[i] + '</b></div>' +
         '<div class="track"><div class="fill" style="width:' + Math.round(s.totals[i] / max * 100) + '%;background:' + colors[i % colors.length] + ';"></div></div></div>';
@@ -619,7 +619,7 @@ function loadStats() {
     html += '</div></div>';
 
     html += '<div class="card"><div class="card-head"><div class="card-icon ci-teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5"/></svg></div>' +
-      '<div><h3>Usage by user</h3><p>Number of times each user used each feature</p></div></div>' +
+      '<div><h3>Usage by user</h3><p>Number of times each user used each feature · last 30 days</p></div></div>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>User</th><th>Access</th>';
     s.topics.forEach(function (t) { html += '<th>' + esc(t) + '</th>'; });
     html += '<th>Total</th><th>Last active</th></tr></thead><tbody>';
@@ -629,7 +629,8 @@ function loadStats() {
       html += '<td><b>' + r.total + '</b></td><td>' + esc(r.lastActive) + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
-    $('statsArea').innerHTML = '<div id="techDashboard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
+    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="techDashboard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
+    if(typeof WlfAdmin!=='undefined')WlfAdmin.usageLog({member:'',offset:0});
     if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof LiveWorkspace!=='undefined')LiveWorkspace.renderSupportDashboard();if(typeof WlfRi!=='undefined')WlfRi.dashboard();
   }).withFailureHandler(fail).adminStats(T());
 }

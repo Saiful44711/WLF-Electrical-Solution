@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.3 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.2 → 2.5.3 · ১৭ নভেম্বর ২০২৬</p>
+  <h1>Recycle Bin, Announcement, মেনুতে লাল সংখ্যা, Management Dashboard আর My Profile দিয়ে শুরু: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.3.zip</b> (ডাটাবেস), <b>WLF-GitHub-v2.5.3-UPLOAD.zip</b> (v2.5.2-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.3.zip</b> (পুরো সফটওয়্যার, ব্যাকআপ)। Edge Function-এ কিছু বদলায়নি।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#bin">Recycle Bin ব্যবহার</a><a href="#ann">Announcement ব্যবহার</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>অ্যাপ খুললেই My Profile:</b> লগইনের পর প্রথম পাতা এখন My Profile।</li>
+<li><b>মেনুতে লাল সংখ্যা:</b>
+ <ul><li><b>My Profile</b>: আপনার কাছে Forward হওয়া (এখনো Receive না করা) request + না-পড়া Announcement।</li>
+ <li><b>Damage Demand</b>: সব টিম মিলিয়ে মোট Pending demand (যাদের Damage Demand দেখার অনুমতি আছে শুধু তারা দেখেন)।</li></ul></li>
+<li><b>Damage Demand-এর নিচের Demand / Dashboard মেনু থেকে সরানো হয়েছে।</b> পাতার উপরের Demand / Dashboard বোতাম আগের মতো আছে।</li>
+<li><b>Announcement (Administration, শুধু Super Admin):</b> শিরোনাম, বার্তা, কোন কোন Section (বা All sections), ইচ্ছা হলে শেষ তারিখ। Publish করলে ওই Section-এর সবাই My Profile-এর উপরে কার্ড, মেনুতে লাল সংখ্যা আর ফোন/PC notification পান। <b>Read</b> চাপলে সংখ্যা কমে। Super Admin দেখেন কতজন পড়েছেন ও কারা পড়েছেন; Edit, Delete করতে পারেন।</li>
+<li><b>Recycle Bin (Administration, শুধু Super Admin):</b> অ্যাপে যা-ই ডিলিট হোক — Support request, R&amp;I entry, Project, Project task, Troubleshooting entry, Document link, Document sub menu (ভেতরের folder/link সহ), Folder, Announcement — সব এখানে জমা থাকে। <b>Restore</b> করলে আগের জায়গায় ফিরে যায়। <b>Delete permanently</b> চাপলে কয়টা মুছবে তা দেখিয়ে নিশ্চিত হতে বলে। <b>Empty bin</b>-এ ঘরে <code>DELETE</code> লিখতে হয়। নিজে থেকে কিছুই মোছে না। কে কবে কয়টা চিরতরে মুছেছেন শুধু সেটুকু লগে থাকে (বিষয়বস্তু নয়)।</li>
+<li><b>Usage Dashboard:</b> সংখ্যা ও নতুন <b>Activity log</b> এখন শেষ ৩০ দিনের; User বেছে ফিল্টার করা যায়। ৩০ দিনের পুরনো লগ থাকলে Super Admin হলুদ সতর্কবার্তা দেখেন: আগে <b>Download old log (Excel)</b>, তারপর <b>Delete old log…</b> (DELETE লিখে)। নিজে থেকে কিছু মোছে না।</li>
+<li><b>Dashboard এখন Management Dashboard</b> (যাদের আগে Dashboard অনুমতি ছিল তারাই দেখেন): ① R&amp;I Team Activity — প্রতিটা ফর্মে কতগুলো ও কে কয়টা, ② R&amp;I Project Manager — Lead অনুযায়ী প্রজেক্ট ও Status, ③ Technical Support — টিম অনুযায়ী Solved/Not solved/Open, কে কয়টা Receive/Solve/Forward করেছেন, ১২ মাসের কার্ভ, ④ Damage Demand — টিম অনুযায়ী, সবচেয়ে বেশি নষ্ট হওয়া ১০টা কম্পোনেন্ট, ১২ মাসের কার্ভ, ⑤ QMS, ⑥ Supplier claim (শীঘ্রই)। ডিফল্ট এই মাস, From/To বদলানো যায়। <b>Download Excel</b> আছে। পুরনো Activity log এই পাতায় আর নেই।</li>
+<li><b>My Profile → My work breakdown:</b> শুধু নিজের কাজ — পাঠানো Support request, যে Support handle করেছেন (Receive/Solve/Forward), R&amp;I ফর্ম অনুযায়ী entry, প্রজেক্ট ও নিজের task, Damage Demand, QMS, কোন টুল কতবার। ডিফল্ট এই মাস।</li>
+</ul>
+</section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li><li>GitHub থেকে <b>Code → Download ZIP</b> (এখনকার v2.5.2)।</li></ol>
+<div class="danger">Data backup CSV কাউকে দেবেন না (ইমেইল, পাসওয়ার্ডের hash, notification key থাকে)। মনে রাখবেন: Recycle Bin থেকে চিরতরে মুছলেও আগের ব্যাকআপ CSV-তে সেই তথ্য থেকে যায়।</div></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol><li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V253.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলের সারি:
+<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>recycle_bin_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>items_in_recycle_bin</code></td><td>একটা সংখ্যা (০ বা বেশি) — আগেই যেগুলো ডিলিট করা ছিল সেগুলো এখন Bin-এ</td></tr>
+<tr><td><code>announcements_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>management_dashboard_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>v253_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">একটাই transaction, দুবার চালালেও ক্ষতি নেই। এই SQL কিছুই মোছে না।</div>
+<div class="attention">আগে ডিলিট করা Support request-এ "কে ডিলিট করেছেন" দেখা যাবে; আগে ডিলিট করা R&amp;I entry, Project, Troubleshooting-এ সেই তথ্য আগে রাখা হতো না, তাই "Deleted by" ঘর ফাঁকা থাকবে। আগে ডিলিট করা Document, Folder, Sub menu, Project task ডাটাবেস থেকে আগেই মুছে গেছে — সেগুলো Bin-এ আসবে না।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol><li><code>WLF-GitHub-v2.5.3-UPLOAD.zip</code> extract করে <code>WLF-v2.5.3-upload</code> ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন (১০০টির কম ফাইল)।</li>
+<li>Commit message: <code>v2.5.3 Recycle bin, announcements, management dashboard</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol>
+<div class="attention">ক্রম: আগে SQL (ধাপ ২), তারপর GitHub (ধাপ ৩)। উল্টো হলে নতুন পাতায় "Unsupported action" দেখাবে — SQL চালালেই ঠিক হবে।</div></section>
+
+<section id="s4"><h2>৪. লাইভ সাইটে যাচাই</h2>
+<ol><li>Ctrl+F5 বা অ্যাপ বন্ধ করে আবার খুলুন; ⋮ মেনুর নিচে <b>WLF v2.5.3</b>। লগইনের পর My Profile খোলে।</li>
+<li>মেনুতে Damage Demand-এর নিচে Demand / Dashboard নেই; Pending থাকলে পাশে লাল সংখ্যা।</li>
+<li>Administration-এ <b>Announcement</b> ও <b>Recycle Bin</b>।</li>
+<li>Announcement → All sections টিক রেখে একটা পরীক্ষামূলক বার্তা Publish → অন্য ইউজারের My Profile-এ কার্ড ও মেনুতে লাল সংখ্যা → Read চাপলে কমে। পরে Delete করে দিন (Bin-এ যাবে)।</li>
+<li>Usage Dashboard → উপরে Activity log · last 30 days।</li>
+<li>Dashboard → ৬টা অংশ, এই মাসের তারিখ।</li></ol></section>
+
+<section id="bin"><h2>Recycle Bin ব্যবহার</h2>
+<ul><li><b>Type</b> আর <b>Search</b> দিয়ে খুঁজুন।</li>
+<li><b>Restore</b>: জিনিসটা আগের জায়গায় ফিরে যায়। Project task ফেরাতে হলে তার Project চালু থাকতে হবে (Project ডিলিট হয়ে থাকলে আগে Project Restore করুন)। Document link বা Folder ফেরাতে হলে তার Sub menu থাকতে হবে।</li>
+<li><b>Delete permanently</b>: একটা, বা টিক দিয়ে কয়েকটা একসাথে। Support request চিরতরে মুছলে তার history আর Damage demand-ও মুছে যায়।</li>
+<li><b>Empty bin</b>: সব কিছু চিরতরে, <code>DELETE</code> লিখে নিশ্চিত করতে হয়।</li>
+<li>নিচে <b>Permanent delete log</b>: কে, কবে, কোন ধরনের কয়টা।</li></ul></section>
+
+<section id="ann"><h2>Announcement ব্যবহার</h2>
+<ul><li>নির্দিষ্ট Section-এ পাঠাতে <b>All sections</b> টিক তুলে দিয়ে Section টিক দিন।</li>
+<li><b>Show until</b> দিলে সেই দিনের পর আর দেখায় না (Bin-এ যায় না, তালিকায় "Ended")।</li>
+<li>Edit-এর সময় <b>Send again as new</b> টিক দিলে সবাই আবার না-পড়া হিসেবে পায় আর notification যায়; টিক না দিলে শুধু লেখা বদলায়।</li>
+<li>Notification যাবে শুধু যারা My Profile → Notifications চালু রেখেছেন তাদের কাছে।</li></ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_V252.sql</code></td><td>v2.5.2-এর SQL নেই</td><td>আমাকে জানান</td></tr>
+<tr><td>"Unsupported action: …" নতুন পাতায়</td><td>সাইট নতুন, SQL চালানো হয়নি</td><td>ধাপ ২</td></tr>
+<tr><td>"Restore the project … first."</td><td>Task-এর Project-ও Bin-এ</td><td>আগে Project Restore</td></tr>
+<tr><td>"Its sub menu was deleted. Restore the sub menu first."</td><td>Link/Folder-এর Sub menu Bin-এ</td><td>আগে Sub menu Restore</td></tr>
+<tr><td>"Cannot restore … another item with the same name or code exists now."</td><td>একই নাম/কোডে নতুন জিনিস বানানো হয়েছে</td><td>নতুনটার নাম বদলান বা ডিলিট করুন, তারপর Restore</td></tr>
+<tr><td>Announcement-এর notification আসেনি</td><td>ওই ডিভাইসে Notifications বন্ধ</td><td>My Profile → Notifications → Turn on</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.2-এর পর <code>UPDATE_V253.sql</code> দুবার চালানো হয়েছে। সার্ভার: ৯ ধরনের ডিলিট Bin-এ যায় ও Restore হয় (Sub menu-র ভেতরের একই নামের folder-সহ), Project ডিলিট থাকলে Task Restore আটকায়; Delete permanently-তে request-এর history/operation/damage demand মুছে যায়; Empty bin-এ DELETE ছাড়া আটকায়; Admin/R&amp;I/User কেউ Bin বা Announcement-এর Super Admin কাজ করতে পারেন না; Announcement শুধু নির্বাচিত Section পায়, Read-এ সংখ্যা কমে, শেষ তারিখের পর দেখায় না, push যায়; Usage log ৩০ দিন, R&amp;I শুধু নিজেরটা, পুরনো লগ ডাউনলোড ও DELETE; My work শুধু নিজের; Management Dashboard অনুমতি ছাড়া আটকায়।</li>
+<li>ব্রাউজার (Playwright): লগইনের পর My Profile; মেনুতে Damage-এর সাব-আইটেম নেই; Announcement Publish → Commissioning ইউজারের কার্ড + লাল সংখ্যা → Read-এ কমে, Sales ইউজার পান না; Bin-এ Restore, Delete permanently (popup-এ সংখ্যা), Empty bin (ভুল লিখলে বোতাম বন্ধ); পুরনো লগ Excel ডাউনলোড করে DELETE; Management Dashboard-এর ৬টা অংশ ও Excel। মোবাইল/ডেস্কটপ, light/dark স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> সব পাস, e2e পাস (ঢাকা ও UTC সময় দুভাবেই)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো, আসল ফোনে Announcement notification পৌঁছানো, আর GitHub-এর পরীক্ষা (সেখানে ফেল করলে লগের শেষে FAILURE SUMMARY থাকবে)।</div></section>
+<footer>WLF Electrical Solution · v2.5.3</footer>
+</main>
+</body>
+</html>
