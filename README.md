@@ -1,4 +1,12 @@
-# WLF Electrical Solution v2.5.6
+# WLF Electrical Solution v2.5.7
+
+## v2.5.7 Technical Support split screen, requester red mark and push, activity-log auto-delete (19 November 2026)
+
+- Technical Support: full-width split screen (`.support-split`, `web/support-layout.css`). Left: collapsible Filters + request list; right: request detail, or the New request form while it is open. Compact form fields (two columns, small textareas that grow). On a phone everything stacks, the form first, Filters closed.
+- Red mark: `getSupportSummary` now returns `mine` / `mineByTeam` (own requests that are not Solved). Shown on My Profile and the top menu.
+- Push to the request's author when it is Solved, Not Solved or Forwarded (`wlf_push_support_result`) and when its Damage Demand is Received (`wlf_push_demand_received`); uses the v2.5.0 `wlf-push` queue, no new Edge Function.
+- Activity log: rows older than 7 days are deleted automatically, checked at most once an hour on insert (`wlf_usage_autopurge`, logged in `purge_log`).
+- Run `supabase/UPDATE_V257.sql` after v2.5.6. See `START_HERE_V257_BN.html`.
 
 ## v2.5.6 Usage Dashboard access, 7-day activity log, component change log (19 November 2026)
 

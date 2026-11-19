@@ -4,7 +4,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#10264d"><link rel="apple-touch-icon" href="icon-192.png"><title>WLF Electrical Solution</title>
   <meta charset="utf-8">
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css"><link rel="stylesheet" href="release-v220.css">
-<link rel="stylesheet" href="maintenance.css"><link rel="stylesheet" href="damage-demand.css"><link rel="stylesheet" href="workspace-overview.css"><link rel="stylesheet" href="admin-tools.css"><link rel="stylesheet" href="supplier-claim.css"></head>
+<link rel="stylesheet" href="maintenance.css"><link rel="stylesheet" href="damage-demand.css"><link rel="stylesheet" href="workspace-overview.css"><link rel="stylesheet" href="admin-tools.css"><link rel="stylesheet" href="supplier-claim.css"><link rel="stylesheet" href="support-layout.css"></head>
 <body>
 
   <!-- ================= LOADING ================= -->
@@ -80,7 +80,7 @@
         <div class="nav-label">Workspace</div>
         <button class="active" data-tab="account">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>
-          My Profile
+          My Profile <span id="profileBadge" class="support-nav-badge" hidden></span>
         </button>
         <button data-tab="selection">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -127,7 +127,7 @@
           <h2 id="pageTitle">Component Selection</h2>
           <p id="pageSub">Choose your lift parameters to get the recommended components</p>
         </div>
-<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮</summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
+<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮<span id="menuDot" class="menu-dot" hidden></span></summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
       </div>
 
       <div class="content">

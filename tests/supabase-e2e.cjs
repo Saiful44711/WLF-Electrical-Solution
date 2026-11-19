@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.6-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.7-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -974,6 +974,51 @@ assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false,
 await tab('account');assert.equal(await page.locator('#myActivityCard').count(),0);await v256shot('07-my-profile',{phone:true});
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_remove(array_remove(permissions,'usage:dashboard'),'components:log') where id=$1",[IDS.user]));
 await logout();await login('user');
+}
+/* ---- v2.5.7 ---- */
+fs.mkdirSync('test-results/v257',{recursive:true});
+{
+const v257shot=async(name,{phone=true,at=null}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(200);if(w<500&&await page.locator('#supportRefresh').count()){await page.locator('#supportRefresh').first().click();await page.waitForTimeout(700);}await page.evaluate(()=>window.scrollTo(0,0));if(at)await page.locator(at).first().evaluate(n=>n.scrollIntoView({block:'start'}));await page.waitForTimeout(100);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v257/${name}-${label}-${theme}.png`,fullPage:false});}}await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});await page.setViewportSize({width:1440,height:900});};
+const mark=()=>page.evaluate(()=>({n:Number(document.getElementById('profileBadge').textContent||0),shown:!document.getElementById('profileBadge').hidden,dot:!document.getElementById('menuDot').hidden}));
+await logout();await login('user');
+const before=await mark();
+await category();await page.locator('.support-split').waitFor();
+// 1) split screen: list + filters on the left, form / request on the right, using the whole content width
+const m=await page.evaluate(()=>{const l=document.querySelector('.support-left').getBoundingClientRect(),r=document.querySelector('.support-right').getBoundingClientRect(),c=document.querySelector('.content'),cs=getComputedStyle(c),inner=c.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight);return {l:l.width,r:r.width,lx:l.left,rx:r.left,inner,split:document.querySelector('.support-split').getBoundingClientRect().width};});
+assert.ok(m.rx>=m.lx+m.l-1,'right pane sits beside the list: '+JSON.stringify(m));assert.ok(Math.abs(m.l-m.r)<8,'two equal halves: '+JSON.stringify(m));assert.ok(m.split>=m.inner-2,'uses the whole width: '+JSON.stringify(m));
+assert.equal(await page.locator('.support-left #supportFilterQuery').count(),1);assert.equal(await page.locator('.support-left #supportRequests').count(),1);assert.equal(await page.locator('.support-right #supportDetail').count(),1);assert.equal(await page.locator('.support-right #supportFormArea').count(),1);
+// 2) compact form opens in the right pane and the detail steps aside
+await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();
+assert.equal(await page.locator('.support-right #supportRequestForm').count(),1);assert.equal(await page.locator('#supportDetail').isVisible(),false,'form replaces the detail while open');
+const sz=await page.evaluate(()=>{const f=document.querySelector('#supportRequestForm');return {lift:f.querySelector('[name=lift]').getBoundingClientRect().height,ta:f.querySelector('textarea[name=project_address]').getBoundingClientRect().height,cols:getComputedStyle(f.querySelector('.review-fields')).gridTemplateColumns.split(' ').length};});
+assert.ok(sz.lift<=40,'Lift ID is compact: '+JSON.stringify(sz));assert.ok(sz.ta<=80,'Project Address starts small: '+JSON.stringify(sz));assert.equal(sz.cols,2);
+await v257shot('01-support-form-open');
+await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(200);
+const ph=await page.evaluate(()=>({form:document.querySelector('#supportRequestForm').getBoundingClientRect().top,list:document.querySelector('#supportRequests').getBoundingClientRect().top,cols:getComputedStyle(document.querySelector('#supportRequestForm .review-fields')).gridTemplateColumns.split(' ').length,wide:document.documentElement.scrollWidth-innerWidth}));
+assert.ok(ph.wide<=1,'no sideways scroll on a phone: '+JSON.stringify(ph));assert.equal(ph.cols,1);
+await page.locator('#supportRefresh').first().click();await page.waitForTimeout(700);assert.equal(await page.locator('#supportFilterPanel').evaluate(n=>n.open),false,'Filters start closed on a phone');assert.equal(await page.locator('#supportRequestForm').count(),1,'an open form survives the refresh');
+await page.setViewportSize({width:1440,height:900});
+// 3) submit: the form closes, the red mark appears on My Profile and the top menu
+await fillDynamic('#supportRequestForm',{lift:'775577',project_address:'Plot 5, Dhaka'});await page.locator('#submitSupportRequest').click();
+await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-775577-\d{8}/}).waitFor();
+assert.equal(await page.locator('#supportFormArea > *').count(),0);assert.equal(await page.locator('#supportDetail').isVisible(),true);
+const id=await page.locator('#supportDetail').getAttribute('data-record-id');
+await page.waitForFunction(()=>!document.getElementById('profileBadge').hidden&&!document.getElementById('menuDot').hidden);
+let now=await mark();assert.equal(now.n,before.n+1,'red count goes up by one: '+JSON.stringify([before,now]));assert.ok(now.dot);
+assert.match(await page.locator('#profileBadge').getAttribute('title'),/not solved yet/);
+await v257shot('02-support-detail-red-mark');
+// 4) R&I receives and solves it: the requester gets a push and the red mark goes
+await sequential(()=>h.db.query("insert into wlf_private.push_subscriptions(endpoint,profile,p256dh,auth) values('https://push.example/e2e',$1,repeat('a',40),repeat('b',16)) on conflict do nothing",[IDS.user]));
+await sequential(()=>h.db.query('delete from wlf_private.push_outbox'));
+const rev=(await sequential(()=>h.db.query('select revision from public.wlf_requests where id=$1',[id]))).rows[0].revision;
+let tk=(await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id,revision:rev,action:'receive',mutationId:crypto.randomUUID()}]))).ticket;
+await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id,revision:tk.revision,action:'solve',comment:'Fixed on site',mutationId:crypto.randomUUID()}]));
+const pushed=(await sequential(()=>h.db.query('select title,body from wlf_private.push_outbox where profile=$1',[IDS.user]))).rows;
+assert.deepEqual(pushed.map(r=>r.title),['Your support request was solved']);assert.match(pushed[0].body,/775577/);
+await logout();await login('user');
+now=await mark();assert.equal(now.n,before.n,'red count is back: '+JSON.stringify([before,now]));assert.equal(now.dot,before.n>0);
+await sequential(()=>h.db.query('delete from wlf_private.push_subscriptions where endpoint=$1',['https://push.example/e2e']));
+await v257shot('03-after-solved',{phone:false});
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');

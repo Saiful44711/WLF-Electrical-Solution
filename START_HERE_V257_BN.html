@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.7 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.6 → 2.5.7 · ১৯ নভেম্বর ২০২৬</p>
+  <h1>Technical Support পুরো-পর্দার লেআউট, request-দাতার লাল চিহ্ন ও push, log-এর auto-delete: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.7.zip</b>, <b>WLF-GitHub-v2.5.7-UPLOAD.zip</b> (v2.5.6-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.7.zip</b> (পুরো প্রজেক্ট)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. Push চালু করা</a><a href="#s5">৫. যাচাই</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে</h2><ul>
+<li><b>Technical Support পর্দা এখন দুই ভাগে, পুরো প্রস্থ জুড়ে।</b> বাঁ ৫০%: নিচে ভাঁজ করা যায় এমন <b>Filters</b> প্যানেল, তার নিচে request-এর তালিকা। ডান ৫০%: খোলা request-এর বিস্তারিত। <b>+ New request</b> চাপলে ফর্মটা ডান দিকে খোলে (তখন বিস্তারিত সরে যায়, ফর্ম জমা বা Close করলে ফিরে আসে)। ডান পাশ স্ক্রল করলেও জায়গায় থাকে। পাশের ফাঁকা জায়গা কমানো হয়েছে।</li>
+<li><b>ফর্মের ঘর ছোট:</b> ঘরের উচ্চতা কমানো, ছোট ঘর দুই কলামে পাশাপাশি। Project Address আর Problem Details ২ লাইনে শুরু হয়, লিখলে নিজে বড় হয়। ফোনে এক কলাম; ফর্ম খুললে সবার আগে ফর্ম আসে, Filters বন্ধ থাকে (চাপলে খোলে, পছন্দটা মনে থাকে)।</li>
+<li><b>লাল চিহ্ন:</b> যিনি request দিয়েছেন তাঁর <b>My Profile</b>-এর পাশে (সংখ্যা সহ) আর উপরের <b>⋮ মেনুতে</b> লাল চিহ্ন থাকে, যতক্ষণ তাঁর কোনো request <b>Solved</b> না হয়। Pending, Received, Forwarded আর Not Solved সবই "বাকি" ধরা হয়।</li>
+<li><b>Push notification (request-দাতাকে):</b> R&amp;I user request <b>Solved</b>, <b>Not Solved</b> করলে বা <b>Forward</b> করলে। Forward করলে লেখা থাকে কাকে forward করা হয়েছে। Receive করলে কিছু যায় না। যিনি নিজে কাজটা করেছেন তিনি পান না।</li>
+<li><b>Damage Demand:</b> ওই request-এর demand যখন Dispatch user <b>Receive</b> করেন, request-দাতা push পান ("Your Damage Demand was received", demand নম্বর, item আর পরিমাণ সহ)।</li>
+<li><b>Activity log নিজে থেকে মুছে যায়:</b> ৭ দিনের পুরনো সারি স্বয়ংক্রিয়ভাবে মোছা হয়। যাচাই হয় সর্বোচ্চ ঘণ্টায় একবার, যখন কেউ অ্যাপ ব্যবহার করেন (আলাদা cron লাগে না)। কত সারি মোছা হলো তা <b>Permanent delete log</b>-এ ("automatic") থাকে। Excel কপি লাগলে ৭ দিন পার হওয়ার আগে নামিয়ে নিন। মোছার পর ফাইলের size কমাতে চাইলে v2.5.6-এর গাইডের <code>vacuum full public.wlf_usage;</code>।</li>
+</ul>
+<div class="attention"><b>খেয়াল রাখুন:</b> আগে ৭ দিনের পুরনো সারি রেখে দেওয়া হতো। এই আপডেটের পর প্রথমবার কেউ অ্যাপ ব্যবহার করলেই ৭ দিনের পুরনো সব সারি মুছে যাবে। দরকার হলে SQL চালানোর আগে Usage Dashboard থেকে Excel নামিয়ে নিন।</div></section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2><ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li></ol></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেজ আপডেট</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V257.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফল:<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>support_result_push_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>demand_received_push_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>usage_autopurge_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>v257_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">দুবার চালালেও সমস্যা নেই। নতুন Edge Function লাগবে না (v2.5.0-এর <code>wlf-push</code> যেমন আছে তেমনই কাজ করবে)।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.5.7-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.5.7 support split layout, requester red mark and push, log auto-delete</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol><div class="attention">ক্রম: আগে SQL, পরে GitHub।</div></section>
+
+<section id="s4"><h2>৪. Push চালু করা (প্রতিটি ফোন/ব্রাউজারে একবার)</h2><ol>
+<li>request-দাতা নিজের ফোনে অ্যাপ খুলে ⋮ মেনুতে <b>Turn on notifications</b> চাপবেন।</li>
+<li>iPhone-এ আগে অ্যাপটা Home Screen-এ যোগ করতে হয়, তারপর চালু করা যায়।</li>
+<li>যে ব্যবহারকারী এটা চালু করেননি, তাঁর জন্য কোনো push জমা হয় না। তবু লাল চিহ্ন তিনি অ্যাপ খুললে দেখবেন।</li></ol></section>
+
+<section id="s5"><h2>৫. যাচাই</h2><ol>
+<li>Ctrl+F5; ⋮ মেনুর নিচে <b>WLF v2.5.7</b>।</li>
+<li>Technical Support → একটা team → বাঁয়ে তালিকা আর ডানে বিস্তারিত, দুটো প্রায় সমান; <b>+ New request</b> চাপলে ফর্ম ডানে খোলে।</li>
+<li>একজন section user দিয়ে request দিন: My Profile-এর পাশে আর ⋮ মেনুতে লাল চিহ্ন আসে।</li>
+<li>R&amp;I user দিয়ে Receive করে Solved করুন: request-দাতা (যিনি Turn on notifications দিয়েছেন) push পান, আর লগইন করলে লাল চিহ্ন কমে যায়।</li>
+<li>Usage Dashboard-এ "Activity log · last 7 days" দেখায়।</li></ol></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>STOP: apply UPDATE_V256.sql</td><td>v2.5.6-এর SQL চালানো হয়নি</td><td>আগে <code>UPDATE_V256.sql</code>, তারপর V257</td></tr>
+<tr><td>লাল চিহ্ন আসে না</td><td>SQL চালানো হয়নি বা পুরনো পাতা</td><td>ধাপ ২, তারপর Ctrl+F5 / অ্যাপ বন্ধ করে খুলুন</td></tr>
+<tr><td>Push আসে না</td><td>ওই ফোনে Turn on notifications দেওয়া হয়নি, বা ব্রাউজারে notification বন্ধ</td><td>ধাপ ৪। এরপরও না এলে Supabase → Edge Functions → <code>wlf-push</code> → Logs দেখুন</td></tr>
+<tr><td>ফর্ম ডান দিকে না এসে নিচে আসে</td><td>পর্দা ১০০০px-এর চেয়ে সরু (ফোন/ছোট জানালা)</td><td>স্বাভাবিক: সরু পর্দায় সব এক কলামে সাজানো থাকে</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.6-এর পর <code>UPDATE_V257.sql</code> দুবার চালানো হয়েছে। সার্ভার: Solved, Not Solved, Forwarded-এ শুধু request-দাতার notification (Receive-এ নয়, প্রেরক বা অন্য কারও নয়), Damage Demand Received-এ request-দাতার notification, নিজের বাকি request-এর সংখ্যা (Solved হলেই কমে), ৭ দিনের পুরনো log ঘণ্টায় একবার মোছা।</li>
+<li>ব্রাউজার (Playwright): দুই ভাগের মাপ ও পুরো প্রস্থ, ফর্ম ডানে খোলা, ঘরের উচ্চতা, ফোনে এক কলাম ও আড়াআড়ি স্ক্রল নেই, Filters ফোনে বন্ধ, লাল চিহ্ন আসা ও যাওয়া। মোবাইল/ডেস্কটপ, লাইট/ডার্ক স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> ১১৩টি পাস, e2e পাস (ঢাকা ও UTC সময় দুভাবেই)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো, আসল ফোনে push পৌঁছানো (এখানে শুধু queue-তে সঠিক বার্তা জমা পরীক্ষা হয়েছে), আর GitHub-এর CI।</div></section>
+<footer>WLF Electrical Solution · v2.5.7</footer>
+</main>
+</body>
+</html>

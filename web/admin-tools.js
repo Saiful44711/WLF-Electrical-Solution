@@ -103,7 +103,7 @@ const WlfAdmin = (() => {
       const old = x.old && Number(x.old.count) ? x.old : null;
       const end = Math.min(Number(x.total), usage.offset + 200);
       card.innerHTML = `${old ? `<div class="msg warn usage-old" role="alert"><b>${n(old.count)} activity log rows are older than 7 days</b> (oldest ${h(when(old.oldest))}).
-          Download them as Excel first, then delete them to keep the database small. Nothing is deleted automatically.
+          Rows older than 7 days are deleted automatically (checked at most once an hour). Download them as Excel first if you need a copy, or delete them now to free the space.
           <div class="engineering-actions"><button type="button" class="btn" id="usageOldDownload">Download old log (Excel)</button>
           <button type="button" class="btn danger" id="usageOldDelete" ${usage.downloaded ? '' : 'disabled'}>Delete old log…</button></div>
           <p class="note" id="usageOldStatus" role="status">${usage.downloaded ? 'Downloaded. You can delete the old rows now.' : 'Delete becomes available after the download.'}</p></div>` : ''}
