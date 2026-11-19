@@ -33,8 +33,9 @@ const WlfDamage = (() => {
     ['Demand submitted (Dhaka)', d => time(d.createdAt)],
     ['Received by', d => d.receivedBy],
     ['Received at (Dhaka)', d => time(d.receivedAt)],
-    ['Supplier Claim', d => d.supplierClaim ? 'Yes' : 'No'],
-    ['Supplier Confirmed', d => d.supplierConfirmed ? 'Yes' : 'No']
+    ['Supplier Claimed', d => d.supplierClaim ? 'Yes' : 'No'],
+    ['Supplier Confirmed', d => d.supplierConfirmed ? 'Yes' : 'No'],
+    ['Supplier Claim Ref', d => d.supplier?.reference || '']
   ];
 
   async function call(action, payload) {
@@ -389,27 +390,42 @@ const WlfDamage = (() => {
 
   function supplierBlock(d) {
     const sp = d.supplier || {};
+    const received = sp.status === 'Received';
+    const root = SESSION?.role === 'Super Admin';
     const claim = can('claim') && !d.supplierClaim;
     const confirm = can('confirm') && d.supplierClaim && !d.supplierConfirmed;
-    const admin = SESSION?.role === 'Super Admin' && d.supplierClaim && sp.status !== 'Received';
+    const editRef = can('confirm') && d.supplierConfirmed && !received;
     return `<section class="supplier-box" aria-labelledby="supplierBoxTitle"><h3 id="supplierBoxTitle">Supplier claim</h3>
       <dl class="wlf-entry-values damage-details">
-        <dt>Supplier Claim</dt><dd>${yn(d.supplierClaim)}${d.supplierClaim ? `<small>${h(sp.name)} · ${h(sp.date || '')} · by ${h(sp.claimBy)} · ${h(time(sp.claimAt))}${sp.note ? ' · ' + h(sp.note) : ''}</small>` : ''}</dd>
+        <dt>Supplier Claimed</dt><dd>${yn(d.supplierClaim)}${d.supplierClaim ? `<small>${h(sp.name)} · ${h(sp.date || '')} · by ${h(sp.claimBy)} · ${h(time(sp.claimAt))}${sp.note ? ' · ' + h(sp.note) : ''}</small>` : ''}</dd>
         <dt>Supplier Confirmed</dt><dd>${yn(d.supplierConfirmed)}${d.supplierConfirmed ? `<small>by ${h(sp.confirmBy)} · ${h(time(sp.confirmAt))}</small>` : ''}</dd>
-        ${d.supplierConfirmed ? `<dt>Supplier Claim goods</dt><dd>${statusBadge(sp.status)}${sp.status === 'Received' ? `<small>by ${h(sp.receivedBy)} · ${h(time(sp.receivedAt))}</small>` : ''}</dd>` : ''}
+        ${d.supplierConfirmed ? `<dt>Claim reference</dt><dd>${sp.reference ? h(sp.reference) : '<span class="supplier-noref">Not provided</span>'}</dd>` : ''}
+        ${d.supplierConfirmed ? `<dt>Supplier Claim goods</dt><dd>${statusBadge(sp.status)}${received ? `<small>by ${h(sp.receivedBy)} · ${h(time(sp.receivedAt))}</small>` : ''}${sp.undoAt && !received ? `<small>Received was undone by ${h(sp.undoBy)} · ${h(time(sp.undoAt))}</small>` : ''}</dd>` : ''}
       </dl>
       <form id="supClaimForm" class="supplier-form" hidden>
         <label>Supplier name<input name="supplier" maxlength="120" required autocomplete="off"></label>
         <label>Claim date<input name="date" type="date"></label>
         <label>Note (optional)<textarea name="note" maxlength="500" rows="2"></textarea></label>
-        <div class="engineering-actions"><button type="submit" class="btn">Save: Supplier Claim = Yes</button>
+        <div class="engineering-actions"><button type="submit" class="btn">Save: Claim Sent to Supplier</button>
           <button type="button" class="btn ghost" id="supClaimCancel">Back</button></div>
       </form>
+      <form id="supConfirmForm" class="supplier-form" hidden>
+        <label>Claim reference number (optional)<input name="reference" maxlength="60" autocomplete="off" placeholder="e.g. ST-2026-0457"></label>
+        <div class="engineering-actions"><button type="submit" class="btn">Save: Supplier Accepted Claim</button>
+          <button type="button" class="btn ghost" id="supConfirmCancel">Back</button></div>
+      </form>
+      <form id="supRefForm" class="supplier-form" hidden>
+        <label>Claim reference number<input name="reference" maxlength="60" autocomplete="off" value="${h(sp.reference || '')}"></label>
+        <div class="engineering-actions"><button type="submit" class="btn">Save reference</button>
+          <button type="button" class="btn ghost" id="supRefCancel">Back</button></div>
+      </form>
       <div class="engineering-actions supplier-actions">
-        ${claim ? '<button type="button" class="btn" id="supClaimOpen">Set Supplier Claim = Yes</button>' : ''}
-        ${confirm ? '<button type="button" class="btn" id="supConfirm">Set Supplier Confirmed = Yes</button>' : ''}
-        ${admin && d.supplierConfirmed ? '<button type="button" class="btn ghost-danger" data-sup-cancel="confirm">Cancel Supplier Confirmed</button>' : ''}
-        ${admin ? '<button type="button" class="btn ghost-danger" data-sup-cancel="claim">Cancel Supplier Claim</button>' : ''}
+        ${claim ? '<button type="button" class="btn" id="supClaimOpen">Claim Sent to Supplier</button>' : ''}
+        ${confirm ? '<button type="button" class="btn" id="supConfirm">Supplier Accepted Claim</button>' : ''}
+        ${editRef ? `<button type="button" class="btn ghost" id="supRefOpen">${sp.reference ? 'Edit reference' : 'Add reference'}</button>` : ''}
+        ${root && received ? '<button type="button" class="btn ghost-danger" data-sup-undo-received>Undo Received</button>' : ''}
+        ${root && d.supplierConfirmed && !received ? '<button type="button" class="btn ghost-danger" data-sup-cancel="confirm">Undo Confirmed</button>' : ''}
+        ${root && d.supplierClaim && !received ? '<button type="button" class="btn ghost-danger" data-sup-cancel="claim">Undo Claimed</button>' : ''}
       </div></section>`;
   }
 
@@ -429,22 +445,31 @@ const WlfDamage = (() => {
       }
     };
     const all = () => Array.from(node.querySelectorAll('.supplier-box button'));
-    const form = el('supClaimForm');
-    const open = el('supClaimOpen');
-    if (open) open.onclick = () => { form.hidden = false; open.hidden = true; form.elements.supplier.focus(); };
-    if (el('supClaimCancel')) el('supClaimCancel').onclick = () => { form.hidden = true; if (open) open.hidden = false; };
-    if (form) form.onsubmit = event => {
+    const forms = ['supClaimForm', 'supConfirmForm', 'supRefForm'].map(el);
+    const opens = ['supClaimOpen', 'supConfirm', 'supRefOpen'].map(el);
+    const show = index => { forms.forEach((f, i) => { if (f) f.hidden = i !== index; }); opens.forEach(b => { if (b) b.hidden = index >= 0; }); const f = forms[index]; if (f) f.elements[0].focus(); };
+    opens.forEach((b, i) => { if (b) b.onclick = () => show(i); });
+    ['supClaimCancel', 'supConfirmCancel', 'supRefCancel'].forEach(id => { if (el(id)) el(id).onclick = () => show(-1); });
+    if (forms[0]) forms[0].onsubmit = event => {
       event.preventDefault();
-      const f = form.elements;
+      const f = forms[0].elements;
       if (!f.supplier.value.trim()) { status.textContent = 'Enter the supplier name.'; f.supplier.focus(); return; }
-      run('markSupplierClaim', {id: d.id, supplier: f.supplier.value.trim(), date: f.date.value, note: f.note.value.trim()}, 'Supplier Claim = Yes saved.', all());
+      run('markSupplierClaim', {id: d.id, supplier: f.supplier.value.trim(), date: f.date.value, note: f.note.value.trim()}, 'Claim Sent to Supplier saved.', all());
     };
-    const confirm = el('supConfirm');
-    if (confirm) confirm.onclick = () => run('confirmSupplierClaim', {id: d.id}, 'Supplier Confirmed = Yes saved. The item is now in the Supplier Claim menu as Pending.', all());
-    node.querySelectorAll('[data-sup-cancel]').forEach(b => b.onclick = () => {
+    if (forms[1]) forms[1].onsubmit = event => {
+      event.preventDefault();
+      run('confirmSupplierClaim', {id: d.id, reference: forms[1].elements.reference.value.trim()}, 'Supplier Accepted Claim saved. The item is now in the Supplier Claim menu as Pending.', all());
+    };
+    if (forms[2]) forms[2].onsubmit = event => {
+      event.preventDefault();
+      run('saveSupplierReference', {id: d.id, reference: forms[2].elements.reference.value.trim()}, 'Reference saved.', all());
+    };
+    const arm = (b, go) => b.onclick = () => {
       if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to confirm: ' + b.textContent; return; }
-      run('cancelSupplierClaim', {id: d.id, step: b.dataset.supCancel}, 'Cancelled.', all());
-    });
+      go();
+    };
+    node.querySelectorAll('[data-sup-cancel]').forEach(b => arm(b, () => run('cancelSupplierClaim', {id: d.id, step: b.dataset.supCancel}, 'Undone.', all())));
+    node.querySelectorAll('[data-sup-undo-received]').forEach(b => arm(b, () => run('undoSupplierReceive', {id: d.id}, 'Received was undone. The item is Pending again.', all())));
   }
 
   function renderDetail(d, message = '') {
@@ -465,7 +490,7 @@ const WlfDamage = (() => {
       ${supplierBlock(d)}
       <p id="damageDetailStatus" role="status" aria-live="polite">${h(message)}</p>
       <div class="engineering-actions">
-        ${d.status === 'Pending' && state?.pane === 'demand' && AccessCore.damageAccess(SESSION, 'receive', d.category) ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
+        ${d.status === 'Pending' && visible() && state?.pane === 'demand' && AccessCore.damageAccess(SESSION, 'receive', d.category) ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
         <button type="button" class="btn ghost" data-damage-close>Close</button>
       </div>`);
     const close = node.querySelector('[data-damage-close]');
@@ -550,5 +575,6 @@ const WlfDamage = (() => {
 
   window.addEventListener('wlf-logout', reset);
   window.addEventListener('wlf-ready', reset);
-  return {open, supportSummary, supportInputs, readReview, bindSupport};
+  const showDetail = d => renderDetail(d);
+  return {open, showDetail, supportSummary, supportInputs, readReview, bindSupport};
 })();

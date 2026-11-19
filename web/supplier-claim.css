@@ -24,3 +24,8 @@
   .supplier-table td.sc-act::before{content:none}
   .supplier-table td.sc-act .btn{width:100%}
 }
+.link-btn{background:none;border:0;padding:0;font:inherit;color:var(--indigo,#4f46e5);cursor:pointer;text-align:left;text-decoration:underline;text-underline-offset:3px}
+.link-btn:focus-visible{outline:2px solid var(--indigo,#4f46e5);outline-offset:2px;border-radius:4px}
+.sc-ref{display:block;font-weight:600}
+.supplier-noref{opacity:.7}
+html[data-theme=dark] .link-btn{color:#c4b5fd}

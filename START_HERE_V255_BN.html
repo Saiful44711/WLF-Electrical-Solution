@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.5 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.4 → 2.5.5 · ১৯ নভেম্বর ২০২৬</p>
+  <h1>Supplier Claim-এর উন্নতি, MOTCUBE Error Solution আর Light theme-এর motor তালিকা ঠিক করা: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.5.zip</b> (ডাটাবেস), <b>WLF-GitHub-v2.5.5-UPLOAD.zip</b> (v2.5.4-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.5.zip</b> (পুরো প্রজেক্ট)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. MOTCUBE অনুমতি</a><a href="#s5">৫. যাচাই</a><a href="#notes">জানার বিষয়</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>Supplier Claim মেনু থেকে demand খোলা:</b> তালিকার DD নম্বরে (যেমন DD-7) ক্লিক করলে demand-এর বিস্তারিত খোলে, Pending আর Received দুই অবস্থাতেই। (এই পাতা থেকে "Receive demand" বোতাম আসে না, তাই Dispatch-এর Pending/Received অপরিবর্তিত থাকে।)</li>
+<li><b>নতুন নাম:</b> ঘর: <b>Supplier Claimed</b> / <b>Supplier Confirmed</b>। বোতাম: <b>Claim Sent to Supplier</b>, <b>Supplier Accepted Claim</b>। Super Admin-এর undo: <b>Undo Claimed</b>, <b>Undo Confirmed</b>।</li>
+<li><b>Claim reference number (ঐচ্ছিক):</b> "Supplier Accepted Claim" চাপলে একটা reference লেখার ঘর আসে (সর্বোচ্চ ৬০ অক্ষর, যেমন Arkel-এর ST…)। খালি রাখা যায়। মাল Received হওয়ার আগ পর্যন্ত <b>Add/Edit reference</b> দিয়ে পরে যোগ বা বদলানো যায়। দেখা যায় demand-এর বিস্তারিতে, Supplier Claim তালিকায় আর Excel-এর <b>Supplier Claim Ref</b> কলামে।</li>
+<li><b>Undo Received (শুধু Super Admin):</b> ভুল করে Received হয়ে গেলে Super Admin Pending-এ ফেরাতে পারেন; কে আর কখন করেছেন তা রেকর্ড হয়। Reference আগের মতোই থাকে। Received থাকা অবস্থায় Undo Confirmed/Undo Claimed চলে না, আগে Undo Received করতে হয়।</li>
+<li><b>Light theme-এর ভুল ঠিক:</b> কোনো lift parameter না বেছে Search করলে "Available motor options"-এর লেখা সাদা-জমিনে সাদা (অদৃশ্য) হচ্ছিল। কারণ: ফোন/পিসির সিস্টেম dark mode-এ থাকলে ব্রাউজার বোতামের ডিফল্ট লেখা সাদা করে দেয়, আর অ্যাপ Light থাকলে জমিন সাদাই থাকে। এখন লেখার রং স্পষ্ট করে দেওয়া হয়েছে।</li>
+<li><b>নতুন controller MOTCUBE (Troubleshooting):</b> MOT আর NICE3000+ এর পাশে। ভেতরে <b>Error Solution</b>: ৬১টা error code (H1 থেকে H62, শুধু H20 নেই — নিচের নোট দেখুন), প্রতিটায় English আর বাংলা। Code নম্বর বা লেখা দিয়ে খোঁজা যায় (H12, h12, 12, door lock)। কোডের পাতায় <b>Permanent error</b> ও <b>Contact R&amp;I team</b> ট্যাগ আর <b>Related parameters</b> তালিকা।</li>
+<li><b>Permanent Error Clearing:</b> JSON-এর স্থায়ী error মোছার ধাপগুলো MOTCUBE-এর আলাদা sub option হিসেবে আছে (Super Admin edit/delete করতে পারেন)।</li>
+<li><b>Super Admin সম্পাদনা:</b> MOTCUBE-এ error code যোগ/বদল/মোছা, Bangla লেখা, Parameters, ট্যাগ, আর MOT/NICE3000+ এর মতো নতুন sub option (+ Add option)।</li>
+</ul>
+</section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li></ol>
+<div class="danger">Data backup CSV কাউকে দেবেন না।</div></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol><li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V255.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলের সারি:
+<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>motcube_codes_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>motcube_error_codes</code></td><td><code>61</code></td></tr>
+<tr><td><code>motcube_permission_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>supplier_reference_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>v255_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">একটাই transaction। দুবার চালালে MOTCUBE-এর আপনার সম্পাদনা মোছে না (আগে থাকা কোড আবার বসানো হয় না)। কিছুই মোছা হয় না।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol><li><code>WLF-GitHub-v2.5.5-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.5.5 Supplier claim reference and undo, MOTCUBE error solution</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol>
+<div class="attention">ক্রম: আগে SQL, পরে GitHub।</div></section>
+
+<section id="s4"><h2>৪. MOTCUBE-এর অনুমতি কাকে দেবেন</h2>
+<div class="attention"><b>গুরুত্বপূর্ণ সংশোধন:</b> আগে আমি বলেছিলাম R&amp;I role-এর লোকেরা MOTCUBE নিজে থেকেই পাবেন। সেটা ভুল ছিল। v2.3.0 থেকে শুধু <b>Super Admin</b> সব কিছু নিজে থেকে পান; Admin, R&amp;I আর User সবার জন্য টিক লাগে (MOT আর NICE3000+ এর মতোই)।</div>
+<ol><li>User Management → ইউজারের নামে ক্লিক।</li>
+<li>Troubleshooting গ্রুপে <b>MOTCUBE / Error Solution</b> টিক দিন। Permanent Error Clearing বা পরে আপনার বানানো sub option-এর জন্য আলাদা টিক আসে।</li>
+<li><b>Save user &amp; access</b>।</li></ol>
+<p>টিক না থাকলে ইউজার MOTCUBE-এর বোতামই দেখেন না। টিক থাকলে শুধু দেখতে পারেন, সম্পাদনা শুধু Super Admin-এর।</p></section>
+
+<section id="s5"><h2>৫. লাইভ সাইটে যাচাই</h2>
+<ol><li>Ctrl+F5; ⋮ মেনুর নিচে <b>WLF v2.5.5</b>।</li>
+<li>Light theme-এ Component Selection → কিছু না বেছে <b>Search components</b> → motor তালিকার লেখা পড়া যায়।</li>
+<li>Supplier Claim → DD নম্বরে ক্লিক → demand খোলে (Pending ও Received দুটোতেই)।</li>
+<li>একটা demand-এ Claim Sent to Supplier → Supplier Accepted Claim (reference দিন বা খালি রাখুন) → Super Admin দিয়ে Received → Undo Received।</li>
+<li>Troubleshooting → <b>MOTCUBE Controller</b> → Error Solution → H12 খুঁজুন; বাংলা বোতাম চেপে বাংলা দেখুন।</li></ol></section>
+
+<section id="notes"><h2>জানার বিষয় (MOTCUBE ডাটা)</h2>
+<ul>
+<li><b>H20 নেই:</b> আপনার JSON ফাইলে H20 কোড নেই (৬১টা কোড), তাই আমি বানিয়ে যোগ করিনি। দরকার হলে Super Admin হিসেবে <b>+ Add error code</b> দিয়ে যোগ করুন।</li>
+<li><b>H5, H6, H7:</b> JSON-এর manual notes ওই কোডগুলোর "source note" হিসেবে দেখায়।</li>
+<li><b>Section নম্বরের নোট (11.1 বনাম 10.1):</b> এটা মূল ম্যানুয়ালের অসঙ্গতি, ডাটায় যেমন ছিল তেমন রাখা হয়েছে।</li>
+<li><b>Reference সম্পাদনা:</b> মাল Received হওয়ার পর reference বদলানো যায় না (আগে Super Admin Undo Received করলে যায়)। এটা আমার যোগ করা নিয়ম; না চাইলে বলবেন।</li>
+</ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_V253.sql</code></td><td>v2.5.3-এর SQL নেই</td><td>আমাকে জানান</td></tr>
+<tr><td>"Unsupported action: …" Supplier Claim-এ</td><td>সাইট নতুন, SQL চালানো হয়নি</td><td>ধাপ ২</td></tr>
+<tr><td>"You do not have Supplier Claim access."</td><td>অনুমতি দেওয়া হয়নি</td><td>ধাপ ৪</td></tr>
+<tr><td>Supplier Claim মেনু দেখা যায় না</td><td>"See the Supplier Claim menu" টিক নেই</td><td>ধাপ ৪, তারপর ইউজার একবার লগআউট-লগইন</td></tr>
+<tr><td>"Set Supplier Claim = Yes first."</td><td>Confirmed আগে চাপা হয়েছে</td><td>আগে Claim = Yes</td></tr>
+<tr><td>R&amp;I Electrical-এ notification আসেনি</td><td>ওই ডিভাইসে Notifications বন্ধ, বা ইউজারের Section "R&amp;I Electrical" নয়</td><td>My Profile → Notifications → Turn on; User Management-এ Section দেখুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.3-এর পর <code>UPDATE_V254.sql</code> দুবার চালানো হয়েছে। সার্ভার: দুই ধাপের ক্রম, অনুমতি ছাড়া প্রত্যাখ্যান, demand-এর Pending/Received অপরিবর্তিত থাকা, Super Admin-এর বাতিল (Received-এর পর নয়), মেনুর লাল সংখ্যা, নতুন Support request-এ শুধু R&amp;I Electrical-এর অনুমোদিত ইউজার (প্রেরক বাদে) notification queue-তে।</li>
+<li>ব্রাউজার (Playwright): Reset, দুই ধাপ Yes, Supplier Claim মেনুতে Pending থেকে Received, অনুমতিহীন ইউজার মেনু দেখে না, ফোনের মাপে Received বোতাম পর্দার ভেতরে। মোবাইল/ডেস্কটপ, লাইট/ডার্ক স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> ৯৮টি পাস, e2e পাস (ঢাকা ও UTC সময় দুভাবেই)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো, আসল ফোনে notification পৌঁছানো (এখানে শুধু queue-তে জমা পরীক্ষা হয়েছে), আর GitHub-এর CI।</div></section>
+<footer>WLF Electrical Solution · v2.5.4</footer>
+</main>
+</body>
+</html>

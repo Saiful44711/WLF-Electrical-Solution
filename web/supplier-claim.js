@@ -1,4 +1,4 @@
-/* WLF v2.5.4: Supplier Claim menu. A damage demand with "Supplier Confirmed = Yes" waits here as Pending
+/* WLF v2.5.4/2.5.5: Supplier Claim menu. A damage demand with "Supplier Confirmed = Yes" waits here as Pending
    until the goods physically arrive, then it is marked Received. It does not change the demand's own status. */
 const WlfSupplier = (() => {
   'use strict';
@@ -35,11 +35,11 @@ const WlfSupplier = (() => {
       ${rows.length ? `<div class="tbl-wrap" tabindex="0" aria-label="Supplier claims"><table class="tbl supplier-table">
         <thead><tr>${['Demand', 'Team', 'Item', 'Quantity', 'Supplier', 'Confirmed (Dhaka)', 'Status', ''].map(x => `<th scope="col">${h(x)}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(d => `<tr>
-          <td data-label="Demand"><b>${h(d.reference)}</b><small>${h(d.requestReference)}</small></td>
+          <td data-label="Demand"><button type="button" class="link-btn" data-sc-open="${h(d.id)}" aria-label="Open demand ${h(d.reference)}"><b>${h(d.reference)}</b></button><small>${h(d.requestReference)}</small></td>
           <td data-label="Team">${h(teamName(d.category))}<small>${h(d.project || '')}</small></td>
           <td data-label="Item">${h(d.itemName)}<small>${h([d.itemCode, d.itemSpec].filter(Boolean).join(' · '))}</small></td>
           <td data-label="Quantity">${h(d.quantity)}</td>
-          <td data-label="Supplier">${h(d.supplier.name)}<small>${h(d.supplier.date || '')}${d.supplier.note ? ' · ' + h(d.supplier.note) : ''}</small></td>
+          <td data-label="Supplier">${h(d.supplier.name)}<small>${h(d.supplier.date || '')}${d.supplier.note ? ' · ' + h(d.supplier.note) : ''}</small>${d.supplier.reference ? `<small class="sc-ref">Ref: ${h(d.supplier.reference)}</small>` : ''}</td>
           <td data-label="Confirmed (Dhaka)">${h(time(d.supplier.confirmAt))}<small>${h(d.supplier.confirmBy)}</small></td>
           <td data-label="Status">${badge(d.supplier.status)}${d.supplier.status === 'Received' ? `<small>${h(d.supplier.receivedBy)} · ${h(time(d.supplier.receivedAt))}</small>` : ''}</td>
           <td class="sc-act">${d.supplier.status === 'Pending' && data.canReceive ? `<button type="button" class="btn" data-sc-receive="${h(d.id)}">Received</button>` : ''}</td>
@@ -47,6 +47,10 @@ const WlfSupplier = (() => {
         : `<p class="note supplier-empty">${filter === 'Pending' ? 'Nothing is waiting for the supplier.' : 'No records.'}</p>`}
     </section>`;
     root.querySelectorAll('[data-sc-filter]').forEach(b => b.onclick = () => { filter = b.dataset.scFilter; load(); });
+    root.querySelectorAll('[data-sc-open]').forEach(b => b.onclick = () => {
+      const row = data.items.find(x => x.id === b.dataset.scOpen);
+      if (row) WlfDamage.showDetail(row);
+    });
     root.querySelectorAll('[data-sc-receive]').forEach(b => b.onclick = async () => {
       if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again: goods received'; return; }
       b.disabled = true;

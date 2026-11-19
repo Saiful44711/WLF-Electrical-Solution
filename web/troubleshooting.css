@@ -23,3 +23,12 @@
 /* v2.5.1: Save / Cancel always visible at the bottom of the editor, so the buttons never move under the pointer */
 #tbEditor .engineering-actions{position:sticky;bottom:-24px;z-index:2;margin:16px -24px -24px;padding:12px 24px 16px;background:var(--card);border-top:1px solid var(--line)}
 @media (max-width:900px){#tbEditor .engineering-actions{bottom:-17px;margin:16px -17px -17px;padding:12px 17px 14px}}
+.tb-tags{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.tb-tag{display:inline-block;border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:700;border:1px solid}
+.tb-tag-warn{background:#fff7ed;color:#9a3412;border-color:#fdba74}
+.tb-tag-alert{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+.tb-params{margin:10px 0}.tb-params ul{margin:6px 0 0;padding-left:20px}
+.tb-cube-fields{display:grid;gap:8px;margin:12px 0}
+html[data-theme=dark] .tb-tag-warn{background:#3b2410;color:#fdba74;border-color:#9a3412}
+html[data-theme=dark] .tb-tag-alert{background:#25254b;color:#ddd6fe;border-color:#4f46e5}
+.tb-sections{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}

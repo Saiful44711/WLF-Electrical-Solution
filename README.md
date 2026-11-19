@@ -1,4 +1,12 @@
-# WLF Electrical Solution v2.5.4
+# WLF Electrical Solution v2.5.5
+
+## v2.5.5 Supplier Claim reference/undo, MOTCUBE Error Solution, light-theme chip fix (19 November 2026)
+
+- Supplier Claim page: the DD number opens the demand (Pending and Received). Labels: **Supplier Claimed**, **Supplier Confirmed**; buttons **Claim Sent to Supplier**, **Supplier Accepted Claim**, Super Admin **Undo Claimed** / **Undo Confirmed** / **Undo Received** (`undoSupplierReceive`, records who/when).
+- Optional claim reference (max 60 chars) at the confirm step, editable until Received (`saveSupplierReference`); shown in the demand, the Supplier table and Excel (`Supplier Claim Ref`).
+- Troubleshooting: new controller **MOTCUBE** with Error Solution (61 codes, English + Bangla), permanent / contact R&I tags, parameters, and the **Permanent Error Clearing** sub option. Super Admin edits/adds/deletes; permission `tb:MOTCUBE:error` (every non-Super-Admin account needs the tick).
+- Fix: in the Light theme with a dark OS, Component Selection motor chips had white text on white.
+- Run `supabase/UPDATE_V255.sql` after v2.5.4. See `START_HERE_V255_BN.html`.
 
 ## v2.5.4 Component Selection Reset, R&I Electrical support notification, Supplier Claim (19 November 2026)
 

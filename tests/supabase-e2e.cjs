@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.4-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.5-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -787,16 +787,18 @@ const dispatchBefore=(await sequential(()=>h.db.query('select received_at is nul
 await tab('damage-demand');await page.locator('[data-damage-view]').first().waitFor();
 await page.locator(`[data-damage-view="${demandId}"]`).click();
 await page.locator('.supplier-box').waitFor();
-assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claim\s*No[\s\S]*Supplier Confirmed\s*No/);
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claimed\s*No[\s\S]*Supplier Confirmed\s*No/);
 assert.equal(await page.locator('#supConfirm').count(),0,'Supplier Confirmed cannot be set before Supplier Claim');
 await page.locator('#supClaimOpen').click();
 await page.locator('#supClaimForm [name=supplier]').fill('Arkel Elektronik');await page.locator('#supClaimForm [name=note]').fill('Warranty claim e-mailed');
 await v254shot('03-supplier-claim-form',{phone:true});
 await page.locator('#supClaimForm [type=submit]').click();
-await page.locator('#damageDetailStatus').filter({hasText:'Supplier Claim = Yes saved'}).waitFor();
-assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claim\s*Yes[\s\S]*Arkel Elektronik/);
-await page.locator('#supConfirm').click();
-await page.locator('#damageDetailStatus').filter({hasText:'Supplier Confirmed = Yes saved'}).waitFor();
+await page.locator('#damageDetailStatus').filter({hasText:'Claim Sent to Supplier saved'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claimed\s*Yes[\s\S]*Arkel Elektronik/);
+await page.locator('#supConfirm').click();await page.locator('#supConfirmForm [name=reference]').fill('ST-2026-0457');await v254shot('03b-supplier-confirm-form',{phone:true});
+await page.locator('#supConfirmForm [type=submit]').click();
+await page.locator('#damageDetailStatus').filter({hasText:'Supplier Accepted Claim saved'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Claim reference\s*ST-2026-0457/);
 assert.match(await page.locator('.supplier-box').innerText(),/Supplier Confirmed\s*Yes/);
 await v254shot('04-demand-supplier-yes-yes');
 assert.equal((await sequential(()=>h.db.query('select received_at is null as pending from wlf_private.damage_demands where request_id=$1',[demandId]))).rows[0].pending,dispatchBefore,'demand Pending/Received untouched');
@@ -820,6 +822,88 @@ assert.equal(await page.locator('#nav [data-tab=supplier-claim]').isHidden(),tru
 await logout();await login('rni');await page.locator('#nav [data-tab=supplier-claim]').waitFor({state:'visible'});
 await tab('supplier-claim');await page.locator('.supplier-card').waitFor();assert.equal(await page.locator('[data-sc-receive]').count(),0,'view-only user has no Received button');
 await logout();await login('sa');
+await logout();await login('user');
+}
+/* ---- v2.5.5 ---- */
+fs.mkdirSync('test-results/v255',{recursive:true});
+{
+const v255shot=async(name,{phone=true}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(150);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v255/${name}-${label}-${theme}.png`,fullPage:false});}}await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});await page.setViewportSize({width:1440,height:900});};
+// 1) light theme: motor option chips are readable when Search runs with no lift parameters
+await tab('selection');await page.locator('#sel-capacity option').nth(1).waitFor({state:'attached'});
+await page.emulateMedia({colorScheme:'dark'});await page.evaluate(()=>setAppearance('light'));
+await page.locator('#searchBtn').click();
+await page.waitForFunction(()=>!document.getElementById('matchesCard').classList.contains('hidden'));
+await page.locator('#matchesList .chip').first().waitFor();
+const chipInfo=await page.evaluate(()=>{const lum=c=>{const m=c.match(/[\d.]+/g).map(Number);const f=v=>{v/=255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4)};return .2126*f(m[0])+.7152*f(m[1])+.0722*f(m[2]);};const out=[];document.querySelectorAll('#matchesList .chip').forEach((c,i)=>{if(i>2)return;const bg=getComputedStyle(c).backgroundImage!=='none'?getComputedStyle(c).backgroundImage:getComputedStyle(c).backgroundColor;const fg=getComputedStyle(c.querySelector('b')).color;out.push({bg,fg});});return out;});
+for(const c of chipInfo)assert.notEqual(c.fg,'rgb(255, 255, 255)','light theme chip text must be dark even when the OS is dark');assert.equal(chipInfo.length>0,true);
+await v255shot('01-motor-options');await page.emulateMedia({colorScheme:'light'});
+// 2) Supplier Claim page: the demand opens from Pending and from Received; reference; Super Admin Undo Received
+await logout();await login('sa');
+await tab('supplier-claim');await page.locator('[data-sc-filter=Received]').click();
+await page.locator('.supplier-table [data-sc-open]').first().waitFor();
+await page.locator('.supplier-table [data-sc-open]').first().click();
+await page.locator('.supplier-box').waitFor();
+let box=await page.locator('.supplier-box').innerText();
+assert.match(box,/Claim reference\s*ST-2026-0457/);assert.match(box,/Received/);
+assert.equal(await page.locator('#damageReceive').count(),0,'no Receive demand button when opened from the Supplier page');
+assert.equal(await page.locator('#supRefOpen').count(),0,'reference is locked after goods Received');
+await v255shot('02-supplier-demand-received');
+const undo=page.locator('[data-sup-undo-received]');await undo.click();await undo.click();
+await page.locator('#damageDetailStatus').filter({hasText:'Received was undone'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Pending[\s\S]*Received was undone by/);
+const undoRow=(await sequential(()=>h.db.query('select sc_received_at is null as pending,sc_undo_name from wlf_private.damage_demands where claim_supplier is not null order by demand_no limit 1',[]))).rows[0];
+assert.equal(undoRow.pending,true);assert.ok(undoRow.sc_undo_name);
+await page.locator('#supRefOpen').click();await page.locator('#supRefForm [name=reference]').fill('ST-LATE-9');await page.locator('#supRefForm [type=submit]').click();
+await page.locator('#damageDetailStatus').filter({hasText:'Reference saved'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/ST-LATE-9/);
+await v255shot('03-supplier-demand-after-undo');
+await page.locator('[data-damage-close]').click();
+await page.locator('[data-sc-filter=Pending]').click();
+await page.locator('.supplier-table [data-sc-open]').first().waitFor();
+await page.locator('.supplier-table [data-sc-open]').first().click();await page.locator('.supplier-box').waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Confirmed\s*Yes/);
+assert.equal(await page.locator('#damageReceive').count(),0);
+await page.locator('[data-damage-close]').click();
+assert.match(await page.locator('.supplier-table').innerText(),/Ref: ST-LATE-9/);
+await v255shot('04-supplier-pending-with-ref');
+// 3) MOTCUBE troubleshooting
+await tab('troubleshooting');
+await page.locator('[data-section="MOTCUBE"]').waitFor();
+await v255shot('05-troubleshooting-home');
+await page.locator('[data-section="MOTCUBE"]').click();
+assert.match(await page.locator('#tbWorkspace').innerText(),/Error Solution[\s\S]*Permanent Error Clearing|Permanent Error Clearing[\s\S]*Error Solution/);
+await v255shot('06-motcube-menu');
+await page.locator('#tbErrors').click();
+await page.locator('#tbSearch').fill('H22');
+await page.locator('#tbDetail h3').filter({hasText:'H22'}).waitFor();
+assert.match(await page.locator('#tbDetail').innerText(),/Permanent error/);assert.match(await page.locator('#tbDetail').innerText(),/MAINTENANCE TIME/);
+await v255shot('07-motcube-h22');
+await page.locator('[data-tb-lang=bn]').click();await page.waitForTimeout(150);
+assert.match(await page.locator('#tbDetail').innerText(),/স্থায়ী ত্রুটি/);
+assert.ok(await page.locator('#tbDetail [lang=bn]').count()>0,'Bangla text shown');
+await v255shot('08-motcube-h22-bangla');
+await page.locator('[data-tb-lang=en]').click();
+await page.locator('#tbSearch').fill('door lock');
+assert.ok(await page.locator('#tbResults .tb-entry').count()>0,'text search works');
+await page.locator('#tbSearch').fill('h1');
+await page.locator('#tbResults .tb-entry b').filter({hasText:/^H1$/}).first().click();
+await page.locator('#tbEdit').click();
+assert.ok(await page.locator('#tbPermanent').count()>0&&await page.locator('#tbParameters').count()>0,'MOTCUBE editor has permanent and parameters');
+await v255shot('09-motcube-editor',{phone:false});
+await page.locator('#tbEditDescription').fill('Door lock fault (edited in e2e)');await page.locator('#tbSave').click();
+await page.waitForFunction(()=>!document.getElementById('tbEditor').open);
+await page.waitForFunction(async()=>true);
+const saved=(await sequential(()=>h.db.query("select content->>'description' d,revision from public.wlf_troubleshooting where id='motcube-h1'"))).rows[0];
+assert.equal(saved.d,'Door lock fault (edited in e2e)');assert.equal(saved.revision,2);
+// a section user without the tick does not see MOTCUBE; with the tick sees it but cannot edit
+await logout();await login('user');await tab('troubleshooting');
+await page.locator('[data-section="MOT"]').waitFor();assert.equal(await page.locator('[data-section="MOTCUBE"]').isHidden(),true,'no tick: no MOTCUBE tile');
+await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'tb:MOTCUBE:error') where id=$1",[IDS.user]));
+await logout();await login('user');await tab('troubleshooting');
+await page.locator('[data-section="MOTCUBE"]').waitFor({state:'visible'});await page.locator('[data-section="MOTCUBE"]').click();await page.locator('#tbErrors').click();
+await page.locator('#tbSearch').fill('H12');await page.locator('#tbDetail h3').filter({hasText:'H12'}).waitFor();
+assert.equal(await page.locator('#tbEdit').count(),0,'a User cannot edit MOTCUBE');
+await v255shot('10-motcube-user-view');
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
