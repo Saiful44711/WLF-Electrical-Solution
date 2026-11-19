@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.5-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.6-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -142,6 +142,7 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
   expectedFields.splice(at+1,0,{id:'problem_sub',label:'',type:'dependent',required:false,autoFill:'dependent',options:[]});
  }
  await page.locator('[data-support-category="'+team+'"]').click();
+ for(let k=0;k<3&&!(await page.locator('#newSupportRequest').isVisible());k++){await page.waitForTimeout(1500);if(!(await page.locator('#newSupportRequest').isVisible()))await page.locator('[data-support-category="'+team+'"]').click().catch(()=>{});} // the home list can re-render right after the click (pre-existing test race)
  await page.locator('#newSupportRequest').click();
  const controls = await page.locator('#supportRequestForm [name]').evaluateAll(nodes => nodes.map(node => ({
   id: node.name,
@@ -309,9 +310,7 @@ await login('admin');assert.equal(await page.locator('#nav [data-tab=components]
 // Super Admin: SUPPORT USER filter lists the Commissioning section with Name (ID); card and history show Name (ID).
 await login('sa');await category();await page.locator('#supportFilterRequester').waitFor();assert.deepEqual(await page.locator('#supportFilterRequester option').allTextContents(),['All Commissioning users','user (US-5)']);await page.locator('#supportFilterRequester').selectOption('user@example.test');await page.locator(`[data-ticket="${id}"]`).waitFor();assert.match(await page.locator(`[data-ticket="${id}"] small`).innerText(),/^user \(US-5\) · /);await page.locator(`[data-ticket="${id}"]`).click();await page.locator('.support-timeline li').first().waitFor();assert.match(await page.locator('#supportDetail').innerText(),/Submitted by user \(US-5\)/);assert.match(await page.locator('.support-timeline li').first().innerText(),/user \(US-5\)/);assert.equal((await page.locator('#supportDetail').innerText()).includes('user@example.test'),false);const download=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await download).saveAs('test-results/support-report.csv');assert.ok(fs.readFileSync('test-results/support-report.csv','utf8').match(/TCS\d+-991234-\d{8}/));await page.locator('#supportFilterRequester').selectOption('');await logout();
 await login('rni');
-await tab('dashboard');
-await page.locator('#rniPerformanceTable').waitFor();
-assert.equal((await page.locator('#rniPerformanceTable').innerText()).includes('rni2@example.test'),false);
+assert.equal(await page.locator('#nav [data-tab=dashboard]').isVisible(),false,'v2.5.6: R&I needs the Usage Dashboard tick');
 await page.locator('.appearance-menu summary').click();
 await page.locator('#realtimeStatus').filter({hasText:'Realtime connected'}).waitFor();
 await page.locator('.appearance-menu summary').click();
@@ -727,10 +726,10 @@ await page.locator('#wlfAdminTyped').fill('delete');assert.equal(await page.loca
 await page.locator('#wlfAdminTyped').fill('DELETE');await v253shot('04-recycle-bin-empty',{phone:false});await page.locator('#wlfAdminYes').click();
 await page.locator('#binStatus').filter({hasText:'Recycle bin emptied'}).waitFor();assert.equal((await sequential(()=>h.db.query('select 1 from public.wlf_requests where id=$1',[binReq.id]))).rows.length,0);
 await page.locator('.bin-log summary').click();assert.match(await page.locator('.bin-log').innerText(),/Empty bin/);
-// Usage Dashboard: last 30 days + old log download, then DELETE
+// Usage Dashboard: last 7 days + old log download, then DELETE
 await sequential(()=>h.db.query("insert into public.wlf_usage(actor,action,details,at) values($1,'Login','',now()-interval '45 days'),($1,'Power Calculation','old',now()-interval '40 days')",[IDS.user]));
 await page.locator('#nav [data-tab=dashboard]').click();await page.locator('#usageLogTable').waitFor();await page.locator('.usage-old').waitFor();
-assert.match(await page.locator('.usage-old').innerText(),/2 activity log rows are older than 30 days/);
+assert.match(await page.locator('.usage-old').innerText(),/2 activity log rows are older than 7 days/);
 await page.locator('#usageMember').selectOption({label:'user (US-5)'});
 await page.waitForFunction(()=>{const c=[...document.querySelectorAll('#usageLogTable tbody td:nth-child(2)')].map(x=>x.textContent);return c.length>0&&c.every(t=>t==='user (US-5)')&&document.getElementById('usageMember').value!=='';});
 assert.equal(await page.locator('#usageOldDelete').isDisabled(),true);await v253shot('05-usage-log');
@@ -738,16 +737,15 @@ const oldLog=page.waitForEvent('download');await page.locator('#usageOldDownload
 assert.match(await (await Zip.loadAsync(fs.readFileSync('test-results/v253/old-activity-log.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/Power Calculation/);
 await page.locator('#usageOldDelete:not([disabled])').click();await page.locator('#wlfAdminTyped').fill('DELETE');await page.locator('#wlfAdminYes').click();
 await page.locator('#globalMsg').filter({hasText:'2 old activity log rows deleted'}).waitFor();
-assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where at<now()-interval '30 days'"))).rows[0].n,0);
+assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where at<now()-interval '7 days'"))).rows[0].n,0);
 // Management Dashboard screenshots
 await tab('workspace-dashboard');await page.locator('.mgmt-card').nth(5).waitFor();await v253shot('06-management-dashboard');
 // the Commissioning user: red count, announcement card, Read, my work breakdown
 await logout();await login('user');await tab('account');
 await page.locator('#announceCard .announce-item').filter({hasText:'Site safety week'}).waitFor();
 await page.locator('#profileNavBadge:not([hidden])').waitFor();const before253=Number(await page.locator('#profileNavBadge').innerText());assert.ok(before253>=1);
-await page.locator('#myActivityCard .my-block').filter({hasText:'Support requests I sent'}).waitFor();
+assert.equal(await page.locator('#myActivityCard').count(),0,'v2.5.6: My Activity removed');
 await page.locator('#announceCard').scrollIntoViewIfNeeded();await v253shot('07-profile-announcement');
-await page.locator('#myActivityCard').scrollIntoViewIfNeeded();await v253shot('08-my-work-breakdown');
 await page.locator('[data-ann-read]').first().click();await page.locator('#announceCard .announce-old').waitFor();
 await page.waitForFunction(n=>{const b=document.getElementById('profileNavBadge');return b&&(b.hidden?0:Number(b.textContent))===n-1;},before253);
 await logout();await login('admin');await tab('account');await page.waitForTimeout(400);assert.equal(await page.locator('#announceCard').isHidden(),true,'Sales section does not get the Commissioning announcement');
@@ -904,6 +902,77 @@ await page.locator('[data-section="MOTCUBE"]').waitFor({state:'visible'});await 
 await page.locator('#tbSearch').fill('H12');await page.locator('#tbDetail h3').filter({hasText:'H12'}).waitFor();
 assert.equal(await page.locator('#tbEdit').count(),0,'a User cannot edit MOTCUBE');
 await v255shot('10-motcube-user-view');
+await logout();await login('user');
+}
+/* ---- v2.5.6 ---- */
+fs.mkdirSync('test-results/v256',{recursive:true});
+{
+const v256shot=async(name,{phone=true,at=null}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(200);if(at)await page.locator(at).first().evaluate(n=>n.scrollIntoView({block:'start'}));await page.waitForTimeout(100);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v256/${name}-${label}-${theme}.png`,fullPage:false});}}await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});await page.setViewportSize({width:1440,height:900});};
+await logout();await login('sa');
+// 1) Components data: search all columns + sticky key columns
+await tab('components');await page.locator('#compFilter-0').waitFor({state:'attached'});
+await page.evaluate(()=>{document.querySelectorAll('#componentAdminFilters select').forEach(x=>{x.value='';x.dispatchEvent(new Event('change'));});});
+await page.waitForFunction(()=>/^(\d+) of \1 components$/.test(document.getElementById('compCount').textContent));
+const allRows=await page.locator('#componentsTable tbody tr').count();assert.ok(allRows>10);
+const model=await page.evaluate(()=>{const i=compData.headers.indexOf('Motor Model');return String(compData.records[0].values[i]);});
+const cap=await page.evaluate(()=>String(compData.records[0].values[0]));
+await page.locator('#compSearch').fill(cap+' '+model.toLowerCase());
+await page.waitForFunction(n=>document.querySelectorAll('#componentsTable tbody tr').length<n,allRows,{timeout:8000}).catch(async e=>{console.log('DBG',allRows,cap,model,await page.locator('#componentsTable tbody tr').count(),await page.locator('#compSearch').inputValue(),await page.locator('#compCount').innerText());throw e;});
+const found=await page.locator('#componentsTable tbody tr').count();assert.ok(found>=1&&found<allRows,'search narrows the table');
+assert.match(await page.locator('#compCount').innerText(),new RegExp('^'+found+' of '));
+await page.locator('#compSearch').fill('zz-no-such-thing');await page.locator('#componentsTable tbody td.note').waitFor();
+await page.locator('#compSearch').fill('');await page.waitForFunction(n=>document.querySelectorAll('#componentsTable tbody tr').length===n,allRows);
+const stick=async()=>page.evaluate(()=>{const w=document.querySelector('.comp-wrap');w.scrollLeft=5000;const r=document.querySelector('#componentsTable tbody tr');const wl=w.getBoundingClientRect();const first=r.cells[0].getBoundingClientRect(),act=r.cells[r.cells.length-1].getBoundingClientRect(),mi=compData.headers.indexOf('Motor Model'),m=r.cells[mi].getBoundingClientRect();return {scrolled:w.scrollLeft>0,firstLeft:Math.round(first.left-wl.left),actRight:Math.round(wl.right-act.right),modelVisible:m.right<=wl.right&&m.left>=wl.left-1};});
+let st=await stick();assert.ok(st.scrolled);assert.ok(Math.abs(st.firstLeft)<=2,'Capacity stays at the left: '+JSON.stringify(st));assert.ok(st.actRight>=-2&&st.actRight<=20,'Edit/Delete stays at the right: '+JSON.stringify(st));assert.equal(st.modelVisible,true,'Motor Model stays visible on desktop');
+await v256shot('01-components-sticky',{phone:false});
+await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();stickComponentColumns();});await page.waitForTimeout(250);
+st=await stick();assert.ok(Math.abs(st.firstLeft)<=2,'phone: Capacity stays');
+await page.locator('.comp-wrap').evaluate(n=>n.scrollIntoView({block:'start'}));for(const theme of ['light','dark']){await page.evaluate(t=>setAppearance(t),theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v256/02-components-sticky-mobile-${theme}.png`});}
+await page.evaluate(()=>setAppearance('light'));await page.setViewportSize({width:1440,height:900});await page.evaluate(()=>{document.querySelector('.comp-wrap').scrollLeft=0;stickComponentColumns();});
+// edit one component through the screen -> change log
+await page.locator('#compSearch').fill(cap+' '+model);await page.locator('#componentsTable tbody tr').first().locator('button',{hasText:'Edit'}).click();
+const pIdx=await page.evaluate(()=>compData.headers.indexOf('Motor Power (KW)'));
+const oldP=await page.locator('#ef-'+pIdx).inputValue();await page.locator('#ef-'+pIdx).fill('99.5');await page.locator('#saveCompBtn').click();
+await page.locator('#globalMsg').filter({hasText:'Component saved'}).waitFor();
+// 2) Usage Dashboard: 7 days, no Technical Support, change log, From-To delete
+await tab('dashboard');await page.locator('#usageLogTable').waitFor();
+assert.equal(await page.locator('#techDashboard,#rniPerformanceTable').count(),0,'Technical Support is not in the Usage Dashboard');
+assert.match(await page.locator('#statsArea').innerText(),/Actions · last 7 days[\s\S]*Activity log · last 7 days|Activity log · last 7 days[\s\S]*Actions · last 7 days/);
+await page.locator('#componentLogTable').waitFor();
+const clogText=await page.locator('#componentLogTable').innerText();
+assert.match(clogText,/Edited/);assert.match(clogText,new RegExp('Motor Power \\(KW\\): '+oldP.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*→\\s*99\\.5'));
+await v256shot('03-component-change-log',{at:'#componentLogCard'});
+const clogDl=page.waitForEvent('download');await page.locator('#componentLogExcel').click();await (await clogDl).saveAs('test-results/v256/component-change-log.xlsx');
+assert.match(await (await Zip.loadAsync(fs.readFileSync('test-results/v256/component-change-log.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/99.5/);
+// From-To delete
+await sequential(()=>h.db.query("insert into public.wlf_usage(actor,action,details,at) values($1,'Login','range-test',now()-interval '20 days'),($1,'Login','range-test',now()-interval '21 days')",[IDS.user]));
+await tab('dashboard');await page.locator('#usageRangeForm').waitFor();await page.locator('#componentLogTable').waitFor();await page.locator('#tbDashboard .kpi').first().waitFor();await page.waitForTimeout(300);
+const d20=await page.evaluate(()=>{const f=n=>new Date(Date.now()+6*3600e3-n*86400e3).toISOString().slice(0,10);return [f(22),f(19)];});
+await page.locator('#usageRangeForm [name=from]').fill(d20[0]);await page.locator('#usageRangeForm [name=to]').fill(d20[1]);
+assert.equal(await page.locator('#usageRangeDelete').isDisabled(),true);
+await page.locator('#usageRangeForm [type=submit]').click();await page.locator('#usageRangeStatus').filter({hasText:/^2 activity log rows/}).waitFor();
+await v256shot('04-usage-range-delete',{at:'#usageRangeForm'});
+await page.locator('#usageRangeDelete').click();await page.locator('#wlfAdminTyped').fill('DELETE');await page.locator('#wlfAdminYes').click();
+await page.locator('#globalMsg').filter({hasText:'2 activity log rows deleted'}).waitFor();
+assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where details='range-test'"))).rows[0].n,0);
+// 3) Management Dashboard lists every team
+await tab('workspace-dashboard');await page.locator('.mgmt-card').nth(2).waitFor();
+const mg=await page.locator('#tab-workspace-dashboard').innerText();
+for(const team of ['Commissioning','After Sales','Production','Factory Maintenance','QC','Installation'])assert.match(mg,new RegExp(team),team+' listed');
+await v256shot('05-dashboard-all-teams',{at:'.mgmt-card >> nth=2'});
+// 4) Usage Dashboard tick: a User with the tick sees it (no delete box, no change log without that tick)
+await logout();await login('user');assert.equal(await page.locator('#nav [data-tab=dashboard]').isVisible(),false,'no tick: no Usage Dashboard');
+await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'usage:dashboard') where id=$1",[IDS.user]));
+await logout();await login('user');await page.locator('#nav [data-tab=dashboard]').waitFor({state:'visible'});
+await tab('dashboard');await page.locator('#usageLogTable').waitFor();
+assert.equal(await page.locator('#usageRangeForm').count(),0,'range delete is Super Admin only');assert.equal(await page.locator('.usage-old').count(),0);
+assert.equal(await page.locator('#componentLogTable').count(),0,'change log needs its own tick');
+await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'components:log') where id=$1",[IDS.user]));
+await logout();await login('user');await tab('dashboard');await page.locator('#componentLogTable').waitFor();
+await v256shot('06-usage-dashboard-user',{at:'#componentLogCard'});
+assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false,'Components data stays Super Admin only');
+await tab('account');assert.equal(await page.locator('#myActivityCard').count(),0);await v256shot('07-my-profile',{phone:true});
+await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_remove(array_remove(permissions,'usage:dashboard'),'components:log') where id=$1",[IDS.user]));
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);

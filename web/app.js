@@ -558,20 +558,42 @@ function loadComponentsAdmin() {
       node.onchange=render;
       return {node:node,key:key};
     });
+    var search=$('compSearch');
     function render(){
+      var words=String(search&&search.value||'').toLowerCase().split(/\s+/).filter(Boolean);
       var records=d.records.filter(function(r){return specs.every(function(f){
         return !f.node.value||f.node.value===String(r.values[f.key]??'');
-      });});
+      })&&(!words.length||(function(text){return words.every(function(w){return text.indexOf(w)>=0;});})(r.values.map(function(v){return String(v??'');}).join(' ').toLowerCase()));});
       $('compCount').textContent=records.length+' of '+d.records.length+' components';
       document.querySelector('#componentsTable tbody').innerHTML=records.map(function(r){
         return '<tr>'+r.values.map(function(v){return '<td>'+esc(v??'')+'</td>';}).join('')+
          '<td><div class="actions"><button class="btn ghost sm" onclick="openEditor('+r.sheetRow+')">Edit</button>'+
          '<button class="btn danger sm" onclick="deleteComponent('+r.sheetRow+')">Delete</button></div></td></tr>';
-      }).join('');
+      }).join('')||'<tr><td colspan="'+(d.headers.length+1)+'" class="note">No component matches the search and filters.</td></tr>';
+      stickComponentColumns();
     }
+    if(search)search.oninput=render;
     render();
   }).withFailureHandler(fail).adminGetComponents(T());
 }
+
+// v2.5.6: key columns stay on screen while the wide table scrolls (desktop: Capacity, Speed, Usage, Roping, Motor Model; phone: Capacity)
+function stickComponentColumns(){
+  var t=$('componentsTable');if(!t||!compData||!t.tHead||!t.tHead.rows[0])return;
+  var narrow=window.matchMedia('(max-width:700px)').matches;
+  var names=narrow?['Capacity (KG)']:['Capacity (KG)','Speed (m/s)','Usage Type','Roping','Motor Model'];
+  var cols=names.map(function(n){return compData.headers.indexOf(n);}).filter(function(i){return i>=0;});
+  var rows=Array.from(t.rows);
+  rows.forEach(function(row){Array.from(row.cells).forEach(function(c){c.classList.remove('sticky-col','sticky-edge','sticky-act');c.style.left='';});});
+  var head=t.tHead.rows[0].cells,left=0;
+  cols.forEach(function(ci,k){
+    var w=head[ci]?head[ci].getBoundingClientRect().width:0;
+    rows.forEach(function(row){var c=row.cells[ci];if(!c||row.cells.length<=ci)return;c.classList.add('sticky-col');c.style.left=left+'px';if(k===cols.length-1)c.classList.add('sticky-edge');});
+    left+=w;
+  });
+  rows.forEach(function(row){if(row.cells.length===compData.headers.length+1)row.cells[row.cells.length-1].classList.add('sticky-act');});
+}
+var stickTimer=null;window.addEventListener('resize',function(){clearTimeout(stickTimer);stickTimer=setTimeout(stickComponentColumns,150);});
 
 function openEditor(sheetRow) {
   if (!compData) return;
@@ -624,13 +646,13 @@ function loadStats() {
     for (var k = 2; k < s.totals.length; k++) if(/ Calculation$| Justification$|^Solar Sizing Calculation$/.test(s.topics[k])) calcs += s.totals[k];
 
     var html = '<div class="kpis">' +
-      '<div class="kpi k1"><b>' + s.totalEvents + '</b><span>Actions · last 30 days</span></div>' +
+      '<div class="kpi k1"><b>' + s.totalEvents + '</b><span>Actions · last 7 days</span></div>' +
       '<div class="kpi k2"><b>' + active + '</b><span>Active users</span></div>' +
       '<div class="kpi k3"><b>' + s.totals[1] + '</b><span>Component selections</span></div>' +
       '<div class="kpi k4"><b>' + calcs + '</b><span>Calculations run</span></div></div>';
 
     html += '<div class="card"><div class="card-head"><div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V4M16 20v-6M22 20H2"/></svg></div>' +
-      '<div><h3>Usage by feature</h3><p>How often each feature was used · last 30 days</p></div></div><div class="bars">';
+      '<div><h3>Usage by feature</h3><p>How often each feature was used · last 7 days</p></div></div><div class="bars">';
     s.topics.forEach(function (t, i) {
       html += '<div class="bar"><div class="bar-top"><span>' + esc(t) + '</span><b>' + s.totals[i] + '</b></div>' +
         '<div class="track"><div class="fill" style="width:' + Math.round(s.totals[i] / max * 100) + '%;background:' + colors[i % colors.length] + ';"></div></div></div>';
@@ -638,7 +660,7 @@ function loadStats() {
     html += '</div></div>';
 
     html += '<div class="card"><div class="card-head"><div class="card-icon ci-teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.3-5 6.5-5s5.7 1.5 6.5 5"/></svg></div>' +
-      '<div><h3>Usage by user</h3><p>Number of times each user used each feature · last 30 days</p></div></div>' +
+      '<div><h3>Usage by user</h3><p>Number of times each user used each feature · last 7 days</p></div></div>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>User</th><th>Access</th>';
     s.topics.forEach(function (t) { html += '<th>' + esc(t) + '</th>'; });
     html += '<th>Total</th><th>Last active</th></tr></thead><tbody>';
@@ -648,9 +670,9 @@ function loadStats() {
       html += '<td><b>' + r.total + '</b></td><td>' + esc(r.lastActive) + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
-    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="techDashboard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
-    if(typeof WlfAdmin!=='undefined')WlfAdmin.usageLog({member:'',offset:0});
-    if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof LiveWorkspace!=='undefined')LiveWorkspace.renderSupportDashboard();if(typeof WlfRi!=='undefined')WlfRi.dashboard();
+    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="componentLogCard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
+    if(typeof WlfAdmin!=='undefined'){WlfAdmin.usageLog({member:'',offset:0});WlfAdmin.componentLog();}
+    if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof WlfRi!=='undefined')WlfRi.dashboard();
   }).withFailureHandler(fail).adminStats(T());
 }
 

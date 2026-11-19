@@ -1,4 +1,14 @@
-# WLF Electrical Solution v2.5.5
+# WLF Electrical Solution v2.5.6
+
+## v2.5.6 Usage Dashboard access, 7-day activity log, component change log (19 November 2026)
+
+- My Profile: **My Activity** removed (the server function `my_activity` is dropped).
+- Usage Dashboard: shows the last **7 days**; older rows stay until the Super Admin downloads/deletes them, or deletes any **From–To** period (`countUsageRange`, `purgeUsageRange`, typed DELETE, recorded in the Recycle Bin purge log). Technical Support removed from this page.
+- New permissions (group *Usage Dashboard*): `usage:dashboard` and `components:log`. Only the Super Admin sees the Usage Dashboard until people are ticked; holders see every user.
+- Component change log: a trigger on `public.wlf_components` records add / edit / delete with old and new values (also changes made in the SQL Editor). Shown in the Usage Dashboard (`getComponentLog`) with dates, search and Excel.
+- Dashboard: Technical Support lists all six teams and Damage Demand all four teams, also with zero requests.
+- Components Data: search over all columns; key columns and Edit/Delete stay on screen while scrolling.
+- Run `supabase/UPDATE_V256.sql` after v2.5.5. See `START_HERE_V256_BN.html`.
 
 ## v2.5.5 Supplier Claim reference/undo, MOTCUBE Error Solution, light-theme chip fix (19 November 2026)
 

@@ -89,42 +89,7 @@ const WlfAdmin = (() => {
     } catch (err) { if (run === epoch && !card.innerHTML) card.hidden = true; }
   }
 
-  /* ------------------------------------------------------------ My Profile: my work breakdown */
-  async function loadMyActivity(range) {
-    const card = el('myActivityCard');
-    if (!card || !SESSION) return;
-    const run = epoch;
-    range = range || {from:monthStart(), to:today()};
-    card.innerHTML = `<form class="card overview-panel" id="myActivityForm">
-      <div class="overview-heading"><div><h3>My work breakdown</h3><p class="note">Only your own work. Dhaka dates; this month by default.</p></div></div>
-      <div class="overview-filters"><label>From<input type="date" name="from" value="${h(range.from)}" required></label>
-        <label>To<input type="date" name="to" value="${h(range.to)}" required></label>
-        <div class="overview-actions"><button class="btn" type="submit">Show</button></div></div>
-      <div id="myActivityBody"><p class="note">Loading…</p></div></form>`;
-    el('myActivityForm').onsubmit = e => { e.preventDefault(); loadMyActivity(Object.fromEntries(new FormData(e.currentTarget))); };
-    try {
-      const x = await rpc('getMyActivity', [T(), range]);
-      if (run !== epoch || !el('myActivityBody')) return;
-      const blocks = [];
-      const list = (title, rows) => rows.length ? blocks.push(`<section class="my-block"><h4>${h(title)}</h4><ul class="my-rows">${rows.map(([k, v, s]) =>
-        `<li><span>${h(k)}${s ? `<small>${h(s)}</small>` : ''}</span><b>${h(v)}</b></li>`).join('')}</ul></section>`) : 0;
-      list('Support requests I sent', x.supportCreated.map(r => [team(r.team), n(r.total), n(r.solved) + ' solved · ' + n(r.open) + ' open']));
-      list('Technical support I handled', x.supportWork.map(r => [team(r.team), n(Number(r.received) + Number(r.forwarded) + Number(r.solved) + Number(r.notSolved)),
-        `Received ${n(r.received)} · Solved ${n(r.solved)} · Forwarded ${n(r.forwarded)} · Not solved ${n(r.notSolved)}`]));
-      list('R&I Team Activity', x.ri.map(r => [r.form, n(r.total)]));
-      const tasks = Object.entries(x.tasks || {});
-      if (x.projects && (Number(x.projects.led) || Number(x.projects.collaborating) || tasks.length))
-        list('R&I Project Manager (now)', [['Projects I lead', n(x.projects.led)], ['Projects I collaborate on', n(x.projects.collaborating)],
-          ...tasks.map(([s, v]) => ['My tasks · ' + s, n(v)])]);
-      if (Number(x.damage.confirmed) || Number(x.damage.received))
-        list('Damage Demand', [['Demands I confirmed', n(x.damage.confirmed)], ['Demands I received', n(x.damage.received)]]);
-      list('QMS components I recorded', Object.entries(x.qms || {}).map(([s, v]) => [s, n(v)]));
-      list('Tools and pages I used', x.tools.map(r => [r.action, n(r.n)]));
-      el('myActivityBody').innerHTML = blocks.length ? `<div class="my-grid">${blocks.join('')}</div>` : '<p class="note">No recorded work in this period.</p>';
-    } catch (err) { if (run === epoch && el('myActivityBody')) el('myActivityBody').innerHTML = `<p class="note">${h(cleanError(err))}</p>`; }
-  }
-
-  /* ------------------------------------------------------------ Usage Dashboard: activity log (30 days) */
+  /* ------------------------------------------------------------ Usage Dashboard: activity log (7 days), From-To delete, component change log */
   let usage = {member:'', offset:0, before:null, downloaded:false};
   async function usageLog(state) {
     const card = el('usageLogCard');
@@ -137,22 +102,99 @@ const WlfAdmin = (() => {
       const people = x.people || [];
       const old = x.old && Number(x.old.count) ? x.old : null;
       const end = Math.min(Number(x.total), usage.offset + 200);
-      card.innerHTML = `${old ? `<div class="msg warn usage-old" role="alert"><b>${n(old.count)} activity log rows are older than 30 days</b> (oldest ${h(when(old.oldest))}).
+      card.innerHTML = `${old ? `<div class="msg warn usage-old" role="alert"><b>${n(old.count)} activity log rows are older than 7 days</b> (oldest ${h(when(old.oldest))}).
           Download them as Excel first, then delete them to keep the database small. Nothing is deleted automatically.
           <div class="engineering-actions"><button type="button" class="btn" id="usageOldDownload">Download old log (Excel)</button>
           <button type="button" class="btn danger" id="usageOldDelete" ${usage.downloaded ? '' : 'disabled'}>Delete old log…</button></div>
           <p class="note" id="usageOldStatus" role="status">${usage.downloaded ? 'Downloaded. You can delete the old rows now.' : 'Delete becomes available after the download.'}</p></div>` : ''}
         <div class="card"><div class="card-head"><div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
-          <div><h3>Activity log · last 30 days</h3><p>Who used what, newest first (Dhaka time)</p></div></div>
+          <div><h3>Activity log · last 7 days</h3><p>Who used what, newest first (Dhaka time)</p></div></div>
           ${people.length ? `<label class="usage-filter">User<select id="usageMember"><option value="">All users</option>${people.map(p => WlfFields.option(p.id, p.name, usage.member)).join('')}</select></label>` : ''}
           ${x.rows.length ? `<div class="tbl-wrap"><table class="tbl" id="usageLogTable"><thead><tr><th>When</th><th>User</th><th>Activity</th><th>Details</th></tr></thead><tbody>${x.rows.map(r =>
-            `<tr><td>${h(when(r.at))}</td><td>${h(r.who)}</td><td>${h(r.action)}</td><td>${h(r.details)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="note">No activity in the last 30 days.</p>'}
+            `<tr><td>${h(when(r.at))}</td><td>${h(r.who)}</td><td>${h(r.action)}</td><td>${h(r.details)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="note">No activity in the last 7 days.</p>'}
           ${Number(x.total) > 200 ? `<div class="overview-paging"><button class="btn ghost" type="button" id="usagePrev" ${usage.offset ? '' : 'disabled'}>Previous</button>
             <span>${n(usage.offset + 1)}–${n(end)} of ${n(x.total)}</span><button class="btn ghost" type="button" id="usageNext" ${end < Number(x.total) ? '' : 'disabled'}>Next</button></div>` : `<p class="note">${n(x.total)} entries</p>`}
-        </div>`;
+        </div>${x.all ? rangeBox(x.all) : ''}`;
+      if (x.all) bindRange();
       if (el('usageMember')) el('usageMember').onchange = e => usageLog({member:e.target.value, offset:0});
       if (el('usagePrev')) { el('usagePrev').onclick = () => usageLog({offset:Math.max(0, usage.offset - 200)}); el('usageNext').onclick = () => usageLog({offset:usage.offset + 200}); }
       if (old) { el('usageOldDownload').onclick = downloadOldLog; el('usageOldDelete').onclick = deleteOldLog; }
+    } catch (err) { if (run === epoch && card.isConnected) card.innerHTML = `<div class="msg error">${h(cleanError(err))}</div>`; }
+  }
+  function rangeBox(all) {
+    return `<form class="card usage-range" id="usageRangeForm"><div class="overview-heading"><div><h3>Delete activity log by date</h3>
+      <p class="note">Super Admin only. Removes every activity log row between the two Dhaka dates (both days included), also rows of the last 7 days. It cannot be undone.
+      Stored now: ${n(all.count)} rows${all.oldest ? ` (${h(when(all.oldest))} to ${h(when(all.newest))})` : ''}.</p></div></div>
+      <div class="overview-filters"><label>From<input type="date" name="from" required value="${h(range.from)}"></label>
+      <label>To<input type="date" name="to" required value="${h(range.to)}"></label>
+      <button type="submit" class="btn ghost">Check rows</button>
+      <button type="button" class="btn danger" id="usageRangeDelete" ${range.checked ? '' : 'disabled'}>Delete rows…</button></div>
+      <p class="note" id="usageRangeStatus" role="status">${range.checked ? h(range.checked) : 'Choose the dates and press Check rows first.'}</p></form>`;
+  }
+  let range = {from:'', to:'', count:null, checked:''};
+  function bindRange() {
+    const f = el('usageRangeForm'), s = el('usageRangeStatus');
+    f.onsubmit = async e => {
+      e.preventDefault();
+      const v = Object.fromEntries(new FormData(f));
+      range = {from:v.from, to:v.to, count:null, checked:''};
+      el('usageRangeDelete').disabled = true;
+      s.textContent = 'Counting…';
+      try {
+        const x = await rpc('countUsageRange', [T(), {from:v.from, to:v.to}]);
+        range.count = Number(x.count);
+        range.checked = n(x.count) + ' activity log rows from ' + x.from + ' to ' + x.to + '.';
+        s.textContent = range.checked;
+        el('usageRangeDelete').disabled = !range.count;
+      } catch (err) { s.textContent = cleanError(err); }
+    };
+    f.from.oninput = f.to.oninput = f.from.onchange = f.to.onchange = () => { range = {from:f.from.value, to:f.to.value, count:null, checked:''}; el('usageRangeDelete').disabled = true; s.textContent = 'Press Check rows again.'; };
+    el('usageRangeDelete').onclick = async () => {
+      if (!range.count) return;
+      if (!await ask({title:'Delete the activity log of this period?', text:n(range.count) + ' rows from ' + range.from + ' to ' + range.to + ' will be removed from the database for good.', button:'Delete rows', typed:'DELETE'})) return;
+      try {
+        const x = await rpc('purgeUsageRange', [T(), {from:range.from, to:range.to, confirm:'DELETE'}]);
+        range = {from:range.from, to:range.to, count:null, checked:n(x.deleted) + ' rows deleted (' + x.from + ' to ' + x.to + ').'};
+        showMsg(n(x.deleted) + ' activity log rows deleted.', 'success');
+        usageLog({offset:0});
+        if (typeof loadStats === 'function') loadStats();
+      } catch (err) { s.textContent = cleanError(err); }
+    };
+  }
+
+  let clog = {from:'', to:'', q:'', rows:[]};
+  function componentLogAllowed() {
+    const u = SESSION || {}, p = u.permissions || [];
+    return u.role === 'Super Admin' || (p.includes('usage:dashboard') && p.includes('components:log'));
+  }
+  async function componentLog(state) {
+    const card = el('componentLogCard');
+    if (!card || !SESSION) return;
+    if (!componentLogAllowed()) { card.innerHTML = ''; return; }
+    const run = epoch;
+    clog = {...clog, ...(state || {})};
+    try {
+      const x = await rpc('getComponentLog', [T(), {from:clog.from, to:clog.to, q:clog.q}]);
+      if (run !== epoch || !card.isConnected) return;
+      clog.from = x.from; clog.to = x.to; clog.rows = x.rows;
+      const changes = r => r.changes.map(c => r.action === 'Edited'
+        ? `<li><b>${h(c.field)}</b>: <s>${h(c.old || '—')}</s> → ${h(c.new || '—')}</li>`
+        : `<li><b>${h(c.field)}</b>: ${h(r.action === 'Deleted' ? c.old : c.new)}</li>`).join('');
+      card.innerHTML = `<form class="card" id="componentLogForm"><div class="card-head"><div class="card-icon ci-teal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+          <div><h3>Component change log</h3><p>Who added, edited or deleted Components Data (Dhaka time)</p></div></div>
+        <div class="overview-filters"><label>From<input type="date" name="from" value="${h(clog.from)}"></label><label>To<input type="date" name="to" value="${h(clog.to)}"></label>
+          <label>Search<input type="search" name="q" value="${h(clog.q)}" placeholder="Model, user, field…" autocomplete="off"></label>
+          <button type="submit" class="btn ghost">Show</button><button type="button" class="btn ghost" id="componentLogExcel" ${x.rows.length ? '' : 'disabled'}>Excel</button></div>
+        ${x.rows.length ? `<div class="tbl-wrap"><table class="tbl" id="componentLogTable"><thead><tr><th>When</th><th>User</th><th>Change</th><th>Component</th><th>Fields</th></tr></thead><tbody>${x.rows.map(r =>
+          `<tr><td>${h(when(r.at))}</td><td>${h(r.who)}</td><td><span class="clog-${h(r.action.toLowerCase())}">${h(r.action)}</span></td><td>${h(r.label)}</td><td><ul class="clog-changes">${changes(r)}</ul></td></tr>`).join('')}</tbody></table></div>`
+          : '<p class="note">No component changes in this period.</p>'}
+        <p class="note">${n(x.total)} ${Number(x.total) === 1 ? 'change' : 'changes'}${Number(x.total) > x.rows.length ? ' · showing the newest ' + n(x.rows.length) : ''}</p></form>`;
+      el('componentLogForm').onsubmit = e => { e.preventDefault(); componentLog(Object.fromEntries(new FormData(e.currentTarget))); };
+      el('componentLogExcel').onclick = async () => {
+        await WlfExports.excel([{name:'Component change log', headers:['When (Dhaka)', 'User', 'Change', 'Component', 'Field', 'Old value', 'New value'],
+          rows:clog.rows.flatMap(r => (r.changes.length ? r.changes : [{field:'', old:'', new:''}]).map(c => [when(r.at), r.who, r.action, r.label, c.field, c.old, c.new]))}],
+          'WLF-Component-Change-Log-' + clog.from + '-to-' + clog.to);
+      };
     } catch (err) { if (run === epoch && card.isConnected) card.innerHTML = `<div class="msg error">${h(cleanError(err))}</div>`; }
   }
   async function downloadOldLog() {
@@ -177,7 +219,7 @@ const WlfAdmin = (() => {
   }
   async function deleteOldLog() {
     if (!usage.downloaded || !usage.before) return;
-    if (!await ask({title:'Delete the old activity log?', text:'All activity log rows older than 30 days (that you downloaded) will be removed from the database for good.', button:'Delete old log', typed:'DELETE'})) return;
+    if (!await ask({title:'Delete the old activity log?', text:'All activity log rows older than 7 days (that you downloaded) will be removed from the database for good.', button:'Delete old log', typed:'DELETE'})) return;
     const s = el('usageOldStatus');
     try {
       const x = await rpc('purgeUsageLog', [T(), {before:usage.before, confirm:'DELETE'}]);
@@ -339,7 +381,7 @@ const WlfAdmin = (() => {
 
   /* ------------------------------------------------------------ wiring */
   function onTab(tab) {
-    if (tab === 'account') { loadAnnouncements(); loadMyActivity(); }
+    if (tab === 'account') loadAnnouncements();
     if (tab === 'recycle-bin') loadBin();
     if (tab === 'announcements') { ann.editing = null; loadAnnAdmin(); }
   }
@@ -351,7 +393,6 @@ const WlfAdmin = (() => {
     document.querySelector('.content').insertAdjacentHTML('beforeend',
       '<section id="tab-announcements" class="tab-content hidden"></section><section id="tab-recycle-bin" class="tab-content hidden"></section>');
     el('forwardedCard').insertAdjacentHTML('beforebegin', '<div class="card profile-announce" id="announceCard" hidden></div>');
-    el('profileOverview').insertAdjacentHTML('afterend', '<div id="myActivityCard"></div>');
     document.body.insertAdjacentHTML('beforeend', '<dialog id="wlfAdminDialog" class="admin-dialog" aria-labelledby="wlfAdminDialogTitle"></dialog>');
     PAGES.announcements = ['Announcement', 'Notices for chosen sections: My Profile card, red count and notification'];
     PAGES['recycle-bin'] = ['Recycle Bin', 'Restore deleted items or delete them permanently'];
@@ -362,11 +403,11 @@ const WlfAdmin = (() => {
   window.addEventListener('wlf-ready', () => { badgeAt = 0; refreshBadges(true); });
   window.addEventListener('wlf-logout', () => {
     epoch++;
-    for (const id of ['announceCard', 'myActivityCard', 'tab-recycle-bin', 'tab-announcements']) { const x = el(id); if (x) x.innerHTML = ''; }
+    for (const id of ['announceCard', 'tab-recycle-bin', 'tab-announcements']) { const x = el(id); if (x) x.innerHTML = ''; }
     if (el('announceCard')) el('announceCard').hidden = true;
     for (const id of ['profileNavBadge', 'damageNavBadge', 'supplierNavBadge']) if (el(id)) el(id).hidden = true;
     bin = {items:[], purges:[], kind:'', query:'', selected:new Set()}; ann = {items:[], sections:[], editing:null};
-    usage = {member:'', offset:0, before:null, downloaded:false};
+    usage = {member:'', offset:0, before:null, downloaded:false}; range = {from:'', to:'', count:null, checked:''}; clog = {from:'', to:'', q:'', rows:[]};
   });
-  return {open:onTab, refreshBadges, usageLog, loadAnnouncements};
+  return {open:onTab, refreshBadges, usageLog, componentLog, loadAnnouncements};
 })();

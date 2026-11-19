@@ -115,3 +115,13 @@
 [data-theme=dark] .btn.ghost-danger:not(.ghost){background:transparent;color:#fb7185;border:1.5px solid #fb7185}
 @media(max-width:600px){.bin-table tr:nth-child(even){background:transparent}}
 .admin-typed{text-transform:none;letter-spacing:0;font-size:13px;color:var(--text)}
+/* v2.5.6 activity log range delete + component change log */
+.usage-range{margin-top:12px;border-color:#fecaca}
+.usage-range .overview-filters{align-items:end}
+.clog-changes{margin:0;padding-left:16px;display:grid;gap:2px;font-size:12.5px;min-width:220px}
+.clog-changes s{color:var(--muted)}
+.clog-added,.clog-edited,.clog-deleted{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700}
+.clog-added{background:#dcfce7;color:#166534}.clog-edited{background:#e0e7ff;color:#3730a3}.clog-deleted{background:#fee2e2;color:#991b1b}
+html[data-theme=dark] .clog-added{background:#14361f;color:#86efac}
+html[data-theme=dark] .clog-edited{background:#25254b;color:#c7d2fe}
+html[data-theme=dark] .clog-deleted{background:#3f1717;color:#fca5a5}
