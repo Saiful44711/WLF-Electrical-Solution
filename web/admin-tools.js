@@ -52,6 +52,8 @@ const WlfAdmin = (() => {
     setBadge('#nav button[data-tab="account"]', 'profileNavBadge', fw + an,
       [fw ? fw + ' forwarded to you' : '', an ? an + ' unread announcement' + (an > 1 ? 's' : '') : ''].filter(Boolean).join(' · ') || 'Nothing new');
     setBadge('#nav button[data-tab="damage-demand"]', 'damageNavBadge', dm, dm + ' pending demand' + (dm === 1 ? '' : 's'));
+    const sc = Number(x.supplierPending || 0);
+    setBadge('#nav button[data-tab="supplier-claim"]', 'supplierNavBadge', sc, sc + ' Supplier Claim' + (sc === 1 ? '' : 's') + ' waiting for goods');
   }
   async function refreshBadges(force) {
     if (!SESSION || badgeBusy || !navigator.onLine || (!force && Date.now() - badgeAt < 15000)) return;
@@ -362,7 +364,7 @@ const WlfAdmin = (() => {
     epoch++;
     for (const id of ['announceCard', 'myActivityCard', 'tab-recycle-bin', 'tab-announcements']) { const x = el(id); if (x) x.innerHTML = ''; }
     if (el('announceCard')) el('announceCard').hidden = true;
-    for (const id of ['profileNavBadge', 'damageNavBadge']) if (el(id)) el(id).hidden = true;
+    for (const id of ['profileNavBadge', 'damageNavBadge', 'supplierNavBadge']) if (el(id)) el(id).hidden = true;
     bin = {items:[], purges:[], kind:'', query:'', selected:new Set()}; ann = {items:[], sections:[], editing:null};
     usage = {member:'', offset:0, before:null, downloaded:false};
   });

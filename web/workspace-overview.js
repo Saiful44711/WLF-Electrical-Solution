@@ -431,7 +431,7 @@ const WlfOverview = (() => {
   }
 
   document.addEventListener('DOMContentLoaded',() => {
-    const damageNav = document.querySelector('#nav [data-tab="damage-demand"]');
+    const damageNav = document.querySelector('#nav [data-tab="supplier-claim"]') || document.querySelector('#nav [data-tab="damage-demand"]');
     damageNav.insertAdjacentHTML('afterend',
       '<button data-tab="qms" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></svg>QMS</button>'+
       '<button data-tab="workspace-dashboard" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V11m5 9V5m5 15v-8m5 8V8M2 20h20"/></svg>Dashboard</button>');

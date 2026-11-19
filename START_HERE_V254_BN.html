@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.4 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.3 → 2.5.4 · ১৯ নভেম্বর ২০২৬</p>
+  <h1>Component Selection Reset, R&amp;I Electrical-এর Support notification আর Supplier Claim: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.4.zip</b> (ডাটাবেস), <b>WLF-GitHub-v2.5.4-UPLOAD.zip</b> (v2.5.3-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.4.zip</b> (পুরো প্রজেক্ট)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. অনুমতি দেওয়া</a><a href="#s5">৫. যাচাই</a><a href="#use">ব্যবহার</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what">
+<h2>কী বদলেছে</h2>
+<ul>
+<li><b>Component Selection → Reset বোতাম:</b> Search components-এর পাশে। চাপলে Capacity, Speed, Usage type, Roping, Motor brand, Motor model আবার "Any" হয়ে যায়, motor-এর তালিকা ও Report মুছে যায়; নতুন entry শুরু করা যায়। <b>Calculations-এর কোনো ঘর বা ফলাফল বদলায় না।</b> (শুধু Calculations-এর "Use selected lift" বোতামের জন্য মনে রাখা Report মুছে যায়, কারণ Report এখন আর নেই।)</li>
+<li><b>R&amp;I Electrical-এর notification:</b> যেকোনো টিম নতুন Technical Support request জমা দিলে Section <b>R&amp;I Electrical</b>-এর অনুমোদিত ইউজাররা ফোন/পিসির স্ক্রিনে notification পান (নতুন access request-এ Super Admin যেমন পান)। যিনি request পাঠিয়েছেন তিনি নিজে পান না। Technical Support-এর বিদ্যমান লাল সংখ্যা যেমন ছিল তেমনই আছে।</li>
+<li><b>Damage Demand → Supplier claim অংশ:</b> প্রতিটা demand-এর বিস্তারিতে দুটো Yes/No ঘর: <b>Supplier Claim</b> আর <b>Supplier Confirmed</b>। এগুলো demand-এর নিজের Pending/Received-এর সাথে <b>কোনোভাবে যুক্ত নয়</b>।
+ <ul><li>"Set Supplier Claim = Yes": সাপ্লায়ারের নাম, ক্লেমের তারিখ, নোট দিয়ে সংরক্ষণ।</li>
+ <li>"Set Supplier Confirmed = Yes": শুধু Supplier Claim = Yes হলে করা যায়।</li>
+ <li>Super Admin ভুল Yes বাতিল করতে পারেন (মাল Received হওয়ার আগ পর্যন্ত)।</li></ul></li>
+<li><b>নতুন মেনু Supplier Claim:</b> Supplier Confirmed = Yes হলেই demand-টি এখানে <b>Pending</b> হিসেবে আসে। সাপ্লায়ারের কাছ থেকে মাল হাতে পেলে <b>Received</b> বোতাম। মেনুতে Pending সংখ্যার লাল ব্যাজ থাকে।</li>
+<li><b>অনুমতি Super Admin ঠিক করেন:</b> User Management-এ নতুন গ্রুপ <b>Supplier Claim</b>, চারটা আলাদা টিক। কারও কাছে ডিফল্টভাবে কিছু নেই।</li>
+</ul>
+</section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2>
+<ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li></ol>
+<div class="danger">Data backup CSV কাউকে দেবেন না (ইমেইল, পাসওয়ার্ডের hash, notification key থাকে)।</div></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেস আপডেট</h2>
+<ol><li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V254.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলের সারি:
+<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>supplier_permissions_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>supplier_columns_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>support_push_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>v254_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">একটাই transaction, দুবার চালালেও ক্ষতি নেই। এই SQL কিছুই মোছে না। নতুন কলাম যোগ হয়, আগের তথ্য যেমন ছিল তেমন থাকে।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2>
+<ol><li><code>WLF-GitHub-v2.5.4-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন (১০০টির কম ফাইল)।</li>
+<li>Commit message: <code>v2.5.4 Selection reset, support notification, supplier claim</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol>
+<div class="attention">ক্রম: আগে SQL (ধাপ ২), তারপর GitHub (ধাপ ৩)। উল্টো হলে নতুন পাতায় "Unsupported action" দেখাতে পারে — SQL চালালেই ঠিক হয়।</div></section>
+
+<section id="s4"><h2>৪. কাকে কী অনুমতি দেবেন (Super Admin)</h2>
+<ol><li>বাম মেনুতে <b>User Management</b> → ইউজারের নামে ক্লিক।</li>
+<li>নিচে <b>Supplier Claim</b> গ্রুপে প্রয়োজনমতো টিক:
+<div class="scroll"><table><tr><th>টিক</th><th>কী করতে পারবেন</th></tr>
+<tr><td>See the Supplier Claim menu</td><td>Supplier Claim মেনু দেখা</td></tr>
+<tr><td>Set "Supplier Claim" = Yes</td><td>Damage Demand-এ Supplier Claim = Yes করা</td></tr>
+<tr><td>Set "Supplier Confirmed" = Yes</td><td>Supplier Confirmed = Yes করা</td></tr>
+<tr><td>Mark Supplier Claim goods as Received</td><td>মাল পেলে Received করা (মেনুও দেখেন)</td></tr></table></div></li>
+<li><b>Save user &amp; access</b> চাপুন।</li></ol>
+<div class="attention">Damage Demand-এর বিস্তারিত পাতা খোলার জন্য ওই ইউজারের Damage Demand-এর <b>Demand</b> অনুমতিও লাগে। শুধু Supplier Claim অনুমতি থাকলে মেনু দেখা যায়, কিন্তু demand-এ Yes করার জায়গাটি পেতে Demand অনুমতি দরকার।</div></section>
+
+<section id="s5"><h2>৫. লাইভ সাইটে যাচাই</h2>
+<ol><li>Ctrl+F5 বা অ্যাপ বন্ধ করে আবার খুলুন; ⋮ মেনুর নিচে <b>WLF v2.5.4</b>।</li>
+<li>Component Selection → কিছু বাছুন → <b>Reset</b> → সব ঘর "Any"।</li>
+<li>Damage Demand → একটা demand খুলুন → নিচে <b>Supplier claim</b> (দুটোই No)। Claim = Yes, তারপর Confirmed = Yes করুন → মেনুতে <b>Supplier Claim</b> খুলে Pending দেখুন → Received চাপুন।</li>
+<li>অন্য একজন R&amp;I Electrical ইউজারের ফোনে Notifications চালু রেখে (My Profile → Notifications) কোনো টিমের ইউজার দিয়ে নতুন Support request জমা দিন → ফোনে notification আসে কি না দেখুন।</li></ol></section>
+
+<section id="use"><h2>ব্যবহারের নিয়ম</h2>
+<ul><li>Supplier Claim আর demand-এর Received/Pending আলাদা: Dispatch demand Receive করলেও Supplier Claim-এর অবস্থা বদলায় না, উল্টোটাও না।</li>
+<li>Supplier Claim মেনুতে <b>Pending / Received / All</b> ফিল্টার। Received বোতামে দুবার চাপতে হয় (ভুল চাপ ঠেকাতে)।</li>
+<li>Super Admin একই demand খুলে <b>Cancel Supplier Confirmed</b> বা <b>Cancel Supplier Claim</b> করতে পারেন (দুবার চাপতে হয়)। Claim বাতিল করলে Confirmed-ও মুছে যায়। মাল Received হয়ে গেলে আর বাতিল করা যায় না।</li>
+<li>Damage Demand-এর Excel রিপোর্টে নতুন দুটো কলাম: Supplier Claim, Supplier Confirmed।</li></ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td><code>STOP: apply UPDATE_V253.sql</code></td><td>v2.5.3-এর SQL নেই</td><td>আমাকে জানান</td></tr>
+<tr><td>"Unsupported action: …" Supplier Claim-এ</td><td>সাইট নতুন, SQL চালানো হয়নি</td><td>ধাপ ২</td></tr>
+<tr><td>"You do not have Supplier Claim access."</td><td>অনুমতি দেওয়া হয়নি</td><td>ধাপ ৪</td></tr>
+<tr><td>Supplier Claim মেনু দেখা যায় না</td><td>"See the Supplier Claim menu" টিক নেই</td><td>ধাপ ৪, তারপর ইউজার একবার লগআউট-লগইন</td></tr>
+<tr><td>"Set Supplier Claim = Yes first."</td><td>Confirmed আগে চাপা হয়েছে</td><td>আগে Claim = Yes</td></tr>
+<tr><td>R&amp;I Electrical-এ notification আসেনি</td><td>ওই ডিভাইসে Notifications বন্ধ, বা ইউজারের Section "R&amp;I Electrical" নয়</td><td>My Profile → Notifications → Turn on; User Management-এ Section দেখুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.3-এর পর <code>UPDATE_V254.sql</code> দুবার চালানো হয়েছে। সার্ভার: দুই ধাপের ক্রম, অনুমতি ছাড়া প্রত্যাখ্যান, demand-এর Pending/Received অপরিবর্তিত থাকা, Super Admin-এর বাতিল (Received-এর পর নয়), মেনুর লাল সংখ্যা, নতুন Support request-এ শুধু R&amp;I Electrical-এর অনুমোদিত ইউজার (প্রেরক বাদে) notification queue-তে।</li>
+<li>ব্রাউজার (Playwright): Reset, দুই ধাপ Yes, Supplier Claim মেনুতে Pending থেকে Received, অনুমতিহীন ইউজার মেনু দেখে না, ফোনের মাপে Received বোতাম পর্দার ভেতরে। মোবাইল/ডেস্কটপ, লাইট/ডার্ক স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> ৯৮টি পাস, e2e পাস (ঢাকা ও UTC সময় দুভাবেই)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো, আসল ফোনে notification পৌঁছানো (এখানে শুধু queue-তে জমা পরীক্ষা হয়েছে), আর GitHub-এর CI।</div></section>
+<footer>WLF Electrical Solution · v2.5.4</footer>
+</main>
+</body>
+</html>

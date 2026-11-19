@@ -32,7 +32,9 @@ const WlfDamage = (() => {
     ['Demand status', d => d.status],
     ['Demand submitted (Dhaka)', d => time(d.createdAt)],
     ['Received by', d => d.receivedBy],
-    ['Received at (Dhaka)', d => time(d.receivedAt)]
+    ['Received at (Dhaka)', d => time(d.receivedAt)],
+    ['Supplier Claim', d => d.supplierClaim ? 'Yes' : 'No'],
+    ['Supplier Confirmed', d => d.supplierConfirmed ? 'Yes' : 'No']
   ];
 
   async function call(action, payload) {
@@ -200,7 +202,7 @@ const WlfDamage = (() => {
         <td>${h(teamName(d.category))}</td><td>${h(d.project || 'Not recorded')}<small>${h(d.lift)}</small></td>
         ${queue ? '' : `<td>${h(d.controllers.join(', ') || 'Not recorded')}</td><td>${h(d.problemCategories.join(', ') || 'Not recorded')}</td>`}
         <td>${h(d.itemName)}<small>${h([d.itemCode, d.itemSpec].filter(Boolean).join(' · '))}</small></td>
-        <td>${h(d.quantity)}</td><td>${statusBadge(d.status)}</td><td>${h(time(d.createdAt))}</td>
+        <td>${h(d.quantity)}</td><td>${statusBadge(d.status)}${d.supplierConfirmed ? '<small class="supplier-tag">Supplier Confirmed</small>' : d.supplierClaim ? '<small class="supplier-tag">Supplier Claim</small>' : ''}</td><td>${h(time(d.createdAt))}</td>
       </tr>`).join('')}</tbody>
     </table></div>`;
   }
@@ -382,6 +384,69 @@ const WlfDamage = (() => {
       `<dt>${h(name)}</dt><dd>${h(WlfFields.display(value) || 'Not recorded')}</dd>`).join('')}</dl>`;
   }
 
+  const yn = on => `<b class="supplier-yn ${on ? 'yes' : 'no'}">${on ? 'Yes' : 'No'}</b>`;
+  const can = option => AccessCore.supplierAccess(SESSION, option);
+
+  function supplierBlock(d) {
+    const sp = d.supplier || {};
+    const claim = can('claim') && !d.supplierClaim;
+    const confirm = can('confirm') && d.supplierClaim && !d.supplierConfirmed;
+    const admin = SESSION?.role === 'Super Admin' && d.supplierClaim && sp.status !== 'Received';
+    return `<section class="supplier-box" aria-labelledby="supplierBoxTitle"><h3 id="supplierBoxTitle">Supplier claim</h3>
+      <dl class="wlf-entry-values damage-details">
+        <dt>Supplier Claim</dt><dd>${yn(d.supplierClaim)}${d.supplierClaim ? `<small>${h(sp.name)} · ${h(sp.date || '')} · by ${h(sp.claimBy)} · ${h(time(sp.claimAt))}${sp.note ? ' · ' + h(sp.note) : ''}</small>` : ''}</dd>
+        <dt>Supplier Confirmed</dt><dd>${yn(d.supplierConfirmed)}${d.supplierConfirmed ? `<small>by ${h(sp.confirmBy)} · ${h(time(sp.confirmAt))}</small>` : ''}</dd>
+        ${d.supplierConfirmed ? `<dt>Supplier Claim goods</dt><dd>${statusBadge(sp.status)}${sp.status === 'Received' ? `<small>by ${h(sp.receivedBy)} · ${h(time(sp.receivedAt))}</small>` : ''}</dd>` : ''}
+      </dl>
+      <form id="supClaimForm" class="supplier-form" hidden>
+        <label>Supplier name<input name="supplier" maxlength="120" required autocomplete="off"></label>
+        <label>Claim date<input name="date" type="date"></label>
+        <label>Note (optional)<textarea name="note" maxlength="500" rows="2"></textarea></label>
+        <div class="engineering-actions"><button type="submit" class="btn">Save: Supplier Claim = Yes</button>
+          <button type="button" class="btn ghost" id="supClaimCancel">Back</button></div>
+      </form>
+      <div class="engineering-actions supplier-actions">
+        ${claim ? '<button type="button" class="btn" id="supClaimOpen">Set Supplier Claim = Yes</button>' : ''}
+        ${confirm ? '<button type="button" class="btn" id="supConfirm">Set Supplier Confirmed = Yes</button>' : ''}
+        ${admin && d.supplierConfirmed ? '<button type="button" class="btn ghost-danger" data-sup-cancel="confirm">Cancel Supplier Confirmed</button>' : ''}
+        ${admin ? '<button type="button" class="btn ghost-danger" data-sup-cancel="claim">Cancel Supplier Claim</button>' : ''}
+      </div></section>`;
+  }
+
+  function bindSupplier(node, d) {
+    const status = el('damageDetailStatus');
+    const run = async (action, payload, done, buttons) => {
+      buttons.forEach(b => b.disabled = true);
+      status.textContent = 'Saving…';
+      try {
+        const saved = await call(action, payload);
+        if (node.open) renderDetail(saved, done);
+        if (visible() && state?.pane === 'demand') load();
+        if (typeof WlfSupplier !== 'undefined') WlfSupplier.refresh();
+      } catch (err) {
+        if (node.contains(status)) status.textContent = cleanError(err);
+        buttons.forEach(b => b.disabled = false);
+      }
+    };
+    const all = () => Array.from(node.querySelectorAll('.supplier-box button'));
+    const form = el('supClaimForm');
+    const open = el('supClaimOpen');
+    if (open) open.onclick = () => { form.hidden = false; open.hidden = true; form.elements.supplier.focus(); };
+    if (el('supClaimCancel')) el('supClaimCancel').onclick = () => { form.hidden = true; if (open) open.hidden = false; };
+    if (form) form.onsubmit = event => {
+      event.preventDefault();
+      const f = form.elements;
+      if (!f.supplier.value.trim()) { status.textContent = 'Enter the supplier name.'; f.supplier.focus(); return; }
+      run('markSupplierClaim', {id: d.id, supplier: f.supplier.value.trim(), date: f.date.value, note: f.note.value.trim()}, 'Supplier Claim = Yes saved.', all());
+    };
+    const confirm = el('supConfirm');
+    if (confirm) confirm.onclick = () => run('confirmSupplierClaim', {id: d.id}, 'Supplier Confirmed = Yes saved. The item is now in the Supplier Claim menu as Pending.', all());
+    node.querySelectorAll('[data-sup-cancel]').forEach(b => b.onclick = () => {
+      if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to confirm: ' + b.textContent; return; }
+      run('cancelSupplierClaim', {id: d.id, step: b.dataset.supCancel}, 'Cancelled.', all());
+    });
+  }
+
   function renderDetail(d, message = '') {
     const node = dialog('Damage Demand ' + d.reference, `
       <div class="damage-detail-header">${statusBadge(d.status)}<span>${h(teamName(d.category))}</span></div>
@@ -397,6 +462,7 @@ const WlfDamage = (() => {
       <details class="support-form-values"><summary>Submitted support form details</summary>
         ${detailValues((d.supportForm?.fields || []).map(field => [field.label, d.supportValues?.[field.id]]))}
       </details>
+      ${supplierBlock(d)}
       <p id="damageDetailStatus" role="status" aria-live="polite">${h(message)}</p>
       <div class="engineering-actions">
         ${d.status === 'Pending' && state?.pane === 'demand' && AccessCore.damageAccess(SESSION, 'receive', d.category) ? '<button type="button" class="btn" id="damageReceive">Receive demand</button>' : ''}
@@ -404,6 +470,7 @@ const WlfDamage = (() => {
       </div>`);
     const close = node.querySelector('[data-damage-close]');
     close.onclick = () => node.close();
+    bindSupplier(node, d);
     const receive = el('damageReceive');
     if (!receive) return;
     receive.onclick = async () => {

@@ -1,0 +1,26 @@
+/* WLF v2.5.4: Supplier Claim */
+.supplier-box{margin:14px 0 0;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--bg)}
+.supplier-box h3{margin:0 0 6px;font-size:14px}
+.supplier-box dd small,.supplier-table td small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.supplier-yn{display:inline-block;min-width:34px;text-align:center;border-radius:999px;padding:1px 10px;font-size:12.5px}
+.supplier-yn.yes{background:color-mix(in srgb,var(--card),#16a34a 28%);color:var(--text)}
+.supplier-yn.no{background:color-mix(in srgb,var(--card),#94a3b8 24%);color:var(--text)}
+.supplier-form{display:grid;gap:8px;margin:10px 0 0}
+.supplier-form[hidden]{display:none}
+.supplier-form label{display:grid;gap:4px;margin:0;text-transform:none;letter-spacing:0;font-size:13px}
+.supplier-actions{margin-top:10px}
+.supplier-tag{display:inline-block;margin-top:4px;border-radius:999px;padding:1px 8px;background:color-mix(in srgb,var(--card),#6366f1 20%);color:var(--text);font-size:11.5px}
+.supplier-card{margin:0}
+.supplier-filters{margin:10px 0}
+.supplier-table td{vertical-align:top;white-space:normal}
+.supplier-empty{margin:12px 0 0}
+@media(max-width:600px){
+  .supplier-table thead{display:none}
+  .supplier-table,.supplier-table tbody,.supplier-table tr,.supplier-table td{display:block;width:100%;min-width:0}
+  .supplier-table tr{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin-bottom:10px;background:var(--bg)}
+  .supplier-table td{border:0;padding:4px 0;display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px}
+  .supplier-table td::before{content:attr(data-label);color:var(--muted);font-size:12px;font-weight:700}
+  .supplier-table td.sc-act{display:block;padding-top:8px}
+  .supplier-table td.sc-act::before{content:none}
+  .supplier-table td.sc-act .btn{width:100%}
+}

@@ -249,3 +249,7 @@
 #registerForm .req{color:#e5484d;font-weight:700}
 #registerForm .invalid{border-color:#e5484d !important;box-shadow:0 0 0 3px rgba(229,72,77,.18)}
 #registerForm .reg-note{margin:4px 0 10px;font-size:12px}
+/* v2.5.4: Component Selection reset */
+.sel-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#selResetNote{margin:10px 0 0;min-height:0}
+#selResetNote:empty{display:none}

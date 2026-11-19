@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.3-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.4-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -453,7 +453,7 @@ await dialog.getByRole('button',{name:'Close',exact:true}).click();
 await logout();
 
 await login('sa');
-assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
+assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
 await tab('qms');
 await page.locator('#qmsAdd').click();
 await page.locator('#qmsComponentForm [name=project]').fill('WLF North Tower');
@@ -751,6 +751,74 @@ await page.locator('#myActivityCard').scrollIntoViewIfNeeded();await v253shot('0
 await page.locator('[data-ann-read]').first().click();await page.locator('#announceCard .announce-old').waitFor();
 await page.waitForFunction(n=>{const b=document.getElementById('profileNavBadge');return b&&(b.hidden?0:Number(b.textContent))===n-1;},before253);
 await logout();await login('admin');await tab('account');await page.waitForTimeout(400);assert.equal(await page.locator('#announceCard').isHidden(),true,'Sales section does not get the Commissioning announcement');
+await logout();await login('sa');
+/* ---- v2.5.4: Component Selection reset, R&I Electrical support push, Supplier Claim ---- */
+fs.mkdirSync('test-results/v254',{recursive:true});
+const v254shot=async(name,{phone=true}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(150);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v254/${name}-${label}-${theme}.png`});}if(w<500)assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),name+' fits phone');}await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});};
+// 1) Component Selection: Reset clears only this tab
+await tab('selection');await page.locator('#sel-capacity option').nth(1).waitFor({state:'attached'});
+await page.evaluate(()=>{const first=id=>{const s=document.getElementById(id);s.value=s.options[1].value;s.dispatchEvent(new Event('change'));};first('sel-capacity');});
+await page.locator('#searchBtn').click();
+await page.waitForFunction(()=>!document.getElementById('matchesCard').classList.contains('hidden')||!document.getElementById('reportWrap').classList.contains('hidden'));
+await page.evaluate(()=>{const chip=document.querySelector('#matchesList .chip');if(chip)chip.click();});
+await page.waitForFunction(()=>!document.getElementById('reportWrap').classList.contains('hidden'));
+assert.notEqual(await page.locator('#sel-capacity').inputValue(),'');
+assert.ok((await page.locator('#report').innerHTML()).length>100,'a report is shown before Reset');
+await page.evaluate(()=>{document.getElementById('en-capacity').value='1234';});
+await v254shot('01-selection-before-reset',{phone:false});
+await page.locator('#resetSelBtn').click();
+for(const id of ['sel-capacity','sel-speed','sel-usageType','sel-roping','sel-brand','sel-model'])assert.equal(await page.locator('#'+id).inputValue(),'',id+' cleared');
+assert.equal(await page.locator('#reportWrap').isHidden(),true);assert.equal(await page.locator('#matchesCard').isHidden(),true);
+assert.equal((await page.locator('#report').innerHTML()).trim(),'');assert.equal(await page.locator('#matchesList .chip').count(),0);
+assert.match(await page.locator('#selResetNote').innerText(),/Cleared/);
+assert.equal(await page.evaluate(()=>document.getElementById('en-capacity').value),'1234','Calculations are not touched');
+assert.equal(await page.evaluate(()=>ENGINE_SELECTED),null);
+await v254shot('02-selection-after-reset');
+// search again after Reset works for a new entry
+await page.evaluate(()=>{const s=document.getElementById('sel-capacity');s.value=s.options[1].value;s.dispatchEvent(new Event('change'));});
+await page.locator('#searchBtn').click();await page.waitForFunction(()=>!document.getElementById('matchesCard').classList.contains('hidden')||!document.getElementById('reportWrap').classList.contains('hidden'));
+assert.equal(await page.locator('#selResetNote').innerText(),'');
+await page.evaluate(()=>{document.getElementById('resetSelBtn').click();});
+
+// 2) Supplier Claim on a Damage Demand (Super Admin has every permission)
+const demandId=(await sequential(()=>h.db.query('select request_id from wlf_private.damage_demands order by demand_no limit 1'))).rows[0]?.request_id;
+assert.ok(demandId,'a damage demand exists from the earlier steps');
+const dispatchBefore=(await sequential(()=>h.db.query('select received_at is null as pending from wlf_private.damage_demands where request_id=$1',[demandId]))).rows[0].pending;
+await tab('damage-demand');await page.locator('[data-damage-view]').first().waitFor();
+await page.locator(`[data-damage-view="${demandId}"]`).click();
+await page.locator('.supplier-box').waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claim\s*No[\s\S]*Supplier Confirmed\s*No/);
+assert.equal(await page.locator('#supConfirm').count(),0,'Supplier Confirmed cannot be set before Supplier Claim');
+await page.locator('#supClaimOpen').click();
+await page.locator('#supClaimForm [name=supplier]').fill('Arkel Elektronik');await page.locator('#supClaimForm [name=note]').fill('Warranty claim e-mailed');
+await v254shot('03-supplier-claim-form',{phone:true});
+await page.locator('#supClaimForm [type=submit]').click();
+await page.locator('#damageDetailStatus').filter({hasText:'Supplier Claim = Yes saved'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Claim\s*Yes[\s\S]*Arkel Elektronik/);
+await page.locator('#supConfirm').click();
+await page.locator('#damageDetailStatus').filter({hasText:'Supplier Confirmed = Yes saved'}).waitFor();
+assert.match(await page.locator('.supplier-box').innerText(),/Supplier Confirmed\s*Yes/);
+await v254shot('04-demand-supplier-yes-yes');
+assert.equal((await sequential(()=>h.db.query('select received_at is null as pending from wlf_private.damage_demands where request_id=$1',[demandId]))).rows[0].pending,dispatchBefore,'demand Pending/Received untouched');
+await page.locator('[data-damage-close]').click();
+// 3) the Supplier Claim menu: Pending, then Received
+await page.evaluate(()=>WlfAdmin.refreshBadges(true));await page.locator('#supplierNavBadge:not([hidden])').waitFor();assert.equal(await page.locator('#supplierNavBadge').innerText(),'1');
+await tab('supplier-claim');await page.locator('.supplier-table tr').filter({hasText:'Arkel Elektronik'}).waitFor();
+assert.equal(await page.locator('#pageTitle').innerText(),'Supplier Claim');
+await v254shot('05-supplier-claim-pending');
+await page.setViewportSize({width:390,height:844});await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(150);{const bb=await page.locator('[data-sc-receive]').boundingBox();assert.ok(bb&&bb.x>=0&&bb.x+bb.width<=391,'Received button fits on a phone: '+JSON.stringify(bb));}await page.setViewportSize({width:1280,height:900});
+await page.locator('[data-sc-receive]').click();await page.locator('[data-sc-receive]').click();
+await page.locator('#scStatus').filter({hasText:'Marked as Received'}).waitFor();
+await page.locator('#supplierNavBadge[hidden]').waitFor({state:'attached'});
+await page.locator('[data-sc-filter=Received]').click();await page.locator('.supplier-table tr').filter({hasText:'Arkel Elektronik'}).filter({hasText:'Received'}).waitFor();
+await v254shot('06-supplier-claim-received');
+assert.equal((await sequential(()=>h.db.query('select received_at is null as pending from wlf_private.damage_demands where request_id=$1',[demandId]))).rows[0].pending,dispatchBefore,'dispatch status still untouched after goods Received');
+// 4) permissions are given by the Super Admin, nobody has them by default
+await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'supplier:view') where id=$1",[IDS.rni]));
+await logout();await login('admin');await page.waitForTimeout(300);
+assert.equal(await page.locator('#nav [data-tab=supplier-claim]').isHidden(),true,'no permission: no Supplier Claim menu');
+await logout();await login('rni');await page.locator('#nav [data-tab=supplier-claim]').waitFor({state:'visible'});
+await tab('supplier-claim');await page.locator('.supplier-card').waitFor();assert.equal(await page.locator('[data-sc-receive]').count(),0,'view-only user has no Received button');
 await logout();await login('sa');
 await logout();await login('user');
 }

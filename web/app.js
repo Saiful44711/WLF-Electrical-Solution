@@ -278,6 +278,7 @@ function refreshIndexNow() {
 }
 
 function searchComponents() {
+  $('selResetNote').textContent = '';
   var rows = comboRows();
   var b = $('sel-brand').value, m = $('sel-model').value;
   if (b) rows = rows.filter(function (r) { return r.b === b; });
@@ -306,11 +307,29 @@ function searchComponents() {
   $('matchesCard').classList.remove('hidden');
 }
 
+var SEL_RUN = 0;
 function showDetails(sheetRow, chip, btn) {
   document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
   if (chip) chip.classList.add('active');
   if (btn) busy(btn, true, 'Loading...');
-  loadComponentDetails(sheetRow).then(function(d){if(btn)busy(btn,false);renderReport(d);}).catch(failWith(btn));
+  var run = SEL_RUN;
+  loadComponentDetails(sheetRow).then(function(d){if(btn)busy(btn,false);if(run!==SEL_RUN)return;renderReport(d);}).catch(failWith(btn));
+}
+
+/* v2.5.4: Reset clears only the Component Selection tab (its six fields, the motor list and the report).
+   Calculations keep everything they have. */
+function resetSelection() {
+  SEL_RUN++;
+  ['sel-capacity', 'sel-speed', 'sel-usageType', 'sel-roping', 'sel-brand', 'sel-model'].forEach(function (id) { $(id).value = ''; });
+  updateBrands();
+  $('matchesList').innerHTML = '';
+  $('matchesCard').classList.add('hidden');
+  $('report').innerHTML = '';
+  $('reportWrap').classList.add('hidden');
+  document.querySelectorAll('#tab-selection .chip').forEach(function (c) { c.classList.remove('active'); });
+  ENGINE_SELECTED = null;
+  $('selResetNote').textContent = 'Cleared. Select the lift parameters for a new entry.';
+  $('sel-capacity').focus();
 }
 
 function renderReport(d) {

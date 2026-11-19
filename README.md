@@ -1,4 +1,13 @@
-# WLF Electrical Solution v2.5.3
+# WLF Electrical Solution v2.5.4
+
+## v2.5.4 Component Selection Reset, R&I Electrical support notification, Supplier Claim (19 November 2026)
+
+- Component Selection: **Reset** clears the six selection fields, the motor list and the report (not Calculations).
+- Technical Support: `wlf_push_new_support_request` trigger on `public.wlf_requests` queues a push for every approved user whose section is **R&I Electrical** when a new request is submitted (not for the submitter).
+- Damage Demand: two Yes/No acknowledgements, **Supplier Claim** (`markSupplierClaim`) then **Supplier Confirmed** (`confirmSupplierClaim`), independent of the demand's Pending/Received. Super Admin can undo (`cancelSupplierClaim`) until goods are Received.
+- New menu **Supplier Claim** (`getSupplierClaims`, `receiveSupplierClaim`): confirmed items wait as Pending until the goods arrive, then Received. Red count via `getNavBadges.supplierPending`.
+- Permissions `supplier:view`, `supplier:claim`, `supplier:confirm`, `supplier:receive` are assigned per user by the Super Admin. Nobody has them by default.
+- Run `supabase/UPDATE_V254.sql` after v2.5.3. See `START_HERE_V254_BN.html`.
 
 ## v2.5.3 Recycle bin, Announcement, Management Dashboard, My Profile first (17 November 2026)
 
