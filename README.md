@@ -1,4 +1,14 @@
-# WLF Electrical Solution v2.5.9
+# WLF Electrical Solution v2.6.0
+
+## v2.6.0 Motor-first QMS, Controller Model on Support forms, Components CSV import (20 November 2026)
+
+- **QMS input** order: Project information, Motor selection (same inputs as Component Selection), Control system and serial numbers, LOP/COP/Transom/cable, Other components. After a motor is chosen two controllers (MOT and NICE3000+) and an AVR are suggested from Component data; one click fills the controller model and AVR. SDB main breaker rating is stored in Other components. Control system and Controller model can still be chosen by hand; the long hardware table is not opened (only the Encoder Card is picked). Every serial number is required and shows as a separate SERIAL NUMBERS table. Output tables show Price (BDT). MOTCUBE is not a QMS controller.
+- **Hardware Catalogue** order: controller models (small to big), COP, LOP, Transom, COP Faceplate, AVR, Other components. COP Faceplate models: Hairline, Silver Mirror, Golden Mirror, Black Mirror, Black Hairline, Rose Gold Mirror. Blank MOTCUBE 5.5 / 7.5 / 11 kW tables added. "Value" is now labelled Price (BDT).
+- **Support forms**: choosing a Controller Brand now requires a Controller Model (MOT 6, NICE3000+ 7, MOTCUBE 3). Damage Demand starts from that model. Old requests keep an empty model.
+- **Component Selection** tables show units in the parameter names: Controller Power (kW), Controller Current (A), UPS (VA), ARD (A) and so on.
+- **Components Data**: Download CSV, Import CSV (replaces all rows, Super Admin only, preview before replacing). Sample file `Components-Data-SAMPLE-FORMAT.csv`.
+- The red dot on the three-dot menu is removed.
+- Run `supabase/UPDATE_V260.sql` after v2.5.9. See `START_HERE_V260_BN.html`.
 
 ## v2.5.9 Hardware Catalogue, QMS lift records, catalogue-driven Damage Demand (20 November 2026)
 

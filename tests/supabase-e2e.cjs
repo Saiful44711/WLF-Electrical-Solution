@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.9-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.0-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -91,12 +91,16 @@ async function fillDynamic(selector,overrides={}){
   for(const node of nodes){
    if(node.readOnly)continue;
    const value=overrides[node.name];
+   if(node.type==='hidden'&&value===undefined&&node.name==='controller_model'){ /* v2.6.0: pick the first model of the chosen brand, like the popup would */
+    const holder=node.closest('.wlf-dependent'),brand=node.form.elements.controller&&node.form.elements.controller.value,list=holder?((JSON.parse(holder.dataset.optionMap||'{}'))[brand]||[]):[];
+    if(list.length){node.value=list[0];const btn=holder.querySelector('.wlf-pick');if(btn)btn.textContent=list[0];}
+    continue;}
    if(node.type==='hidden'&&value===undefined)continue; /* server-filled or chosen in a popup (v2.5.2) */
    if(node.type==='checkbox'||node.type==='radio'){
     if(!checked.has(node.name)){node.checked=true;checked.add(node.name);}
    }else if(node.tagName==='SELECT'){
     const option=node.name==='problem_category'&&[...node.options].find(o=>o.value==='Encoder problem')||[...node.options].find(o=>o.value);
-    node.value=value??option?.value??'';
+    node.value=value??option?.value??'';node.dispatchEvent(new Event('change',{bubbles:true}));
    }else if(node.type==='date')node.value=value??'2026-11-05';
    else node.value=value??(node.inputMode==='decimal'?'10':'Browser verification');
   }
@@ -141,6 +145,8 @@ for (const [team, expectedForm] of Object.entries(supportWorkbook.forms)) {
   expectedFields[at]={...expectedFields[at],options:liveCats};
   expectedFields.splice(at+1,0,{id:'problem_sub',label:'',type:'dependent',required:false,autoFill:'dependent',options:[]});
  }
+ /* v2.6.0: Controller Model (hidden value, chosen in a popup) right after the Control System Brand */
+ {const ci=expectedFields.findIndex(f=>f.id==='controller');if(ci>=0)expectedFields.splice(ci+1,0,{id:'controller_model',label:'',type:'dependent',required:false,autoFill:'dependent',options:[]});}
  await page.locator('[data-support-category="'+team+'"]').click();
  for(let k=0;k<3&&!(await page.locator('#newSupportRequest').isVisible());k++){await page.waitForTimeout(1500);if(!(await page.locator('#newSupportRequest').isVisible()))await page.locator('[data-support-category="'+team+'"]').click().catch(()=>{});} // the home list can re-render right after the click (pre-existing test race)
  await page.locator('#newSupportRequest').click();
@@ -182,8 +188,10 @@ await tab('documents');await page.locator('#wlfAddCategory').click();await page.
 await tab('users');await page.locator('#userAccessSearch').fill('user@example.test');assert.equal(await page.locator('.access-user:visible').count(),1);await page.locator('#userAccessSearch').fill('other@example.test');await page.locator('.access-user:visible summary').click();page.once('dialog',d=>d.accept());await page.locator('.access-delete').click();await page.waitForFunction(()=>!document.querySelector('[data-access-user="other@example.test"]'));
 assert.equal((await sequential(()=>h.db.query("select count(*) n from public.wlf_usage where actor=$1",[IDS.other]))).rows[0].n,1);
 assert.equal((await sequential(()=>h.db.query("select count(*) n from auth.users where id=$1",[IDS.other]))).rows[0].n,0);
+const pickModel=async model=>{await page.locator('.wlf-dependent[data-dep-name=controller_model] .wlf-pick').click();const b=page.locator('#wlfPicker [data-pick="'+model+'"]');await b.click({timeout:8000}).catch(async e=>{throw Error('PICK-DIAG '+await page.evaluate(()=>{const d=document.getElementById('wlfPicker');return d?('open='+d.open+' '+d.innerText.slice(0,200)+' | controller='+document.querySelector('#supportRequestForm [name=controller]')?.value):'no picker; controller='+document.querySelector('#supportRequestForm [name=controller]')?.value;}));});};/* v2.6.0: the Controller Model list opens right after the brand is chosen */
+const withModel=v=>({controller_model:'NICE3000+ 7.5 kW',...v});/* v2.6.0: the Controller Model is required for MOT / NICE3000+ / MOTCUBE */
 // One solved support fixture tests date filters, backup-only, clear, download and restore UI.
-let vals={};for(const f of require('../data/workbook-v220-audit.json').support.commissioning.fields)vals[f.id]=f.type==='multi'?[f.options[0]]:f.type==='date'?'2026-09-12':f.type==='number'?'8888':f.options.length?f.options[0]:'Browser backup test';vals.problem_category='Encoder problem';/* v2.5.2 category list */let seed=await h.rpc('user','createSupportRequest',[{category:'commissioning',values:vals,mutationId:'browser-backup-create-0001'}]);seed=await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'receive',mutationId:'browser-backup-receive-001'}]);await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'solve',comment:'Backup test solved',mutationId:'browser-backup-solve-0001'}]);
+let vals={};for(const f of require('../data/workbook-v220-audit.json').support.commissioning.fields)vals[f.id]=f.type==='multi'?[f.options[0]]:f.type==='date'?'2026-09-12':f.type==='number'?'8888':f.options.length?f.options[0]:'Browser backup test';vals.problem_category='Encoder problem';vals.controller='NICE3000+';vals.controller_model='NICE3000+ 7.5 kW';/* v2.5.2 category list; v2.6.0 controller model */let seed=await h.rpc('user','createSupportRequest',[{category:'commissioning',values:vals,mutationId:'browser-backup-create-0001'}]);seed=await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'receive',mutationId:'browser-backup-receive-001'}]);await h.rpc('rni','transitionSupportRequest',[{id:seed.id,revision:seed.revision,action:'solve',comment:'Backup test solved',mutationId:'browser-backup-solve-0001'}]);
 await h.db.query("update public.wlf_requests set created_at='2026-09-12 06:00:00+00' where id=$1",[seed.id]);
 await tab('storage');await page.locator('#wlfBackupPeriod').selectOption('custom');await page.locator('#wlfBackupFrom').fill('2026-09-01');await page.locator('#wlfBackupTo').fill('2026-09-30');await page.locator('#wlfBackupOnly').click();await page.locator('#wlfBackupStatus').filter({hasText:'Backup saved and verified'}).waitFor();assert.equal((await h.db.query('select count(*)n from public.wlf_requests where id=$1',[seed.id])).rows[0].n,1);await page.locator('#wlfRefreshStorage').click();await page.locator('[data-backup-id]').click();const archiveDownload=page.waitForEvent('download');await page.locator('[data-download-part]').click();const file=await archiveDownload;await file.saveAs('test-results/v210-support-backup.json');assert.equal(JSON.parse(fs.readFileSync('test-results/v210-support-backup.json','utf8')).records.length,1);await page.locator('#wlfReviewClear').click();await page.locator('#wlfClearConsent').check();await page.locator('#wlfConfirmClear').click();await page.locator('#wlfBackupStatus').filter({hasText:'1 unchanged Solved records cleared'}).waitFor();assert.equal((await h.db.query('select count(*)n from public.wlf_requests where id=$1',[seed.id])).rows[0].n,0);await page.locator('#wlfRestore').click();await page.locator('#wlfRestoreFile').setInputFiles('test-results/v210-support-backup.json');page.once('dialog',d=>d.accept());await page.locator('#wlfRestoreGo').click();await page.locator('#wlfRestoreStatus').filter({hasText:'1 support record(s) restored'}).waitFor();await page.locator('#wlfCancel').click();await page.screenshot({path:'test-results/v210-storage-desktop.png',fullPage:true});
 // Verify the database-backed form editor and component table filters.
@@ -459,30 +467,51 @@ await logout();
 
 await login('sa');
 assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=catalogue] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
-fs.mkdirSync('test-results/v259',{recursive:true});
+fs.mkdirSync('test-results/v259',{recursive:true});fs.mkdirSync('test-results/v260',{recursive:true});
 await tab('qms');
 await page.locator('#qmsLiftForm').waitFor();
 await page.locator('#qmsLiftForm [name=liftId]').fill('L-101');
 await page.locator('#qmsLiftForm [name=project]').fill('WLF North Tower');
 await page.locator('#qmsLiftForm [name=address]').fill('Gulshan-2, Dhaka');
 await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-25');
-await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
-await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 7.5 kW');
-assert.ok((await page.locator('#qmsLiftForm .hw-table tbody tr').count())>=20,'controller hardware rows are listed');
-for(let i=await page.locator('[data-control-pick]').count();i>0;i--) await page.locator('[data-control-pick]').first().selectOption({index:1}).catch(()=>{});
-await page.locator('#qmsLiftForm [name=sl-drive]').fill('D-88213');
+/* v2.6.0: motor first (section 2), then suggested controllers and AVR fill the rest */
+const order=await page.locator('#qmsLiftForm legend').allInnerTexts();
+assert.match(order[1],/^2 · Motor selection/);assert.match(order[2],/^3 · Control system/);
+assert.equal(await page.locator('#qmsLiftForm [name=sl-drive]').getAttribute('required')!==null,true,'serial numbers are required');
+assert.equal(await page.locator('#hwMotorSearch').isDisabled(),false,'motor list is available from Component Selection data');
+await page.locator('#hwMotorSearch').click();await page.locator('.hw-motor-chip').first().click();await page.locator('#hwMotorResult table').first().waitFor();
+const motorModel=await page.locator('#hwMotorResult table').first().innerText();
+await page.locator('#hwSuggest [data-suggest-ctrl]').first().waitFor();
+const suggested=await page.locator('#hwSuggest [data-suggest-ctrl]').allInnerTexts();
+assert.ok(suggested.some(x=>/^MOT \d/.test(x)),'a MOT controller is suggested: '+suggested);
+await page.locator('#hwSuggest [data-suggest-ctrl]').first().click();
+assert.match(await page.locator('#qmsLiftForm [name=system]').inputValue(),/MOT|NICE3000\+/);
+const chosenModel=await page.locator('#qmsLiftForm [name=controllerModel]').inputValue();
+assert.equal(chosenModel,suggested[0],'the suggestion filled the controller model');
+assert.match(await page.locator('.hw-auto').innerText(),/items are added automatically/);
+assert.equal(await page.locator('#qmsLiftForm .hw-table thead').count(),0,'the long controller list is not opened');
+for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
+await page.locator('#hwSuggest [data-suggest-avr]').first().click();
+assert.match(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),/^AVR \d+ KVA$/,'AVR suggestion filled the AVR size');
 await page.locator('#qmsLiftForm [name=lop]').selectOption({index:1});
 await page.locator('#qmsLiftForm [name=cop0]').selectOption({index:1});
 await page.locator('#qmsLiftForm [name=transom]').selectOption({index:1});
 await page.locator('#qmsLiftForm [name=cable]').selectOption({index:1});
-await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 20 KVA');
-assert.match(await page.locator('#qmsLiftForm').innerText(),/no items yet/);
-assert.equal(await page.locator('#hwMotorSearch').isDisabled(),false,'motor list is available from Component Selection data');
-await page.locator('#hwMotorSearch').click();await page.locator('.hw-motor-chip').first().click();await page.locator('#hwMotorResult table').first().waitFor();
-const motorModel=await page.locator('#hwMotorResult table').first().innerText();
+const faceplates=await page.locator('#qmsLiftForm [name=faceplate] option').allInnerTexts();
+for(const name of ['Hairline','Silver Mirror','Golden Mirror','Black Mirror','Black Hairline','Rose Gold Mirror']) assert.ok(faceplates.some(x=>x.startsWith(name)),'faceplate '+name);
+assert.equal((await page.locator('#qmsLiftForm [name=controllerModel] option').allInnerTexts()).filter(x=>/kW/.test(x)).join('|'),['MOT 5.5 kW','MOT 7.5 kW','MOT 11 kW','MOT 15 kW','MOT 22 kW','MOT 37 kW'].join('|'),'controller models run from small to big');
+assert.ok(!(await page.locator('#qmsLiftForm [name=system] option').allInnerTexts()).includes('MOTCUBE'),'MOTCUBE is not a QMS controller');
 await page.locator('#qmsLiftForm input[name=other]').first().check();
-await page.screenshot({path:'test-results/v259/03-qms-input-desktop.png',fullPage:true});
 const qmsSubmit=async()=>{const b=page.locator('#qmsLiftForm [type=submit]');await b.scrollIntoViewIfNeeded();await b.focus();await page.waitForTimeout(200);await b.click();};/* CI lesson (v2.5.1): focus first so scrolling cannot move the button between mousedown and mouseup */
+/* every serial number is required */
+await qmsSubmit();
+await page.locator('#qmsLiftStatus').filter({hasText:/Enter the Motor SL/}).waitFor();
+const fillSerials=async()=>{for(const [k,v] of Object.entries({motor:'M-100',encoder:'E-200',drive:'D-88213',ups:'U-300',cartop:'CT-400',cop:'CP-500',copDisplay:'CD-600'})) await page.locator('#qmsLiftForm [name=sl-'+k+']').fill(v);};
+await page.locator('#qmsLiftForm [name=sl-motor]').fill('M-100');await page.locator('#qmsLiftForm [name=sl-encoder]').fill('E-200');
+await qmsSubmit();
+await page.locator('#qmsLiftStatus').filter({hasText:/Enter the Drive SL/}).waitFor();
+await fillSerials();
+await page.screenshot({path:'test-results/v260/03-qms-input-desktop.png',fullPage:true});
 await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor().catch(async e=>{throw Error('QMS-DIAG status=['+(await page.locator('#qmsLiftStatus').innerText().catch(()=>'?'))+'] errors='+JSON.stringify(errors)+' console='+JSON.stringify((globalThis.consoleErrors||[]).slice(-5))+' disabled='+(await page.locator('#qmsLiftForm [type=submit]').isDisabled().catch(()=>'?')));});
 await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
@@ -490,17 +519,18 @@ await page.locator('#qmsLiftForm [name=project]').fill('Other');
 await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-26');
 await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
 await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 5.5 kW');
-for(let i=await page.locator('[data-control-pick]').count();i>0;i--) await page.locator('[data-control-pick]').first().selectOption({index:1}).catch(()=>{});
+for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
+await fillSerials();
 await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift ID already exists'}).waitFor();
 await page.locator('#qmsTabData').click();
 await page.locator('#qmsSearch [name=liftId]').fill('L-101');
 await page.locator('#qmsSearch [type=submit]').click();
 await page.locator('.hw-out h3').filter({hasText:'L-101'}).waitFor();
-assert.equal(await page.locator('.hw-out .overview-eyebrow').count()>=5,true,'five output sections');
+assert.equal(await page.locator('.hw-out .overview-eyebrow').count()>=6,true,'six output tables');
 const qmsText=await page.locator('#tab-qms').innerText();
-for(const word of ['PROJECT INFORMATION','SELECTED MOTOR','Capacity','CONTROL SYSTEM','COP · LOP','OTHER COMPONENTS','WLF North Tower','D-88213']) assert.ok(qmsText.toLowerCase().includes(word.toLowerCase()),word);
-await page.screenshot({path:'test-results/v259/04-qms-data-desktop.png',fullPage:true});
+for(const word of ['PROJECT INFORMATION','SELECTED MOTOR','Capacity','CONTROL SYSTEM','SERIAL NUMBERS','COP · LOP','OTHER COMPONENTS','SDB main breaker','Price','WLF North Tower','D-88213','E-200','CP-500']) assert.ok(qmsText.toLowerCase().includes(word.toLowerCase()),word);
+await page.screenshot({path:'test-results/v260/04-qms-data-desktop.png',fullPage:true});
 const qmsDl=page.waitForEvent('download');
 await page.locator('#qmsExcel').click();
 await (await qmsDl).saveAs('test-results/v259/qms-L-101.xlsx');
@@ -532,7 +562,7 @@ await page.screenshot({path:'test-results/workspace-kpis-mobile.png'});
 await tab('qms');
 await page.locator('#qmsLiftForm').waitFor();
 await checkRiMobileFit('#tab-qms');
-await page.screenshot({path:'test-results/v259/03-qms-input-mobile.png',fullPage:true});
+await page.screenshot({path:'test-results/v260/03-qms-input-mobile.png',fullPage:true});
 await page.setViewportSize({width:1280,height:900});
 await logout();
 
@@ -582,7 +612,7 @@ await dupBox.scrollIntoViewIfNeeded();await v250shot('01-user-duplicate-id');
 await target.scrollIntoViewIfNeeded();await target.locator('.access-tools').scrollIntoViewIfNeeded();await v250shot('02-user-copy-access-history');
 // old-request colours
 const reqForm=(await h.rpc('user','getSupportWorkspace',[{category:'commissioning'}])).forms.commissioning;
-for(let i=0;i<2;i++)await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:reqForm.revision,mutationId:crypto.randomUUID(),values:Object.fromEntries(reqForm.fields.filter(f=>!f.dependsOn).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.type==='multi'?f.options.slice(0,1):f.type==='date'?'2026-11-15':f.type==='number'?'1200':f.type==='checkbox'?(f.options?.length?[]:false):f.options?.[0]||('Aged request '+(i+1))]))}]));
+for(let i=0;i<2;i++)await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:reqForm.revision,mutationId:crypto.randomUUID(),values:withModel(Object.fromEntries(reqForm.fields.filter(f=>!f.dependsOn).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.type==='multi'?f.options.slice(0,1):f.type==='date'?'2026-11-15':f.type==='number'?'1200':f.type==='checkbox'?(f.options?.length?[]:false):f.options?.[0]||('Aged request '+(i+1))])))}]));
 const open=(await sequential(()=>h.db.query("select id from public.wlf_requests where category='commissioning' and status<>'Solved' and deleted_at is null order by created_at desc limit 2"))).rows;
 assert(open.length>=2,'two open commissioning requests');
 await sequential(()=>h.db.query("update public.wlf_requests set created_at=now()-interval '4 days' where id=$1",[open[0].id]));
@@ -641,7 +671,7 @@ assert.equal(await page.locator('#riSubmitForm [name=problem]').evaluate(n=>n.cl
 // Technical Support: Other box and saved popup
 await tab('technical');if(await page.locator('#supportHome').isVisible())await page.locator('#supportHome').click();await page.locator('[data-support-category="commissioning"]').click();await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor();
 await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Popup Tower');await page.locator('#supportRequestForm [name=lift]').fill('77');
-await page.locator('#supportRequestForm [name=controller]').selectOption('MOT');await page.locator('#supportRequestForm [name=problem_category]').selectOption('Others');
+await page.locator('#supportRequestForm [name=controller]').selectOption('MOT');await pickModel('MOT 7.5 kW');await page.locator('#supportRequestForm [name=problem_category]').selectOption('Others');
 await page.locator('[data-other-for=problem_category]').fill('Landing door lock');await page.locator('#supportRequestForm [name=problem]').fill('Door lock contact opens at floor 3');
 await page.removeLocatorHandler(globalThis.savedLocator);await page.locator('#supportRequestForm [type=submit]').click();
 const savedDlg=page.locator('#wlfSavedDialog[open]');await savedDlg.waitFor();assert.equal(await savedDlg.locator('h3').innerText(),'Request submitted');assert.match(await savedDlg.innerText(),/Reference\s*TCS/);
@@ -683,33 +713,33 @@ assert.equal(cardCount,badgeText+' unsolved');assert.ok(Number(badgeText)>0);ass
 await v252shot('01-support-team-badges');
 // sub-category popup
 await page.locator('[data-support-category="commissioning"]').click();await page.locator('#supportFilterQuery').waitFor();for(let i=0;i<4&&!(await page.locator('#supportRequestForm').isVisible());i++){await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor({timeout:4000}).catch(()=>{});}await page.locator('#supportRequestForm').waitFor();
-assert.equal(await page.locator('.wlf-dependent').isHidden(),true,'no sub-category before a category is chosen');
+assert.equal(await page.locator('.wlf-dependent[data-dep-name=problem_sub]').isHidden(),true,'no sub-category before a category is chosen');
 await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Subcat Tower');await page.locator('#supportRequestForm [name=lift]').fill('252');
-await page.locator('#supportRequestForm [name=controller]').selectOption('NICE3000+');await page.locator('#supportRequestForm [name=problem]').fill('Err20 during travel');
-await page.locator('#supportRequestForm [name=problem_category]').selectOption('NICE3000+ drive error');await page.locator('.wlf-dependent').waitFor();
-await page.locator('.wlf-pick').click();await page.locator('#wlfPicker[open] .wlf-picker-search').fill('err20');
+await page.locator('#supportRequestForm [name=controller]').selectOption('NICE3000+');await pickModel('NICE3000+ 7.5 kW');await page.locator('#supportRequestForm [name=problem]').fill('Err20 during travel');
+await page.locator('#supportRequestForm [name=problem_category]').selectOption('NICE3000+ drive error');await page.locator('.wlf-dependent[data-dep-name=problem_sub]').waitFor();
+await page.locator('.wlf-dependent[data-dep-name=problem_sub] .wlf-pick').click();await page.locator('#wlfPicker[open] .wlf-picker-search').fill('err20');
 assert.equal(await page.locator('#wlfPicker [data-pick]:visible').count(),14);await v252shot('02-subcategory-popup');
-await page.locator('#wlfPicker [data-pick="Err20 · Sub 5"]').click();assert.equal(await page.locator('.wlf-pick').innerText(),'Err20 · Sub 5');
-await page.locator('#supportRequestForm [name=problem_category]').selectOption('Encoder problem');assert.equal(await page.locator('.wlf-dependent').isHidden(),true);
+await page.locator('#wlfPicker [data-pick="Err20 · Sub 5"]').click();assert.equal(await page.locator('.wlf-dependent[data-dep-name=problem_sub] .wlf-pick').innerText(),'Err20 · Sub 5');
+await page.locator('#supportRequestForm [name=problem_category]').selectOption('Encoder problem');assert.equal(await page.locator('.wlf-dependent[data-dep-name=problem_sub]').isHidden(),true);
 await page.locator('#supportRequestForm [name=problem_category]').selectOption('AVR related issue');
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#wlfPicker[open]').waitFor();await page.locator('#wlfPicker [data-pick="40 KVA"]').click();
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#supportDetail h3').filter({hasText:/-252-/}).waitFor();
 assert.deepEqual((await sequential(()=>h.db.query("select values->>'problem_category' c, values->>'problem_sub' s from public.wlf_requests where values->>'project'='Subcat Tower'"))).rows[0],{c:'AVR related issue',s:'40 KVA'});
 // Super Admin edits the lists
 await page.locator('#supportHome').click();await page.locator('[data-support-category="commissioning"]').click();await page.locator('#manageSupportFields').click();
-await page.locator('.schema-sublists').waitFor();assert.equal(await page.locator('.schema-sublist').count(),6);assert.equal(await page.locator('.schema-sublist').filter({hasText:'MOTCUBE drive error'}).count(),1,'v2.5.8: MOTCUBE list is editable by Super Admin');
-const avrList=page.locator('.schema-sublist').filter({hasText:'AVR related issue'});await avrList.locator('summary').click();
+await page.locator('.schema-sublists[data-depends-on=problem_category]').waitFor();assert.equal(await page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist').count(),6);assert.equal(await page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist').filter({hasText:'MOTCUBE drive error'}).count(),1,'v2.5.8: MOTCUBE list is editable by Super Admin');
+const avrList=page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist').filter({hasText:'AVR related issue'});await avrList.locator('summary').click();
 await avrList.locator('textarea').fill('15 KVA\n20 KVA\n150 KVA');
-await page.locator('.schema-sublist-new').focus();await page.locator('.schema-sublist-new').selectOption('UPS related problem');await page.locator('[data-wlf-field="add-list"]').click();
-await page.locator('.schema-sublist-items[data-key="UPS related problem"]').fill('1 KVA\n2 KVA');
-await page.locator('.schema-sublists').scrollIntoViewIfNeeded();await v252shot('03-subcategory-editor',{phone:false});
+await page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist-new').focus();await page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist-new').selectOption('UPS related problem');await page.locator('.schema-sublists[data-depends-on=problem_category] [data-wlf-field="add-list"]').click();
+await page.locator('.schema-sublists[data-depends-on=problem_category] .schema-sublist-items[data-key="UPS related problem"]').fill('1 KVA\n2 KVA');
+await page.locator('.schema-sublists[data-depends-on=problem_category]').scrollIntoViewIfNeeded();await v252shot('03-subcategory-editor',{phone:false});
 await page.locator('#saveSchemaFields').click();await page.waitForFunction(()=>!document.getElementById('supportSchemaEditor'));
 const savedSub=(await sequential(()=>h.rpc('sa','getSupportWorkspace'))).forms.commissioning.fields.find(f=>f.id==='problem_sub');
 assert.deepEqual(savedSub.optionMap['AVR related issue'],['15 KVA','20 KVA','150 KVA']);assert.deepEqual(savedSub.optionMap['UPS related problem'],['1 KVA','2 KVA']);
 // forwarded to me
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array(select distinct unnest(permissions||array['support:commissioning:request'])) where id in ($1,$2)",[IDS.rni,IDS.rni2]));
 const fwForm=(await sequential(()=>h.rpc('user','getSupportWorkspace',[{category:'commissioning'}]))).forms.commissioning;
-let fw=(await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:fwForm.revision,mutationId:crypto.randomUUID(),values:Object.fromEntries(fwForm.fields.filter(f=>!f.dependsOn&&!f.autoFill).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.id==='project'?'Forward Plaza':f.type==='date'?'2026-11-17':f.type==='number'?'77':f.type==='checkbox'?(f.options?.length?[]:false):f.type==='multi'?f.options.slice(0,1):f.options?.[0]||'Forward test']))}]))).ticket;
+let fw=(await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:fwForm.revision,mutationId:crypto.randomUUID(),values:withModel(Object.fromEntries(fwForm.fields.filter(f=>!f.dependsOn&&!f.autoFill).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.id==='project'?'Forward Plaza':f.type==='date'?'2026-11-17':f.type==='number'?'77':f.type==='checkbox'?(f.options?.length?[]:false):f.type==='multi'?f.options.slice(0,1):f.options?.[0]||'Forward test'])))}]))).ticket;
 fw=(await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id:fw.id,revision:fw.revision,action:'receive',mutationId:crypto.randomUUID()}]))).ticket;
 fw=(await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id:fw.id,revision:fw.revision,action:'forward',to:'rni2@example.test',comment:'Please check the encoder wiring',mutationId:crypto.randomUUID()}]))).ticket;
 await logout();await login('rni2');await tab('account');
@@ -749,7 +779,7 @@ await page.locator('.ann-admin-item').filter({hasText:'Site safety week'}).waitF
 await v253shot('01-announcement-admin');
 // Recycle bin: things deleted elsewhere wait here
 const binForm=(await sequential(()=>h.rpc('user','getSupportWorkspace',[{category:'commissioning'}]))).forms.commissioning;
-const binReq=(await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:binForm.revision,mutationId:crypto.randomUUID(),values:Object.fromEntries(binForm.fields.filter(f=>!f.dependsOn&&!f.autoFill).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.id==='project'?'Bin Tower':f.type==='date'?'2026-11-17':f.type==='number'?'77':f.type==='checkbox'?(f.options?.length?[]:false):f.type==='multi'?f.options.slice(0,1):f.options?.[0]||'Bin test']))}]))).ticket;
+const binReq=(await sequential(()=>h.rpc('user','createSupportRequest',[{category:'commissioning',formRevision:binForm.revision,mutationId:crypto.randomUUID(),values:withModel(Object.fromEntries(binForm.fields.filter(f=>!f.dependsOn&&!f.autoFill).map(f=>[f.id,f.id==='problem_category'?'Encoder problem':f.id==='project'?'Bin Tower':f.type==='date'?'2026-11-17':f.type==='number'?'77':f.type==='checkbox'?(f.options?.length?[]:false):f.type==='multi'?f.options.slice(0,1):f.options?.[0]||'Bin test'])))}]))).ticket;
 await sequential(()=>h.rpc('sa','deleteSupportRequest',[{id:binReq.id,revision:binReq.revision,mutationId:crypto.randomUUID()}]));
 const binCat=(await sequential(()=>h.rpc('sa','getDocuments'))).categories[0];
 const binDoc=await sequential(()=>h.rpc('sa','saveDocument',[{category:binCat.id,name:'Bin manual',url:'https://drive.google.com/file/d/bin/view',extra:{}}]));
@@ -1023,7 +1053,7 @@ await logout();await login('user');
 fs.mkdirSync('test-results/v257',{recursive:true});
 {
 const v257shot=async(name,{phone=true,at=null}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(200);if(w<500&&await page.locator('#supportRefresh').count()){await page.locator('#supportRefresh').first().click();await page.waitForTimeout(700);}await page.evaluate(()=>window.scrollTo(0,0));if(at)await page.locator(at).first().evaluate(n=>n.scrollIntoView({block:'start'}));await page.waitForTimeout(100);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.screenshot({path:`test-results/v257/${name}-${label}-${theme}.png`,fullPage:false});}}await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});await page.setViewportSize({width:1440,height:900});};
-const mark=()=>page.evaluate(()=>({n:Number(document.getElementById('profileBadge').textContent||0),shown:!document.getElementById('profileBadge').hidden,dot:!document.getElementById('menuDot').hidden}));
+const mark=()=>page.evaluate(()=>({n:Number(document.getElementById('profileBadge').textContent||0),shown:!document.getElementById('profileBadge').hidden,dot:!!document.getElementById('menuDot')}));
 await logout();await login('user');
 const before=await mark();
 await category();await page.locator('.support-split').waitFor();
@@ -1047,8 +1077,8 @@ await fillDynamic('#supportRequestForm',{lift:'775577',project_address:'Plot 5, 
 await page.locator('#supportDetail h3').filter({hasText:/TCS\d+-775577-\d{8}/}).waitFor();
 assert.equal(await page.locator('#supportFormArea > *').count(),0);assert.equal(await page.locator('#supportDetail').isVisible(),true);
 const id=await page.locator('#supportDetail').getAttribute('data-record-id');
-await page.waitForFunction(()=>!document.getElementById('profileBadge').hidden&&!document.getElementById('menuDot').hidden);
-let now=await mark();assert.equal(now.n,before.n+1,'red count goes up by one: '+JSON.stringify([before,now]));assert.ok(now.dot);
+await page.waitForFunction(()=>!document.getElementById('profileBadge').hidden);
+let now=await mark();assert.equal(now.n,before.n+1,'red count goes up by one: '+JSON.stringify([before,now]));assert.equal(now.dot,false,'v2.6.0: the top menu has no red dot');
 assert.match(await page.locator('#profileBadge').getAttribute('title'),/not solved yet/);
 await v257shot('02-support-detail-red-mark');
 // 4) R&I receives and solves it: the requester gets a push and the red mark goes
@@ -1060,7 +1090,7 @@ await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id,revision:tk.rev
 const pushed=(await sequential(()=>h.db.query('select title,body from wlf_private.push_outbox where profile=$1',[IDS.user]))).rows;
 assert.deepEqual(pushed.map(r=>r.title),['Your support request was solved']);assert.match(pushed[0].body,/775577/);
 await logout();await login('user');
-now=await mark();assert.equal(now.n,before.n,'red count is back: '+JSON.stringify([before,now]));assert.equal(now.dot,before.n>0);
+now=await mark();assert.equal(now.n,before.n,'red count is back: '+JSON.stringify([before,now]));assert.equal(now.dot,false);
 await sequential(()=>h.db.query('delete from wlf_private.push_subscriptions where endpoint=$1',['https://push.example/e2e']));
 await v257shot('03-after-solved',{phone:false});
 }
@@ -1076,15 +1106,15 @@ await page.locator('#supportRequestForm').waitFor();
 const opts=await page.locator('#supportRequestForm [name=problem_category] option').allTextContents();
 const at=opts.indexOf('NICE3000+ drive error');assert.ok(at>0);assert.equal(opts[at+1],'MOTCUBE drive error');assert.equal(opts[at+2],'NICE900 door drive error');
 await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Cube Tower');await page.locator('#supportRequestForm [name=lift]').fill('582');
-await page.locator('#supportRequestForm [name=controller]').selectOption('MOTCUBE');await page.locator('#supportRequestForm [name=problem]').fill('H8 on every start');
-await page.locator('#supportRequestForm [name=problem_category]').selectOption('MOTCUBE drive error');await page.locator('.wlf-dependent').waitFor();
+await page.locator('#supportRequestForm [name=controller]').selectOption('MOTCUBE');await pickModel('MOTCUBE 7.5 kW');await page.locator('#supportRequestForm [name=problem]').fill('H8 on every start');
+await page.locator('#supportRequestForm [name=problem_category]').selectOption('MOTCUBE drive error');await page.locator('.wlf-dependent[data-dep-name=problem_sub]').waitFor();
 // 2) the H code is mandatory: submitting without it opens the list (61 codes, no H20)
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#wlfPicker[open]').waitFor();
 assert.equal(await page.locator('#wlfPicker [data-pick]').count(),61);assert.equal(await page.locator('#wlfPicker [data-pick="H20"]').count(),0);
 assert.equal(await page.locator('#wlfPicker [data-pick]').first().getAttribute('data-pick'),'H1');assert.equal(await page.locator('#wlfPicker [data-pick]').last().getAttribute('data-pick'),'H62');
 await page.locator('#wlfPicker .wlf-picker-search').fill('h6');assert.ok(await page.locator('#wlfPicker [data-pick]:visible').count()===4,'search h6 finds H6, H60, H61, H62');
 await v258shot('01-motcube-popup');
-await page.locator('#wlfPicker [data-pick="H62"]').click();assert.equal(await page.locator('.wlf-pick').innerText(),'H62');
+await page.locator('#wlfPicker [data-pick="H62"]').click();assert.equal(await page.locator('.wlf-dependent[data-dep-name=problem_sub] .wlf-pick').innerText(),'H62');
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#supportDetail h3').filter({hasText:/-582-/}).waitFor();
 const cubeId=await page.locator('#supportDetail').getAttribute('data-record-id');
 assert.equal((await sequential(()=>h.db.query("select values->>'problem_sub' s, values->>'problem_category' c from public.wlf_requests where id=$1",[cubeId]))).rows[0].s,'H62');
@@ -1145,8 +1175,8 @@ await logout();await login('user');await category();
 for(let i=0;i<4&&!(await page.locator('#supportRequestForm').isVisible());i++){await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor({timeout:4000}).catch(()=>{});}
 await page.locator('#supportRequestForm').waitFor();
 await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Catalogue Tower');await page.locator('#supportRequestForm [name=lift]').fill('7001');
-await page.locator('#supportRequestForm [name=controller]').selectOption('MOTCUBE');await page.locator('#supportRequestForm [name=problem]').fill('Drive trips');
-await page.locator('#supportRequestForm [name=problem_category]').selectOption('MOTCUBE drive error');await page.locator('.wlf-dependent').waitFor();
+await page.locator('#supportRequestForm [name=controller]').selectOption('MOTCUBE');await pickModel('MOTCUBE 7.5 kW');await page.locator('#supportRequestForm [name=problem]').fill('Drive trips');
+await page.locator('#supportRequestForm [name=problem_category]').selectOption('MOTCUBE drive error');await page.locator('.wlf-dependent[data-dep-name=problem_sub]').waitFor();
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#wlfPicker[open]').waitFor();await page.locator('#wlfPicker [data-pick="H8"]').click();
 await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#supportDetail h3').filter({hasText:/-7001-/}).waitFor();
 const demandReq=await page.locator('#supportDetail').getAttribute('data-record-id');
@@ -1157,10 +1187,12 @@ await page.locator(`[data-ticket="${demandReq}"]`).click();
 await page.locator('#supportComment').fill('Replace the drive card.');await page.locator('#supportDuration').fill('30');
 await page.locator('#supportHardware input[value=true]').check();
 const dd=page.locator('#wlfDamageDialog');await dd.waitFor();
-await dd.locator('#hwDemList tbody tr').first().waitFor();
-assert.ok(await dd.locator('#hwDemSuggest .hw-pick').count()>=1,'drive problem suggests drive parts');
-assert.match(await dd.locator('#hwDemSuggest').innerText(),/SUGGESTED FOR THIS PROBLEM/);
+await dd.locator('#hwDemModel').waitFor();
+await page.waitForFunction(()=>{const s=document.getElementById('hwDemModel');return s&&s.selectedIndex>0;});
+assert.equal(await dd.locator('#hwDemModel').evaluate(n=>n.options[n.selectedIndex].text),'MOTCUBE 7.5 kW','v2.6.0: the demand starts from the controller model of the request');
+assert.match(await dd.locator('#hwDemList').innerText(),/no code/,'MOTCUBE parts are listed by name; codes are blank until the Super Admin fills them');
 await dd.locator('#hwDemModel').selectOption({label:'NICE3000+ 11 kW'});
+await dd.locator('#hwDemList tbody tr').first().waitFor();assert.ok(await dd.locator('#hwDemSuggest .hw-pick').count()>=1,'drive problem suggests drive parts');assert.match(await dd.locator('#hwDemSuggest').innerText(),/SUGGESTED FOR THIS PROBLEM/);
 await dd.locator('#hwDemSupplier').selectOption('Monarch');
 await dd.locator('#hwDemList input[name=hwDemPick]').first().check();
 const pickedCode=await dd.locator('#hwDemList input[name=hwDemPick]:checked').evaluate(n=>n.closest('tr').children[1].innerText);
@@ -1171,6 +1203,59 @@ await page.locator('#supportActionStatus').filter({hasText:'Damage demand submit
 const dem=(await sequential(()=>h.db.query('select item_code,item_name,item_spec,component_model,supplier,catalog_id,quantity from wlf_private.damage_demands where request_id=$1',[demandReq]))).rows[0];
 assert.equal(dem.component_model,'NICE3000+ 11 kW');assert.ok(dem.catalog_id);assert.equal(dem.quantity,2);assert.match(dem.item_spec,/Model: NICE3000\+ 11 kW/);
 if(pickedCode.trim()!=='no code')assert.equal(dem.item_code,pickedCode.trim());
+await logout();await login('user');
+}
+/* ---- v2.6.0 ---- */
+{
+await logout();await login('sa');
+// units sit in the parameter names (Component Selection)
+await tab('selection');await page.locator('#sel-capacity').selectOption('450');await page.locator('#sel-speed').selectOption('1');await page.locator('#sel-usageType').selectOption('MR');await page.locator('#sel-roping').selectOption('2:1');await page.locator('#searchBtn').click();
+await page.locator('#matchesList .chip').first().click();
+const selText=await page.locator('#tab-selection').innerText();
+for(const word of ['UPS (VA)','ARD (A)','Controller Current (A)','Recommended AVR Rating (KVA)','Main Power Cable Size (RM)','SDB Main Breaker Rating (A)']) assert.ok(selText.includes(word),word);
+assert.ok(!/\b14 A\b|\b1500 VA\b|\b32 A\b/.test(selText.replace(/Brake Resistor[^\n]*/g,'')),'values no longer repeat the unit');
+await page.screenshot({path:'test-results/v260/01-component-units.png',fullPage:true});
+// no red dot on the top menu
+assert.equal(await page.locator('#menuDot').count(),0);
+// catalogue order and Price
+await tab('catalogue');await page.locator('.hw-sys-btn').first().waitFor();
+assert.deepEqual(await page.locator('.hw-sys-btn b').allInnerTexts(),['MOT','NICE3000+','MOTCUBE','AVR'],'catalogue systems: controllers first, then AVR');
+await page.locator('[data-hw-system="MOT"]').click();
+assert.deepEqual((await page.locator('.hw-model').evaluateAll(n=>n.map(x=>x.firstChild.textContent.trim()))),['MOT 5.5 kW','MOT 7.5 kW','MOT 11 kW','MOT 15 kW','MOT 22 kW','MOT 37 kW','COP','LOP','Transom','COP Faceplate','Other components']);
+await page.locator('[data-hw-model="MOT 7.5 kW"]').click();
+assert.match(await page.locator('#hwTable thead').innerText(),/Price \(৳\)/i);
+await page.locator('[data-hw-system="MOTCUBE"]').click();
+assert.deepEqual((await page.locator('.hw-model').evaluateAll(n=>n.map(x=>x.firstChild.textContent.trim()))),['MOTCUBE 5.5 kW','MOTCUBE 7.5 kW','MOTCUBE 11 kW']);
+await page.locator('[data-hw-system="AVR"]').click();
+assert.deepEqual((await page.locator('.hw-model').evaluateAll(n=>n.map(x=>x.firstChild.textContent.trim()))),['AVR 15 KVA','AVR 20 KVA','AVR 30 KVA','AVR 40 KVA','AVR 60 KVA','AVR 80 KVA','AVR 100 KVA','AVR 120 KVA','AVR 150 KVA']);
+await page.screenshot({path:'test-results/v260/02-catalogue.png'});
+// Components Data: CSV download and import (replace all)
+await tab('components');await page.locator('#componentsTable tbody tr').first().waitFor();
+const rowsBefore=(await sequential(()=>h.db.query('select values from public.wlf_components order by id'))).rows.map(r=>JSON.stringify(r.values));
+const csvDl=page.waitForEvent('download');await page.locator('#compCsvDownload').click();await (await csvDl).saveAs('test-results/v260/components-download.csv');
+const csvLines=fs.readFileSync('test-results/v260/components-download.csv','utf8').trim().split(/\r?\n/);
+assert.equal(csvLines.length,rowsBefore.length+1);assert.equal(csvLines[0].replace(/^﻿/,'').split(',').length,24);
+const importCsv=async file=>{await page.locator('#compCsvFile').setInputFiles(file);await page.locator('#compImport h3').waitFor();};
+fs.writeFileSync('test-results/v260/bad.csv','Capacity (KG),Speed\n450,1\n');
+await importCsv('test-results/v260/bad.csv');
+assert.match(await page.locator('#compImport').innerText(),/problem.*Nothing was changed/s);assert.equal(await page.locator('#compImportGo').isDisabled(),true);
+await page.screenshot({path:'test-results/v260/03-components-import-error.png'});
+await page.locator('#compImportCancel').click();
+const real=fs.readFileSync('tests/fixtures/components-2026-11-20.csv','utf8').trim().split(/\r?\n/);
+await importCsv('tests/fixtures/components-2026-11-20.csv');
+assert.match(await page.locator('#compImport').innerText(),new RegExp('\\b'+(real.length-1)+'\\b rows are ready'));
+await page.screenshot({path:'test-results/v260/04-components-import-preview.png'});
+await page.locator('#compImportGo').click();
+await page.locator('#msgBar,.msg.success,.toast').filter({hasText:/Components Data replaced/}).first().waitFor({timeout:20000}).catch(()=>{});
+await page.waitForFunction(n=>/(\d+) of \d+ components/.test(document.getElementById('compCount').textContent)&&document.getElementById('compCount').textContent.includes('of '+n),real.length-1,{timeout:20000});
+const nowRows=(await sequential(()=>h.db.query('select values from public.wlf_components order by id'))).rows;
+assert.equal(nowRows.length,real.length-1);assert.equal(typeof nowRows[0].values[0],'number','numbers are stored as numbers');assert.equal(nowRows[0].values.length,24);
+assert.equal(nowRows.filter(r=>r.values[2]==='MRL').length>0,true);
+assert.equal(nowRows.some(r=>r.values[3]!=='2:1'&&r.values[3]!=='4:1'),false,'roping stays text');
+// the new data drives the motor list and suggestions
+await tab('selection');await page.locator('#sel-capacity').selectOption('450');await page.locator('#sel-speed').selectOption('1');await page.locator('#sel-usageType').selectOption('MR');await page.locator('#sel-roping').selectOption('2:1');await page.locator('#searchBtn').click();await page.locator('#matchesList .chip').first().waitFor();
+await tab('components');await page.locator('#componentsTable tbody tr').first().waitFor();
+await page.screenshot({path:'test-results/v260/05-components-after-import.png'});
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);

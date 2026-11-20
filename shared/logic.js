@@ -340,7 +340,7 @@ return {categories:[
       ['Recommended ARKEL Controller KW', 'Controller Power (kW)'],
       ['Recommended ARKEL Controller Amp', 'Controller Current (A)'],
       ['Brake Resistor for ARKEL', 'Brake Resistor'],
-      ['UPS for ARKEL', 'UPS']
+      ['UPS for ARKEL', 'UPS (VA)']
     ]
   },
   {
@@ -349,14 +349,14 @@ return {categories:[
       ['Recommended NICE3000+ Controller KW', 'Controller Power (kW)'],
       ['Recommended NICE3000+ Controller Amp', 'Controller Current (A)'],
       ['Brake Resistor for NICE3000+', 'Brake Resistor'],
-      ['ARD For NICE3000+', 'ARD']
+      ['ARD For NICE3000+', 'ARD (A)']
     ]
   },
   {
     title: '4. Power Supply Recommendation',
     fields: [
-      ['Recommended AVR', 'Recommended AVR Rating'],
-      ['Main Power Cable (RM)', 'Main Power Cable Size'],
+      ['Recommended AVR', 'Recommended AVR Rating (KVA)'],
+      ['Main Power Cable (RM)', 'Main Power Cable Size (RM)'],
       ['SDB main breaker', 'SDB Main Breaker Rating (A)']
     ]
   }

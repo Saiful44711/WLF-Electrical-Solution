@@ -1,10 +1,17 @@
-/* v2.5.9: Hardware Catalogue, QMS lift records and the catalogue picker used by Raise Damage Demand. */
+/* v2.5.9: Hardware Catalogue, QMS lift records and the catalogue picker used by Raise Damage Demand. v2.6.0: motor-first QMS form with controller/AVR suggestions, serial table, prices. */
 const WlfHardware = (() => {
   'use strict';
 
   const el = id => document.getElementById(id);
   const h = value => esc(String(value ?? ''));
-  const CONTROL_SKIP = ['LOP', 'COP', 'Transom', 'Other components'];
+  const CONTROL_SKIP = ['LOP', 'COP', 'Transom', 'COP Faceplate', 'Other components'];
+  const QMS_SKIP = ['AVR', 'MOTCUBE'];            /* AVR is picked as an AVR size; MOTCUBE is no longer delivered, so it is not a QMS controller */
+  const SYSTEM_ORDER = ['MOT', 'NICE3000+', 'MOTCUBE', 'AVR'];
+  const MODEL_TAIL = ['COP', 'LOP', 'Transom', 'COP Faceplate', 'Other components'];   /* controller models first (small to big), then these */
+  const sizeOf = text => { const m = String(text).match(/(\d+(?:\.\d+)?)\s*(?:kw|kva)\b/i); return m ? parseFloat(m[1]) : null; };
+  const modelRank = m => { const i = MODEL_TAIL.indexOf(m); return i < 0 ? 0 : 100 + i; };
+  const byModel = (a, b) => modelRank(a) - modelRank(b) || (sizeOf(a) ?? 1e9) - (sizeOf(b) ?? 1e9) || a.localeCompare(b, undefined, {numeric: true});
+  const bySystem = (a, b) => { const x = SYSTEM_ORDER.indexOf(a), y = SYSTEM_ORDER.indexOf(b); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a.localeCompare(b); };
   const dateFormat = new Intl.DateTimeFormat('en-GB', {timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', year: 'numeric'});
   const clockFormat = new Intl.DateTimeFormat('en-GB', {timeZone: 'Asia/Dhaka', day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'});
   const when = (v, clock) => v ? (clock ? clockFormat : dateFormat).format(new Date(v)) : '—';
@@ -30,11 +37,11 @@ const WlfHardware = (() => {
     }).finally(() => { loading = null; });
     return loading;
   }
-  const systems = () => [...new Set(CAT.rows.map(r => r.system))];
-  const modelsOf = system => [...new Set(CAT.rows.filter(r => r.system === system).map(r => r.model))];
+  const systems = () => [...new Set(CAT.rows.map(r => r.system))].sort(bySystem);
+  const modelsOf = system => [...new Set(CAT.rows.filter(r => r.system === system).map(r => r.model))].sort(byModel);
   const rowsOf = (system, model) => CAT.rows.filter(r => r.system === system && r.model === model);
   const byId = id => CAT.rows.find(r => r.id === id);
-  const controlSystems = () => systems().filter(s => s !== 'AVR' && modelsOf(s).some(m => !CONTROL_SKIP.includes(m)));
+  const controlSystems = () => systems().filter(s => !QMS_SKIP.includes(s) && modelsOf(s).some(m => !CONTROL_SKIP.includes(m)));
   const controlModels = system => modelsOf(system).filter(m => !CONTROL_SKIP.includes(m));
 
   function dialog() {
@@ -73,7 +80,7 @@ const WlfHardware = (() => {
     if (q) rows = rows.filter(r => [r.itemCode, r.itemName, r.hardware, r.spec, r.brand, r.grp].join(' ').toLowerCase().includes(q));
     if (!selected.model) return '<p class="note">Select a control system and a model on the left.</p>';
     if (!rows.length) return '<p class="note">No matching rows.</p>';
-    return `<div class="tbl-wrap" tabindex="0"><table class="tbl hw-table"><thead><tr><th>#</th><th>Group</th><th>Hardware</th><th>Spec</th><th>Item code</th><th>Item name</th><th>Brand</th><th>Supplier</th><th>Value</th>${CAT.canEdit ? '<th></th>' : ''}</tr></thead><tbody>${
+    return `<div class="tbl-wrap" tabindex="0"><table class="tbl hw-table"><thead><tr><th>#</th><th>Group</th><th>Hardware</th><th>Spec</th><th>Item code</th><th>Item name</th><th>Brand</th><th>Supplier</th><th>Price (৳)</th>${CAT.canEdit ? '<th></th>' : ''}</tr></thead><tbody>${
       rows.map((r, i) => `<tr class="${usable(r) ? '' : 'hw-blank'}"><td>${i + 1}</td><td>${h(r.grp)}</td><td>${h(r.hardware)}</td><td>${h(r.spec)}</td>
         <td>${r.itemCode ? h(r.itemCode) : (usable(r) ? '<span class="hw-nocode">no code</span>' : '…')}</td><td>${h(r.itemName)}</td><td>${h(r.brand)}</td><td>${h(r.supplier)}</td><td>${h(money(r.value))}</td>
         ${CAT.canEdit ? `<td class="hw-actions"><button type="button" class="btn ghost" data-hw-edit="${h(r.id)}">Edit</button><button type="button" class="btn ghost danger" data-hw-del="${h(r.id)}">Delete</button></td>` : ''}</tr>`).join('')}</tbody></table></div>`;
@@ -131,7 +138,7 @@ const WlfHardware = (() => {
       <label class="hw-wide">Item name<input name="itemName" maxlength="240" value="${h(row?.itemName)}"></label>
       <label>Brand<input name="brand" maxlength="80" value="${h(row?.brand)}"></label>
       <label>Supplier<input name="supplier" maxlength="80" value="${h(row?.supplier)}"></label>
-      <label>Value (price)<input name="value" inputmode="decimal" maxlength="16" value="${h(row?.value ?? '')}"></label>
+      <label>Price (৳)<input name="value" inputmode="decimal" maxlength="16" value="${h(row?.value ?? '')}"></label>
       <datalist id="hwSystems">${systemsList.map(s => `<option value="${h(s)}">`).join('')}</datalist>
       <p class="note overview-status hw-wide" id="hwDialogStatus" role="status"></p>
       <div class="overview-actions hw-wide"><button class="btn" type="submit">Save row</button><button class="btn ghost" type="button" id="hwCancel">Cancel</button></div></form>`);
@@ -252,7 +259,7 @@ const WlfHardware = (() => {
     return rows.filter(r => r.some(x => String(x).trim()));
   }
 
-  const CSV_HEAD = ['Control system', 'Model', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Value'];
+  const CSV_HEAD = ['Control system', 'Model', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Price'];
   function importCsv() {
     openDialog('Import rows from CSV', `<form id="hwImportForm" class="hw-form">
       <p class="note hw-wide">Excel: File › Save as › CSV. First row must be the headers: ${h(CSV_HEAD.join(', '))}. Rows are added to the catalogue (existing rows are not changed).</p>
@@ -271,7 +278,7 @@ const WlfHardware = (() => {
         if (idx('Control system') < 0 || idx('Model') < 0) throw new Error('The first row must contain “Control system” and “Model” columns.');
         const get = (r, name) => idx(name) < 0 ? '' : String(r[idx(name)] ?? '').trim();
         const payload = rows.map(r => ({system: get(r, 'Control system'), model: get(r, 'Model'), grp: get(r, 'Group'), hardware: get(r, 'Hardware'),
-          spec: get(r, 'Spec'), itemCode: get(r, 'Item code'), itemName: get(r, 'Item name'), brand: get(r, 'Brand'), supplier: get(r, 'Supplier'), value: get(r, 'Value')}));
+          spec: get(r, 'Spec'), itemCode: get(r, 'Item code'), itemName: get(r, 'Item name'), brand: get(r, 'Brand'), supplier: get(r, 'Supplier'), value: get(r, 'Price') || get(r, 'Value')}));
         if (!payload.length) throw new Error('The file has no data rows.');
         status.textContent = 'Importing ' + payload.length + ' rows…';
         const result = await catalogueCall('importCatalogue', {rows: payload}, 'Imported ' + payload.length + ' rows.');
@@ -331,7 +338,7 @@ const WlfHardware = (() => {
     const of = (model, grp) => rowsOf(system, model).filter(r => usable(r) && (!grp || r.grp === grp));
     const others = of('Other components');
     return {
-      lop: of('LOP'), cop: [...of('COP', 'COP Display'), ...of('COP', 'COP Button')], faceplate: of('COP', 'COP Faceplate'),
+      lop: of('LOP'), cop: [...of('COP', 'COP Display'), ...of('COP', 'COP Button')], faceplate: of('COP Faceplate'),
       transom: of('Transom'), cable: others.filter(r => /travel/i.test(r.hardware)), other: others.filter(r => !/travel/i.test(r.hardware)),
     };
   }
@@ -358,19 +365,46 @@ const WlfHardware = (() => {
   }
 
   function controlBlock() {
-    if (!draft.system || !draft.controllerModel) return '<p class="note">Select the control system and the controller model to list its hardware.</p>';
+    if (!draft.system || !draft.controllerModel) return '<p class="note">Pick a suggested controller above, or choose the control system and controller model.</p>';
     const rows = rowsOf(draft.system, draft.controllerModel).filter(usable);
     const groups = [];
     rows.forEach(r => { let g = groups.find(x => x.hardware === r.hardware); if (!g) groups.push(g = {hardware: r.hardware, rows: []}); g.rows.push(r); });
-    return `<div class="tbl-wrap"><table class="tbl hw-table"><thead><tr><th>Group</th><th>Hardware</th><th>Selected item</th><th>Spec</th><th>Brand</th></tr></thead><tbody>${groups.map((g, i) => {
+    const auto = groups.filter(g => g.rows.length === 1).length;
+    const choices = groups.filter(g => g.rows.length > 1);
+    return `<p class="note hw-auto"><b>${h(draft.controllerModel)}</b>: ${auto} items are added automatically (see them in QMS Data).</p>${choices.length ? `<div class="hw-grid">${choices.map(g => {
       const saved = savedPart('control', g.hardware);
-      const chosen = g.rows.length === 1 ? g.rows[0].id : (draft.pick['control:' + g.hardware] || saved?.catalogueId || '');
-      const one = g.rows.length === 1 ? g.rows[0] : null;
-      const cur = byId(chosen);
-      return `<tr><td>${h(g.rows[0].grp)}</td><td>${h(g.hardware)}</td><td>${one ? `${h(one.itemCode || '')} ${one.itemCode ? '' : '<span class="hw-nocode">no code</span>'} ${h(one.itemName)}`
-        : selectHtml('control:' + g.hardware, g.rows, chosen, true).replace('<select ', '<select data-control-pick ')}</td>
-        <td data-spec="${i}">${h(cur?.spec || one?.spec || '')}</td><td>${h(cur?.brand || one?.brand || '')}</td></tr>`;
-    }).join('')}</tbody></table></div>`;
+      const chosen = draft.pick['control:' + g.hardware] || saved?.catalogueId || '';
+      return `<label>${h(g.hardware)} *${selectHtml('control:' + g.hardware, g.rows, chosen, true).replace('<select ', '<select data-control-pick ')}</label>`;
+    }).join('')}</div>` : ''}`;
+  }
+
+  /* Controller and AVR suggestions come from the motor chosen above (Component Selection data). */
+  function suggestions() {
+    const cats = draft.selection?.categories || [];
+    const value = (title, start) => { const it = (cats.find(c => title.test(c.title))?.items || []).find(x => x.label.startsWith(start)); const v = String(it?.value ?? '').trim(); return v && v !== '-' ? v : ''; };
+    const size = v => { const n = parseFloat(v); return Number.isFinite(n) ? String(n) : ''; };
+    const sdb = value(/Power Supply/i, 'SDB');
+    return {mot: size(value(/MOT Control/i, 'Controller Power')), nice: size(value(/NICE3000/i, 'Controller Power')), avr: size(value(/Power Supply/i, 'Recommended AVR')),
+      sdb: sdb && /^[\d.]+$/.test(sdb) ? sdb + ' A' : sdb};
+  }
+  const sdbOf = sel => { const it = (sel?.categories || []).flatMap(c => c.items || []).find(x => /^SDB/i.test(x.label)); const v = String(it?.value ?? '').trim(); return v && v !== '-' ? (/^[\d.]+$/.test(v) ? v + ' A' : v) : ''; };
+  function suggestHtml() {
+    if (!draft.selection) return '<p class="note">Select a motor to get the controller and AVR suggestions.</p>';
+    const s = suggestions();
+    const ctrl = (system, size) => {
+      if (!size) return `<span class="note">No ${h(system)} controller is listed for this motor.</span>`;
+      const model = system + ' ' + size + ' kW';
+      return modelsOf(system).includes(model)
+        ? `<button type="button" class="chip hw-chip ${draft.system === system && draft.controllerModel === model ? 'on' : ''}" data-suggest-ctrl="${h(system)}" data-model="${h(model)}">${h(model)}</button>`
+        : `<span class="note">${h(model)} is not in the catalogue yet.</span>`;
+    };
+    const avrModel = s.avr ? 'AVR ' + s.avr + ' KVA' : '';
+    const avr = !avrModel ? '<span class="note">No AVR is listed for this motor.</span>'
+      : modelsOf('AVR').includes(avrModel) ? `<button type="button" class="chip hw-chip ${draft.pick.avrModel === avrModel ? 'on' : ''}" data-suggest-avr="${h(avrModel)}">${h(avrModel)}</button>`
+      : `<span class="note">${h(avrModel)} is not in the catalogue yet.</span>`;
+    return `<div class="hw-suggest-box"><div class="overview-eyebrow">SUGGESTED CONTROLLERS (CHOOSE ONE TO FILL THE CONTROL SYSTEM)</div><div class="hw-chips">${ctrl('MOT', s.mot)}${ctrl('NICE3000+', s.nice)}</div>
+      <div class="overview-eyebrow">SUGGESTED AVR</div><div class="hw-chips">${avr}</div>
+      ${s.sdb ? `<p class="note">SDB main breaker <b>${h(s.sdb)}</b> is recorded with the lift from Component Selection.</p>` : ''}</div>`;
   }
 
   function motorBlock() {
@@ -417,12 +451,12 @@ const WlfHardware = (() => {
         <label>Delivery date *<input type="date" name="deliveryDate" required value="${h(d.deliveryDate)}"></label>
         <label>Motor type<select name="motorType">${optionList(['Gearless', 'Gear'], d.motorType)}</select></label>
         <label>Lift type<select name="liftType">${optionList(['Passenger', 'Cargo'], d.liftType)}</select></label></div>`)}
-      ${sec('2 · Control system and serial numbers', `<div class="hw-grid">
+      ${sec('2 · Motor selection (same inputs as Component Selection)', motorBlock() + '<div id="hwSuggest">' + suggestHtml() + '</div>')}
+      ${sec('3 · Control system and serial numbers', `<div class="hw-grid">
         <label>Control system *<select name="system" required>${optionList(sys, d.system, 'Select…')}</select></label>
         <label>Controller model *<select name="controllerModel" required>${optionList(d.system ? controlModels(d.system) : [], d.controllerModel, 'Select…')}</select></label></div>
         ${controlBlock()}
-        <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => `<label>${t}<input name="sl-${k}" maxlength="80" value="${h(d.serials[k])}"></label>`).join('')}</div>`)}
-      ${sec('3 · Selected motor (same inputs as Component Selection)', motorBlock())}
+        <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => `<label>${t} *<input name="sl-${k}" required maxlength="80" value="${h(d.serials[k])}"></label>`).join('')}</div>`)}
       ${sec('4 · LOP · COP · Transom · Travelling cable', `<div class="hw-grid">
         ${field('lop', 'LOP model', p.lop, 'lop')}${field('cop0', 'COP display', copDisplays, 'cop', 0)}${field('cop1', 'COP button', copButtons, 'cop', 1)}
         ${field('faceplate', 'COP faceplate', p.faceplate, 'faceplate')}${field('transom', 'Transom display', p.transom, 'transom')}${field('cable', 'Travelling cable', p.cable, 'cable')}</div>`)}
@@ -462,19 +496,26 @@ const WlfHardware = (() => {
       items.push({catalogueId: id, section: 'control'});
     }
     const add = (key, section) => { if (draft.pick[key]) items.push({catalogueId: draft.pick[key], section}); };
-    add('lop', 'lop'); add('cop0', 'cop'); add('cop1', 'cop'); add('faceplate', 'faceplate'); add('transom', 'transom'); add('cable', 'cable'); add('avr', 'avr');
+    add('lop', 'lop'); add('cop0', 'cop'); add('cop1', 'cop'); add('faceplate', 'faceplate'); add('transom', 'transom'); add('cable', 'cable');
+    if (draft.pick.avrModel) {
+      const all = rowsOf('AVR', draft.pick.avrModel), use = all.filter(usable);
+      if (draft.pick.avr) items.push({catalogueId: draft.pick.avr, section: 'avr'});
+      else if (use.length) throw new Error('Select the AVR item for ' + draft.pick.avrModel + ', or set the AVR size to none.');
+      else if (all[0]) items.push({catalogueId: all[0].id, section: 'avr'});   /* size not filled in the catalogue yet: the size is recorded */
+    }
     for (const id of draft.pickOther || []) items.push({catalogueId: id, section: 'other'});
     return items;
   }
 
   function bindQmsForm(record, back) {
     const f = el('qmsLiftForm');
-    const repaint = () => { readDraft(); el('qmsPanel').innerHTML = qmsForm(record); bindQmsForm(record, back); };
+    const repaint = keep => { if (!keep) readDraft(); el('qmsPanel').innerHTML = qmsForm(record); bindQmsForm(record, back); };
     f.elements.system.onchange = () => { readDraft(); draft.controllerModel = ''; draft.pick = {}; draft.pickOther = []; draft.parts = []; repaint(); };
     f.elements.controllerModel.onchange = () => { readDraft(); for (const k of Object.keys(draft.pick)) if (k.startsWith('control:')) delete draft.pick[k]; draft.parts = draft.parts.filter(x => x.section !== 'control'); repaint(); };
-    f.elements.avrModel.onchange = () => { readDraft(); draft.pick.avr = ''; repaint(); };
+    f.elements.avrModel.onchange = () => { readDraft(); setAvr(draft.pick.avrModel); repaint(true); };
+    bindSuggest(f, repaint);
     f.querySelectorAll('[data-control-pick]').forEach(s => s.onchange = () => { readDraft(); repaint(); });
-    bindMotor(f);
+    bindMotor(f, () => { el('hwSuggest').innerHTML = suggestHtml(); bindSuggest(f, repaint); });
     if (el('qmsLiftCancel')) el('qmsLiftCancel').onclick = back;
     f.onsubmit = async event => {
       event.preventDefault();
@@ -484,6 +525,7 @@ const WlfHardware = (() => {
       try {
         for (const [k, t] of [['liftId', 'Lift ID'], ['project', 'Project name'], ['deliveryDate', 'Delivery date'], ['system', 'Control system'], ['controllerModel', 'Controller model']])
           if (!draft[k]) throw new Error('Enter or select: ' + t + '.');
+        for (const [k, t] of SERIALS) if (!draft.serials[k]) throw new Error('Enter the ' + t + '. Every serial number is required.');
         const items = buildItems();
         button.disabled = true;
         status.textContent = 'Saving…';
@@ -504,7 +546,24 @@ const WlfHardware = (() => {
     f.onreset = () => setTimeout(() => { draft = newDraft(); el('qmsPanel').innerHTML = qmsForm(null); bindQmsForm(null); }, 0);
   }
 
-  function bindMotor(f) {
+  /* AVR size chosen (by hand or from the suggestion): a single item is taken automatically; blank sizes record the size only */
+  function setAvr(model) {
+    draft.pick.avrModel = model || '';
+    const use = model ? rowsOf('AVR', model).filter(usable) : [];
+    draft.pick.avr = use.length === 1 ? use[0].id : '';
+  }
+  function bindSuggest(f, repaint) {
+    f.querySelectorAll('[data-suggest-ctrl]').forEach(b => b.onclick = () => {
+      readDraft();
+      draft.system = b.dataset.suggestCtrl; draft.controllerModel = b.dataset.model;
+      for (const k of Object.keys(draft.pick)) if (k.startsWith('control:')) delete draft.pick[k];
+      draft.parts = draft.parts.filter(x => x.section !== 'control');
+      repaint(true);      /* the form still shows the old values, so the new choice must not be read back from it */
+    });
+    f.querySelectorAll('[data-suggest-avr]').forEach(b => b.onclick = () => { readDraft(); setAvr(b.dataset.suggestAvr); repaint(true); });
+  }
+
+  function bindMotor(f, afterChange) {
     if (typeof INDEX === 'undefined' || !INDEX.length) return;
     const val = n => f.elements[n].value;
     const rowsNow = () => INDEX.filter(r => (!val('m-c') || r.c === Number(val('m-c'))) && (!val('m-s') || r.s === Number(val('m-s'))) &&
@@ -532,10 +591,11 @@ const WlfHardware = (() => {
           box.innerHTML = '';
           el('hwMotorClear').hidden = false;
           el('hwMotorNote').textContent = 'Motor selected.';
+          if (afterChange) afterChange();
         } catch (err) { el('hwMotorNote').textContent = cleanError(err); b.disabled = false; }
       });
     };
-    el('hwMotorClear').onclick = () => { draft.selection = null; el('hwMotorResult').innerHTML = '<p class="note">No motor selected yet.</p>'; el('hwMotorClear').hidden = true; };
+    el('hwMotorClear').onclick = () => { draft.selection = null; el('hwMotorResult').innerHTML = '<p class="note">No motor selected yet.</p>'; el('hwMotorClear').hidden = true; if (afterChange) afterChange(); };
   }
 
   /* ---- QMS data: search by Lift ID, five tables, Excel */
@@ -545,7 +605,6 @@ const WlfHardware = (() => {
 
   function liftTables(rec) {
     const parts = s => rec.parts.filter(p => s.includes(p.section));
-    const serialText = Object.entries(rec.serials || {}).map(([k, v]) => `${(SERIALS.find(x => x[0] === k) || [k, k])[1]}: ${h(v)}`).join(' · ');
     const motor = rec.selection?.categories?.[0];
     const rest = (rec.selection?.categories || []).slice(1);
     return `<section class="card hw-out"><div class="overview-eyebrow">1 · PROJECT INFORMATION</div>${tbl(['Project', 'Lift ID', 'Address', 'Delivery', 'Motor type', 'Lift type'],
@@ -554,16 +613,21 @@ const WlfHardware = (() => {
         ${Object.entries({Capacity: rec.selection.inputs?.capacity, Speed: rec.selection.inputs?.speed, 'Usage type': rec.selection.inputs?.usageType, Roping: rec.selection.inputs?.roping})
           .map(([k, v]) => `<tr><td class="hw-k">${k}</td><td>${h(v)}</td></tr>`).join('')}</tbody></table></div>${motorTables({categories: [motor]})}` : '<p class="note">No motor was recorded.</p>'}
         ${rest.length ? `<details><summary>Recommended controller / power supply (from Component Selection)</summary>${motorTables({categories: rest})}</details>` : ''}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">3 · CONTROL SYSTEM — ${h(rec.system)} · ${h(rec.controllerModel)}</div>${serialText ? `<p class="note">${serialText}</p>` : ''}${
-        tbl(['Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand'], parts(['control']).map(p => [h(p.grp), h(p.hardware), h(p.spec), codeCell(p), h(p.name), h(p.brand)]))}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">4 · COP · LOP · TRANSOM · TRAVELLING CABLE</div>${
-        tbl(['Part', 'Model', 'Item code', 'Item name', 'Brand'], parts(['lop', 'cop', 'faceplate', 'transom', 'cable']).map(p => [h(SECTION_NAMES[p.section] + (p.grp && p.section === 'cop' ? ' · ' + p.grp.replace('COP ', '') : '')), h(p.hardware), codeCell(p), h(p.name), h(p.brand)]))}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">5 · OTHER COMPONENTS (INCLUDING AVR)</div>${
-        tbl(['Category', 'Item code', 'Item name', 'Spec', 'Supplier', 'Brand'], parts(['avr', 'other']).map(p => [h(p.section === 'avr' ? p.model : p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand)]))}</section>`;
+      <section class="card hw-out"><div class="overview-eyebrow">3 · CONTROL SYSTEM — ${h(rec.system)} · ${h(rec.controllerModel)}</div>${
+        tbl(['Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['control']).map(p => [h(p.grp), h(p.hardware), h(p.spec), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">4 · SERIAL NUMBERS</div>${
+        tbl(['Part', 'Serial number'], SERIALS.map(([k, t]) => [h(t.replace(/ SL$/, '')), h(rec.serials?.[k]) || '—']), 'No serial numbers were recorded.')}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">5 · COP · LOP · TRANSOM · TRAVELLING CABLE</div>${
+        tbl(['Part', 'Model', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['lop', 'cop', 'faceplate', 'transom', 'cable']).map(p => [h(SECTION_NAMES[p.section] + (p.grp && p.section === 'cop' ? ' · ' + p.grp.replace('COP ', '') : '')), h(p.hardware), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">6 · OTHER COMPONENTS (INCLUDING AVR)</div>${
+        tbl(['Category', 'Item code', 'Item name', 'Spec', 'Supplier', 'Brand', 'Price (৳)'], [
+          ...parts(['avr', 'other']).map(p => [h(p.section === 'avr' ? p.model : p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand), h(money(p.value))]),
+          ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>`;
   }
 
-  const FLAT_HEAD = ['Lift ID', 'Project', 'Address', 'Delivery date', 'Motor type', 'Lift type', 'Control system', 'Controller model', 'Section', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Value', 'Serial'];
-  const flat = rec => (rec.parts.length ? rec.parts : [{}]).map(p => [rec.liftId, rec.project, rec.address || '', rec.deliveryDate || '', rec.motorType || '', rec.liftType || '', rec.system, rec.controllerModel,
+  const FLAT_HEAD = ['Lift ID', 'Project', 'Address', 'Delivery date', 'Motor type', 'Lift type', 'Control system', 'Controller model', 'Section', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Price (BDT)', 'Serial'];
+  const sdbRow = rec => sdbOf(rec.selection) ? [{section: 'other', hardware: 'SDB main breaker rating', spec: sdbOf(rec.selection), name: 'From Component Selection'}] : [];
+  const flat = rec => ((rec.parts.length || sdbOf(rec.selection)) ? [...rec.parts, ...sdbRow(rec)] : [{}]).map(p => [rec.liftId, rec.project, rec.address || '', rec.deliveryDate || '', rec.motorType || '', rec.liftType || '', rec.system, rec.controllerModel,
     SECTION_NAMES[p.section] || '', p.grp || '', p.hardware || '', p.spec || '', p.code || '', p.name || '', p.brand || '', p.supplier || '', p.value ?? '', p.serial || '']);
 
   async function downloadLifts(records, name, status) {
@@ -702,11 +766,13 @@ const WlfHardware = (() => {
     const controllers = (ticket?.controller || []).map(String);
     const sys = systems();
     const start = sys.find(s => controllers.some(c => c.toLowerCase() === s.toLowerCase()) && controlModels(s).length) || controlSystems()[0] || '';
+    const wantModel = String(ticket?.values?.controller_model || '').trim();      /* v2.6.0: the support request records the controller model */
+    const wantSystem = wantModel ? sys.find(s => modelsOf(s).includes(wantModel)) : '';
     const state = {model: '', supplier: '', picked: '', showAll: false, manual: false};
     const groups = suggestedGroups(ticket);
     const modelOptions = () => sys.map(s => `<optgroup label="${h(s)}">${modelsOf(s).map(m => `<option value="${h(s + '\u0001' + m)}">${h(m)}</option>`).join('')}</optgroup>`).join('');
     const html = `<div class="hw-demand">
-      <p class="note">Control system: <b>${h(controllers.join(', ') || '—')}</b> · Problem: <b>${h([ticket?.values?.problem_category, ...(ticket?.sub || [])].filter(Boolean).join(' / ') || '—')}</b></p>
+      <p class="note">Control system: <b>${h(controllers.join(', ') || '—')}</b>${wantModel ? ' · Model: <b>' + h(wantModel) + '</b>' : ''} · Problem: <b>${h([ticket?.values?.problem_category, ...(ticket?.sub || [])].filter(Boolean).join(' / ') || '—')}</b></p>
       <div class="review-fields"><label>Component model *<select id="hwDemModel" name="hwModel"><option value="">Select…</option>${modelOptions()}</select></label>
       <label>Supplier name *<select id="hwDemSupplier" name="hwSupplier"><option value="">Select…</option></select></label></div>
       <div id="hwDemSuggest"></div><div id="hwDemList"></div>
@@ -749,7 +815,8 @@ const WlfHardware = (() => {
         el('hwDemList').hidden = el('hwDemSuggest').hidden = state.manual;
       };
       const first = start ? (controlModels(start)[0] || modelsOf(start)[0]) : '';
-      if (first) { model.value = start + '\u0001' + first; model.onchange(); }
+      if (wantSystem) { model.value = wantSystem + '\u0001' + wantModel; model.onchange(); }
+      else if (first) { model.value = start + '\u0001' + first; model.onchange(); }
     }
     function read(form) {
       if (state.manual) {

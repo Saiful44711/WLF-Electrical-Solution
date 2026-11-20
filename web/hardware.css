@@ -74,3 +74,10 @@
 @media (max-width:560px){#wlfDamageDialog .hw-demand .review-fields{grid-template-columns:1fr}}
 .hw-grid select,.hw-form select,.hw-grid input,.hw-form input{height:auto;min-height:42px;line-height:1.3;padding-top:8px;padding-bottom:8px}
 .hw-motor select{min-height:42px}
+/* v2.6.0: controller / AVR suggestions under the motor selection */
+.hw-suggest-box{margin-top:14px;padding:12px 14px;border:1px dashed var(--line);border-radius:12px;background:color-mix(in srgb,var(--card) 92%,var(--accent,#6d5dfc) 8%)}
+.hw-suggest-box .overview-eyebrow{margin-top:8px}
+.hw-suggest-box .overview-eyebrow:first-child{margin-top:0}
+.hw-chips .hw-chip{font-weight:600;padding:8px 16px;font-size:14px}
+.hw-chips .hw-chip.on{background:var(--accent,#6d5dfc);border-color:var(--accent,#6d5dfc);color:#fff}
+.hw-auto{margin:10px 0}

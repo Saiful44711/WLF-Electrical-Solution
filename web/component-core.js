@@ -20,7 +20,7 @@ var COMPONENT_CATEGORIES=[
       ['Recommended ARKEL Controller KW', 'Controller Power (kW)'],
       ['Recommended ARKEL Controller Amp', 'Controller Current (A)'],
       ['Brake Resistor for ARKEL', 'Brake Resistor'],
-      ['UPS for ARKEL', 'UPS']
+      ['UPS for ARKEL', 'UPS (VA)']
     ]
   },
   {
@@ -29,16 +29,18 @@ var COMPONENT_CATEGORIES=[
       ['Recommended NICE3000+ Controller KW', 'Controller Power (kW)'],
       ['Recommended NICE3000+ Controller Amp', 'Controller Current (A)'],
       ['Brake Resistor for NICE3000+', 'Brake Resistor'],
-      ['ARD For NICE3000+', 'ARD']
+      ['ARD For NICE3000+', 'ARD (A)']
     ]
   },
   {
     title: '4. Power Supply Recommendation',
     fields: [
-      ['Recommended AVR', 'Recommended AVR Rating'],
-      ['Main Power Cable (RM)', 'Main Power Cable Size'],
+      ['Recommended AVR', 'Recommended AVR Rating (KVA)'],
+      ['Main Power Cable (RM)', 'Main Power Cable Size (RM)'],
       ['SDB main breaker', 'SDB Main Breaker Rating (A)']
     ]
   }
 ];
-function componentSnapshot(data){var headers=data.headers;function val(v,n){return v[headers.indexOf(n)]??'';}var details={},index=data.records.map(function(r){var v=r.values;details[r.sheetRow]={inputs:{capacity:val(v,'Capacity (KG)'),speed:val(v,'Speed (m/s)'),usageType:val(v,'Usage Type'),roping:val(v,'Roping')},categories:COMPONENT_CATEGORIES.map(function(c){return {title:c.title,items:c.fields.map(function(f){return {label:f[1],value:String(val(v,f[0])||'-')};})};})};return {r:r.sheetRow,c:Number(val(v,'Capacity (KG)')),s:Number(val(v,'Speed (m/s)')),u:String(val(v,'Usage Type')),p:String(val(v,'Roping')),b:String(val(v,'Motor brand')),m:String(val(v,'Motor Model')),t:String(val(v,'Motor Type'))};});return {index:index,componentDetails:details,indexError:''};}
+/* v2.6.0: the unit sits in the parameter name, so "14 A" under "Controller Current (A)" is shown as "14" */
+function componentShown(label,value){var text=String(value==null?'':value).replace(/\s+/g,' ').trim();if(!text)return '-';var m=/\(([^)]+)\)\s*$/.exec(label);if(m){var unit=m[1].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');text=text.replace(new RegExp('\\s*'+unit+'$','i'),'').trim();}return text||'-';}
+function componentSnapshot(data){var headers=data.headers;function val(v,n){return v[headers.indexOf(n)]??'';}var details={},index=data.records.map(function(r){var v=r.values;details[r.sheetRow]={inputs:{capacity:val(v,'Capacity (KG)'),speed:val(v,'Speed (m/s)'),usageType:val(v,'Usage Type'),roping:val(v,'Roping')},categories:COMPONENT_CATEGORIES.map(function(c){return {title:c.title,items:c.fields.map(function(f){return {label:f[1],value:componentShown(f[1],val(v,f[0]))};})};})};return {r:r.sheetRow,c:Number(val(v,'Capacity (KG)')),s:Number(val(v,'Speed (m/s)')),u:String(val(v,'Usage Type')),p:String(val(v,'Roping')),b:String(val(v,'Motor brand')),m:String(val(v,'Motor Model')),t:String(val(v,'Motor Type'))};});return {index:index,componentDetails:details,indexError:''};}

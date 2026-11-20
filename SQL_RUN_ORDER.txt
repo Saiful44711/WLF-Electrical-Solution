@@ -1,0 +1,42 @@
+WLF Electrical Solution v2.6.0 - SQL run order
+
+A) EXISTING live project (your current Supabase project) - this update only:
+   1. backup-kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql (download both CSVs)
+   2. UPDATE_V260.sql (needs UPDATE_V259.sql already applied)
+      -> mot_faceplates = 6, motcube_models = 3, forms_with_controller_model >= 3, v260_ready = true
+         (COP Faceplate models, MOTCUBE tables, Controller Model on Support forms,
+          QMS serial/MOTCUBE checks, Components Data CSV import)
+   3. Edge Functions: no change in v2.6.0
+   4. Upload the GitHub files (WLF-GitHub-v2.6.0-UPLOAD.zip)
+   5. Components Data page -> Import CSV -> Components-Data-2026-11-20.csv (replaces all rows)
+
+B) NEW empty project built from source (staging / disaster recovery without a backup):
+   full-source/supabase/01_SETUP.sql
+   full-source/supabase/UPDATE_V210.sql
+   full-source/supabase/UPDATE_V220.sql
+   full-source/supabase/UPDATE_SUPPORT_FORMS_20261107.sql
+   full-source/supabase/UPDATE_DAMAGE_DEMAND_20261107.sql
+   full-source/supabase/UPDATE_WORKSPACE_20261107.sql
+   full-source/supabase/UPDATE_SECTIONS_V230.sql
+   full-source/supabase/UPDATE_V240.sql
+   full-source/supabase/UPDATE_V250.sql
+   full-source/supabase/UPDATE_V251.sql
+   full-source/supabase/UPDATE_V252.sql
+   full-source/supabase/UPDATE_V253.sql
+   full-source/supabase/UPDATE_V254.sql
+   full-source/supabase/UPDATE_V255.sql
+   full-source/supabase/UPDATE_V256.sql
+   full-source/supabase/UPDATE_V257.sql
+   full-source/supabase/UPDATE_V258.sql
+   full-source/supabase/UPDATE_V259.sql
+   full-source/supabase/UPDATE_V260.sql
+   then create the first Super Admin (full-source/supabase/02_FIRST_SUPER_ADMIN.sql)
+   and deploy the Edge Functions in full-source/supabase/functions/
+   (wlf-admin, wlf-maintenance, wlf-push - all with Verify JWT OFF).
+
+C) NEW project from a backup (keeps all data): backup-kit/00_START_HERE_BN.html, section 5.
+   Note: the data backup also holds the notification keys and device list
+   (wlf_private.push_keys / push_subscriptions). Keep the data CSV private.
+
+D) The Recycle bin keeps deleted document links, folders, sub menus, project tasks
+   and announcements as rows of wlf_private.recycle_bin until Super Admin deletes them permanently.

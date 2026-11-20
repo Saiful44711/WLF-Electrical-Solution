@@ -577,6 +577,67 @@ function loadComponentsAdmin() {
   }).withFailureHandler(fail).adminGetComponents(T());
 }
 
+// v2.6.0: Components Data from a CSV file (Super Admin). The first row is the header row of the table below; all old rows are replaced.
+var COMP_NUMBER_COLUMNS=['Capacity (KG)','Speed (m/s)','Motor Power (KW)','Motor Rated (A)','Traction Sheave Dia (mm)','Rope Dia (mm)','Rope Num','Recommended ARKEL Controller KW','Recommended NICE3000+ Controller KW','SL.N'];
+function csvRows(text){
+  var rows=[],row=[],cell='',quoted=false,delim=text.split('\n',1)[0].indexOf('\t')>=0?'\t':(text.split('\n',1)[0].indexOf(';')>=0&&text.split('\n',1)[0].indexOf(',')<0?';':',');
+  for(var i=0;i<text.length;i++){var c=text[i];
+    if(quoted){if(c==='"'&&text[i+1]==='"'){cell+='"';i++;}else if(c==='"')quoted=false;else cell+=c;}
+    else if(c==='"')quoted=true;
+    else if(c===delim){row.push(cell);cell='';}
+    else if(c==='\n'||c==='\r'){if(c==='\r'&&text[i+1]==='\n')i++;row.push(cell);rows.push(row);row=[];cell='';}
+    else cell+=c;}
+  if(cell||row.length){row.push(cell);rows.push(row);}
+  return rows.filter(function(r){return r.some(function(x){return String(x).trim();});});
+}
+function csvText(rows){return rows.map(function(r){return r.map(function(c){c=String(c==null?'':c);return /[",\n\r]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c;}).join(',');}).join('\r\n')+'\r\n';}
+function downloadComponentsCsv(){
+  if(!compData)return;
+  var blob=new Blob(['﻿'+csvText([compData.headers].concat(compData.records.map(function(r){return r.values;})))],{type:'text/csv;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Components-Data.csv';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},500);
+}
+function chooseComponentsCsv(){var f=$('compCsvFile');f.value='';f.click();}
+document.addEventListener('change',function(e){var f=e.target;if(f&&f.id==='compCsvFile'&&f.files&&f.files[0]&&compData)readComponentsCsv(f.files[0]);});
+var pendingComponentRows=null;
+function readComponentsCsv(file){
+  var box=$('compImport');
+  file.text().then(function(text){
+    var rows=csvRows(text.replace(/^﻿/,'')),problems=[],clean=[];
+    var norm=function(x){return String(x==null?'':x).replace(/\s+/g,' ').trim().toLowerCase();};
+    var head=(rows.shift()||[]).map(norm),want=compData.headers.map(norm);
+    if(head.length!==want.length||want.some(function(w,i){return w!==head[i];}))problems.push('The first row must be exactly these '+want.length+' column names in this order: '+compData.headers.join(', ')+'.');
+    else rows.forEach(function(r,n){
+      var line=n+2;
+      if(r.length!==want.length){problems.push('Row '+line+': '+r.length+' columns instead of '+want.length+'.');return;}
+      var out=r.map(function(c,i){
+        var v=String(c==null?'':c).replace(/\s+/g,' ').trim();
+        if(/^(null|n\/a|na|-)$/i.test(v))v='';
+        if(COMP_NUMBER_COLUMNS.indexOf(compData.headers[i])>=0&&v!==''){var num=Number(v);if(isFinite(num))return num;problems.push('Row '+line+': '+compData.headers[i]+' must be a number (found "'+v+'").');}
+        return v;});
+      for(var k=0;k<4;k++)if(out[k]===''){problems.push('Row '+line+': '+compData.headers[k]+' is required.');break;}
+      clean.push(out);
+    });
+    if(!problems.length&&!clean.length)problems.push('The file has no data rows.');
+    pendingComponentRows=problems.length?null:clean;
+    box.classList.remove('hidden');
+    box.innerHTML='<h3>Import Components Data from CSV</h3><p class="note">File: <b>'+esc(file.name)+'</b></p>'+
+      (problems.length?'<div class="msg error" style="display:block">'+esc(String(problems.length))+' problem'+(problems.length===1?'':'s')+' found. Nothing was changed.<ul>'+problems.slice(0,15).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+(problems.length>15?'<li>… and '+(problems.length-15)+' more</li>':'')+'</ul></div>':
+        '<div class="msg" style="display:block"><b>'+clean.length+'</b> rows are ready. The <b>'+compData.records.length+'</b> rows now in the table will be <b>deleted</b> and replaced by these rows. The change is logged in the Component change log.</div>')+
+      '<div class="actions"><button class="btn" id="compImportGo" '+(problems.length?'disabled':'')+'>Replace all rows</button><button class="btn ghost" id="compImportCancel">Cancel</button></div>';
+    $('compImportCancel').onclick=function(){pendingComponentRows=null;box.classList.add('hidden');box.innerHTML='';};
+    $('compImportGo').onclick=function(){
+      if(!pendingComponentRows)return;
+      var btn=$('compImportGo');busy(btn,true,'Importing...');
+      google.script.run.withSuccessHandler(function(r){
+        busy(btn,false);pendingComponentRows=null;box.classList.add('hidden');box.innerHTML='';
+        loadComponentsAdmin();refreshIndexNow();
+        showMsg('Components Data replaced: '+r.removed+' old rows removed, '+r.added+' rows added.','success');
+      }).withFailureHandler(failWith(btn)).adminImportComponents(T(),{rows:pendingComponentRows});
+    };
+  }).catch(function(err){box.classList.remove('hidden');box.innerHTML='<div class="msg error" style="display:block">'+esc(cleanError(err))+'</div>';});
+}
+
 // v2.5.6: key columns stay on screen while the wide table scrolls (desktop: Capacity, Speed, Usage, Roping, Motor Model; phone: Capacity)
 function stickComponentColumns(){
   var t=$('componentsTable');if(!t||!compData||!t.tHead||!t.tHead.rows[0])return;

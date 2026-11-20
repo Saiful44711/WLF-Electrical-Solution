@@ -127,7 +127,7 @@
           <h2 id="pageTitle">Component Selection</h2>
           <p id="pageSub">Choose your lift parameters to get the recommended components</p>
         </div>
-<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮<span id="menuDot" class="menu-dot" hidden></span></summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
+<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮</summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
       </div>
 
       <div class="content">
@@ -320,13 +320,14 @@
             </div>
           </div>
 
+          <div class="card hidden" id="compImport" aria-live="polite"></div>
           <div class="card">
             <div class="toolbar">
               <div class="card-head" style="margin:0;">
                 <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></div>
                 <div><h3>Components data</h3><p id="compCount"></p></div>
               </div>
-              <button class="btn" onclick="openEditor(null)">+ Add component</button>
+              <div class="actions"><button class="btn ghost" id="compCsvDownload" onclick="downloadComponentsCsv()">Download CSV</button><button class="btn ghost" id="compCsvImport" onclick="chooseComponentsCsv()">Import CSV</button><button class="btn" onclick="openEditor(null)">+ Add component</button></div><input type="file" id="compCsvFile" accept=".csv,.txt,text/csv" hidden>
             </div>
             <div class="comp-search field"><label for="compSearch">Search all columns</label><input id="compSearch" type="search" autocomplete="off" placeholder="e.g. 1000 1.75 PMSM 7.5"><small class="note">Every word must match somewhere in the row. Works together with the filters below.</small></div><div id="componentAdminFilters" class="review-fields"></div><div class="tbl-wrap comp-wrap"><table class="tbl" id="componentsTable"><thead><tr id="compHeadRow"></tr></thead><tbody></tbody></table></div>
           </div>

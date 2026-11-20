@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.0 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.9 → 2.6.0 · ২০ নভেম্বর ২০২৬</p>
+  <h1>Motor-first QMS, Controller Model ও Components CSV ইমপোর্ট: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ: <b>WLF-Supabase-v2.6.0.zip</b>, <b>WLF-GitHub-v2.6.0-UPLOAD.zip</b> (v2.5.9-এর পর বদলানো ফাইল), <b>WLF-GitHub-v2.6.0.zip</b> (পুরো সোর্স), এবং দুটো CSV।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. CSV ইমপোর্ট</a><a href="#s5">৫. যাচাই</a><a href="#data">Excel-এর ডেটা নিয়ে সতর্কতা</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে</h2><ul>
+<li><b>QMS Input নতুন ক্রম:</b> Project information → Motor selection (Component Selection-এর মতো একই ইনপুট) → Control system ও serial → LOP/COP/Transom/cable → Other components। মোটর বাছলে দুটো কন্ট্রোলার (একটা MOT, একটা NICE3000+) ও একটা AVR সাজেস্ট হয়; ক্লিক করলে কন্ট্রোলার মডেল ও তার সব ডেটা বসে যায়, AVR "Other components"-এ যায়। SDB breaker rating Component data থেকে এসে Other components-এ আলাদা সারিতে থাকে।</li>
+<li>Control system ও Controller model হাতে বাছার অপশন আগের মতোই আছে। কন্ট্রোলার বাছলে বড় টেবিল খোলে না; শুধু <b>Encoder Card</b> হাতে বাছতে হয়।</li>
+<li><b>সব serial number বাধ্যতামূলক</b>; আউটপুটে আলাদা SERIAL NUMBERS টেবিল। আউটপুট টেবিলে <b>Price (৳)</b>। MOTCUBE QMS-এ নেই।</li>
+<li><b>Hardware Catalogue:</b> কন্ট্রোলার মডেল ছোট থেকে বড়; ক্রম: Controller, COP, LOP, Transom, COP Faceplate, AVR, Others। COP Faceplate: Hairline, Silver Mirror, Golden Mirror, Black Mirror, Black Hairline, Rose Gold Mirror। MOTCUBE 5.5 / 7.5 / 11 kW-এর ফাঁকা টেবিল। "Value" এখন <b>Price (BDT)</b>; Excel থেকে ২৭৪টা সারিতে দাম আছে।</li>
+<li><b>Technical Support ফর্ম:</b> Controller Brand বাছলে <b>Controller Model</b> বাধ্যতামূলক (MOT ৬, NICE3000+ ৭, MOTCUBE ৩)। Damage Demand ওই মডেল থেকে শুরু হয়।</li>
+<li><b>Component Selection টেবিলে একক:</b> Controller Power (kW), Controller Current (A), UPS (VA), ARD (A), Recommended AVR Rating (KVA), Main Power Cable Size (RM)।</li>
+<li><b>Components Data:</b> <b>Download CSV</b> ও <b>Import CSV</b> (শুধু Super Admin)। নমুনা ফাইল: <code>Components-Data-SAMPLE-FORMAT.csv</code>।</li>
+<li>⋮ মেনুর লাল ডট সরানো হয়েছে।</li></ul>
+<div class="danger"><b>CSV ইমপোর্ট সব সারি মুছে নতুন সারি বসায়।</b> আগে Download CSV দিয়ে বর্তমান ডেটার কপি রাখুন। Component change log-এ অনেক Deleted/Added লাইন দেখা যাবে।</div></section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2><ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> ও <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নামান।</li></ol></section>
+
+<section id="s2"><h2>২. Supabase SQL</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V260.sql</code> খুলে Ctrl+A, Ctrl+C, পেস্ট, <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফল:<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>mot_faceplates</code></td><td><code>6</code></td></tr>
+<tr><td><code>motcube_models</code></td><td><code>3</code></td></tr>
+<tr><td><code>forms_with_controller_model</code></td><td><code>3</code> বা বেশি</td></tr>
+<tr><td><code>v260_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="attention"><b>ক্রম:</b> UPDATE_V258 → UPDATE_V259 → UPDATE_V260। V259 না চালালে "STOP" বার্তা আসবে। দুবার চালালেও ডুপ্লিকেট হয় না।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.6.0-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.6.0 motor-first QMS, controller model, components CSV</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol><div class="attention">আগে SQL, পরে GitHub।</div></section>
+
+<section id="s4"><h2>৪. Components Data CSV ইমপোর্ট</h2><ol>
+<li>Super Admin → বাঁ মেনুর <b>Components Data</b> (Administration)।</li>
+<li>আগে <b>Download CSV</b> দিয়ে বর্তমান ডেটার কপি রাখুন।</li>
+<li><b>Import CSV</b> → <code>Components-Data-2026-11-20.csv</code> (আপনার নতুন Excel থেকে বানানো, ৭৮ সারি) বেছে নিন।</li>
+<li>প্রিভিউ কার্ডে "78 rows are ready" দেখালে <b>Replace all rows</b> চাপুন। সমস্যা থাকলে কার্ডে সারি নম্বরসহ লেখা আসে এবং কিছুই বদলায় না।</li>
+<li>নিজের CSV বানাতে নমুনা ফাইলের হেডার হুবহু রাখুন (২৪ কলাম); প্রথম ৪ কলাম ফাঁকা রাখা যাবে না; ফাঁকা ঘর ফাঁকা রাখুন (Null লিখবেন না)।</li></ol>
+<div class="attention">CSV Excel-এ খুলে সেভ করলে Roping "2:1" সময় (২:০১) হয়ে যেতে পারে। Roping কলাম Text ফরম্যাট করে নিন, অথবা Notepad-এ এডিট করুন।</div></section>
+
+<section id="s5"><h2>৫. যাচাই</h2><ol>
+<li>Ctrl+F5; ⋮ মেনুর নিচে <b>WLF v2.6.0</b>; লাল ডট নেই।</li>
+<li>Component Selection: কোনো মোটর বেছে দেখুন UPS (VA), ARD (A) ইত্যাদি।</li>
+<li>QMS Input: মোটর বাছুন → সাজেশন চিপ ক্লিক করুন → serial ভরে Save। QMS Data-তে ছয় টেবিল, SERIAL NUMBERS আলাদা।</li>
+<li>Technical Support → নতুন request: Controller Brand বাছলে Controller Model আসে।</li>
+<li>Hardware Catalogue: মডেল তালিকা ছোট থেকে বড়, MOTCUBE ও COP Faceplate দেখুন।</li></ol></section>
+
+<section id="data"><h2>Excel-এর ডেটা নিয়ে যা লক্ষ করেছি</h2><ul>
+<li>কিছু ঘরে Null ছিল; সেগুলো ফাঁকা করেছি।</li>
+<li>Roping কলামে একটা ঘর সময় হিসেবে সেভ ছিল; "2:1" করেছি।</li>
+<li>"Special Notes" সারি ইমপোর্ট করিনি; কয়েকটা সারি দেখতে ডুপ্লিকেটের মতো, যেমন আছে তেমনই রেখেছি।</li>
+<li>MOTCUBE টেবিল MOT 5.5/7.5/11-এর কাঠামোর ফাঁকা কপি (শুধু group/hardware); আইটেম কোড, দাম আপনি ভরবেন।</li>
+<li>সাজেশনের মিল (মোটরের পর কোন কন্ট্রোলার/AVR) Component data-র "Recommended" ঘর থেকে আসে; ক্যাটালগে মডেল নামে মিল না থাকলে চিপ আসে না।</li></ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>STOP: apply UPDATE_V259.sql</td><td>V259 চালানো হয়নি</td><td>আগে V258, V259, তারপর V260</td></tr>
+<tr><td>Required: Controller Model</td><td>নতুন বাধ্যতামূলক ঘর</td><td>Controller Brand-এর পর মডেল বাছুন</td></tr>
+<tr><td>Enter every serial number</td><td>QMS-এ কোনো serial ফাঁকা</td><td>সব serial ভরুন</td></tr>
+<tr><td>MOTCUBE is not a QMS controller</td><td>QMS-এ MOTCUBE নেই</td><td>MOT বা NICE3000+ বাছুন</td></tr>
+<tr><td>Every row needs exactly 24 columns</td><td>CSV-র কলাম সংখ্যা ভুল</td><td>নমুনা ফাইলের হেডার ব্যবহার করুন</td></tr>
+<tr><td>Import CSV বাটন নেই</td><td>Super Admin নন</td><td>Super Admin দিয়ে করুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>CI ব্যর্থ</td><td>লগের "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2><ul>
+<li>unit test ১২৬টি পাস; SQL test ৪টি (নতুন) পাস।</li>
+<li>Playwright e2e পাস: Asia/Dhaka ও UTC, desktop ও mobile, light ও dark স্ক্রিনশট দেখা হয়েছে।</li></ul>
+<div class="attention"><b>যাচাই করতে পারিনি:</b> আসল Supabase-এ SQL রান, GitHub CI (সেখানে নতুন PGlite/Playwright), আসল ফোনে ব্যবহার। এগুলো আপনার রানের ফলের ওপর নির্ভর করছে। এছাড়া v2.5.8-এর SQL ফল আমাকে জানাননি।</div>
+<p class="small">এখনো বাকি (আপনি বললে করব): ভুল QMS লিফট Recycle bin-এ যাওয়া ও সেখান থেকে স্থায়ী মোছা; Request access-এর সব ঘর বাধ্যতামূলক; ৭ দিনের পুরোনো usage মোছা।</p></section>
+<footer>WLF Electrical Solution · v2.6.0</footer>
+</main>
+</body>
+</html>
