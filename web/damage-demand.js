@@ -98,20 +98,26 @@ const WlfDamage = (() => {
     const hardware = el('supportHardware');
     if (!hardware || hardware.disabled || !teams.includes(ticket.category)) return;
     let previous = readReview().hardwareIssue;
-    hardware.onchange = event => {
+    hardware.onchange = async event => {
       if (event.target.value === 'false') {
         previous = false;
         return;
       }
+      let picker;
+      try {
+        picker = await WlfHardware.demandPicker(ticket);
+      } catch (err) {
+        for (const choice of hardware.querySelectorAll('input')) choice.checked = previous != null && choice.value === String(previous);
+        const failed = dialog('Raise Damage Demand', `<p role="status">${h(cleanError(err))}</p>
+          <div class="engineering-actions"><button type="button" class="btn ghost" data-damage-close>Close</button></div>`);
+        failed.querySelector('[data-damage-close]').onclick = () => failed.close();
+        return;
+      }
       const node = dialog('Raise Damage Demand', `
-        <p class="note">The request details and solution statement will be copied when you submit.</p>
+        <p class="note">The request details and solution statement will be copied when you submit. The item comes from the Hardware Catalogue.</p>
         <form id="damageCreateForm">
           <label>Confirmation by<input name="confirmedBy" value="${h(SESSION.name)}" readonly></label>
-          <label>Item name *<input name="itemName" required maxlength="180" autofocus></label>
-          <div class="review-fields">
-            <label>Item code<input name="itemCode" maxlength="120"></label>
-            <label>Item Model/Spec<input name="itemSpec" maxlength="240"></label>
-          </div>
+          ${picker.html}
           <label>Item Quantity *<input name="quantity" type="number" inputmode="numeric" min="1" max="999999" step="1" required></label>
           <p role="status" aria-live="polite"></p>
           <div class="engineering-actions">
@@ -120,6 +126,7 @@ const WlfDamage = (() => {
           </div>
         </form>`);
       const form = el('damageCreateForm');
+      picker.bind();
       const submit = form.querySelector('[type=submit]');
       const cancel = form.querySelector('[data-damage-close]');
       const message = form.querySelector('[role=status]');
@@ -156,8 +163,10 @@ const WlfDamage = (() => {
           message.textContent = 'Enter a valid Duration (Min) on the support request.';
           return;
         }
-        const {itemName, itemCode, itemSpec, quantity} = Object.fromEntries(new FormData(form));
-        const payload = {id: ticket.id, revision: ticket.revision, itemName, itemCode, itemSpec,
+        const {quantity} = Object.fromEntries(new FormData(form));
+        let chosen;
+        try { chosen = picker.read(form); } catch (err) { message.textContent = err.message; return; }
+        const payload = {id: ticket.id, revision: ticket.revision, ...chosen,
           quantity, durationMinutes: duration.value, solutionStatement: solution};
         const signature = JSON.stringify(payload);
         if (signature !== lastPayload) {

@@ -225,8 +225,8 @@ const WlfOverview = (() => {
       (dm.top.length ? `<h4 class="mgmt-sub">Top ${dm.top.length} damaged components (units)</h4>` + hbars(dm.top.map(t => ({label:t.item, value:t.quantity}))) : '') +
       `<h4 class="mgmt-sub">Demands per month · last 12 months</h4>` + lineChart(data.months, dm.curve, 'Damage demands per month by team'));
     const q = data.qms;
-    const qms = card(5, 'QMS', period + ' · ' + count(q.quantity) + ' units recorded',
-      `<div class="overview-metrics">${qmsStatuses.map((s, i) => metric(s, count(q.statuses[s]), ['violet','amber','teal'][i])).join('')}</div>${people(q.people)}`);
+    const qms = card(5, 'QMS', period + ' · ' + count(q.total) + ' lift records in total',
+      `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('All lift records', count(q.total), 'teal')}</div>${people(q.people)}`);
     const supplier = card(6, 'Supplier claim', '', '<div class="mgmt-soon">Coming soon</div>');
     root.innerHTML = `<div class="overview-stack">${dashboardFilters(filters, data)}
       <div class="mgmt-grid">${ri}${projects}${support}${damage}${qms}${supplier}</div></div>`;
@@ -284,7 +284,7 @@ const WlfOverview = (() => {
           rows:data.damage.teams.map(t => [teamName(t.team), t.total, t.pending, t.received, t.quantity])},
         {name:'Top damaged components',headers:['Component','Units','Demands'],rows:data.damage.top.map(t => [t.item, t.quantity, t.demands])},
         {name:'Damage per month',headers:['Team',...data.months],rows:curve(data.damage.curve)},
-        {name:'QMS',headers:['Status','Components'],rows:[...qmsStatuses.map(s => [s, data.qms.statuses[s] || 0]),['Units',data.qms.quantity]]}
+        {name:'QMS',headers:['Measure','Lift records'],rows:[['Lifts recorded in this period', data.qms.lifts || 0],['All lift records', data.qms.total || 0]]}
       ],'WLF-Management-Dashboard-'+data.from+'-to-'+data.to);
       if (status.isConnected) status.textContent = 'Excel downloaded.';
     } catch (err) {

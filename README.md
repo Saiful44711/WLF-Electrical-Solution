@@ -1,4 +1,13 @@
-# WLF Electrical Solution v2.5.8
+# WLF Electrical Solution v2.5.9
+
+## v2.5.9 Hardware Catalogue, QMS lift records, catalogue-driven Damage Demand (20 November 2026)
+
+- **Hardware Catalogue** (new page, Super Admin or the tick "Hardware Catalogue / Add, edit, delete, import"): one database for QMS and Damage Demand. Filled once from the controller-wise workbook: MOT (6 models), NICE3000+ (7 models), LOP, COP, Transom, Other components, plus **AVR** with 8 sizes (15, 20, 30, 40, 60, 80, 100, 120 KVA) and 10 blank rows each. Add / edit / delete rows, add / rename / delete a model, copy a model, export Excel, import CSV, and edit the "Problem suggestions" (problem word -> hardware groups). Table `wlf_private.hw_catalogue`, soft delete.
+- **Raise Damage Demand**: Component model and Supplier name first; the item code, name and spec come from the catalogue; parts are suggested from the request's Problem Category. One demand still holds one item (one demand per request, as before). "Not in the catalogue" allows typing. The server rejects a typed item unless that box was ticked. Damage Demand and Supplier Claim flows are unchanged.
+- **QMS** is now one record per lift before delivery (`wlf_private.qms_lifts`, Lift ID unique, case and spaces ignored). Input form: project information, control system and serial numbers, motor (same inputs as Component Selection), LOP/COP/Transom/Travelling cable, other components with AVR. QMS Data: search by Lift ID, project or item code; five tables; Excel download (single lift or all results). Saved records keep a copy of code/name/spec/brand/value. New ticks: "QMS / Edit saved lift records", "QMS / Delete saved lift records". Changes are written to a history list.
+- The old "Component Tracking" register is no longer shown; its rows stay in the database. The Management Dashboard QMS card counts lift records.
+- Excel corrections: four NICE3000+ rows labelled "11 kW" at rows 196-199 are the 45 kW encoder cards; imported as 45 kW.
+- Run `supabase/UPDATE_V259.sql` after v2.5.8. See `START_HERE_V259_BN.html`.
 
 ## v2.5.8 MOTCUBE drive error in support forms, readable history labels (19 November 2026)
 

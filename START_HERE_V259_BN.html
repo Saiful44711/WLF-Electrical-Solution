@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.9 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.8 → 2.5.9 · ২০ নভেম্বর ২০২৬</p>
+  <h1>Hardware Catalogue, নতুন QMS ও Damage Demand-এর নতুন ফর্ম: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.9.zip</b>, <b>WLF-GitHub-v2.5.9-UPLOAD.zip</b> (v2.5.8-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.9.zip</b> (পুরো সোর্স)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#perm">৫. permission</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে</h2><ul>
+<li><b>Hardware Catalogue (নতুন মেনু):</b> QMS আর Damage Demand-এর জন্য একটাই ডাটাবেস। আপনার Excel থেকে MOT (৬ মডেল) ও NICE3000+ (৭ মডেল), LOP, COP, Transom ও Other components ঢোকানো আছে। <b>AVR</b> ক্যাটাগরিতে ৮টা সাইজ (15, 20, 30, 40, 60, 80, 100, 120 KVA), প্রতিটায় ১০টা ফাঁকা সারি: Item code, Name, Spec, Value, Supplier, Brand। Super Admin সারি যোগ/এডিট/ডিলিট, নতুন মডেল যোগ (চাইলে আরেক মডেলের কপি), নাম বদল, মডেল ডিলিট, Excel এক্সপোর্ট, CSV ইমপোর্ট করতে পারেন।</li>
+<li><b>Raise Damage Demand:</b> সবার আগে <b>Component model</b> ও <b>Supplier name</b>। Item code, name, spec ক্যাটালগ থেকে আসে; R&amp;I শুধু আসল যন্ত্রাংশ বেছে Quantity দেয়। Support request-এর Control System ও Problem Category অনুযায়ী যন্ত্রাংশ "Suggested" দেখায়। ক্যাটালগে না থাকলে "Not in the catalogue" টিক দিয়ে হাতে লেখা যায়। Damage Demand ও Supplier Claim আগের মতোই।</li>
+<li><b>QMS (নতুন রূপ):</b> প্রতি লিফটের জন্য একটা রেকর্ড, ডেলিভারির আগে QM team ভরবে। <b>Lift ID কোম্পানিতে unique</b> (বড়/ছোট হাতের লেখা বা ফাঁকা জায়গায় আলাদা ধরা হয় না)। ফর্মের ৫ ভাগ: Project information, Control system ও serial number, Selected motor (Component Selection-এর মতো একই ইনপুট), LOP/COP/Transom/Travelling cable, Other components (AVR সহ)।</li>
+<li><b>QMS Data:</b> Lift ID, Project বা Item code দিয়ে খুঁজুন। পাঁচটা টেবিলে ফল দেখাবে; <b>Download Excel</b> (একটা লিফট বা সব ফলাফল)। সেভের সময় Item code/name/spec/brand-এর কপি রেকর্ডে থেকে যায়, তাই ৫-১০ বছর পরে ক্যাটালগ বদলালেও পুরোনো লিফটের আসল তথ্য ঠিক থাকে।</li>
+<li><b>Edit ও Delete:</b> আলাদা দুটো permission, Super Admin যাকে টিক দেবে সে-ই পারবে (নিচে ৫ নম্বর)। প্রতিটা বদল Change history-তে লেখা থাকে।</li>
+<li>Dashboard-এর QMS কার্ড এখন লিফট রেকর্ডের সংখ্যা দেখায়।</li></ul>
+<div class="attention"><b>আপনার Excel-এ যা সংশোধন করেছি:</b> NICE3000+ শিটের 196–199 সারি (Encoder Card, SL 21–24) "11 kW" লেখা, কিন্তু ওগুলো 45 kW ব্লকের শেষে (45 kW-এর SL 1–20 পরে)। আমি ওগুলো <b>45 kW</b>-এ রেখেছি; ফলে 45 kW-এ 24টা সারি, বাকি মডেলের মতো। ভুল হলে ক্যাটালগে মডেল বদলে নিন।</div>
+<div class="attention"><b>যা এই ভার্সনে নেই (স্পষ্ট করে বলছি):</b> (১) এক Demand-এ একাধিক যন্ত্রাংশ: ডাটাবেসে এক request-এ একটাই Demand, তাই একটাই আইটেম। (২) পুরোনো "Component Tracking" তালিকা আর দেখা যায় না; ডাটাবেসে রেকর্ড থেকে যায়, মোছা হয়নি। (৩) ক্যাটালগে ইমপোর্ট শুধু CSV (Excel-এ Save as CSV)। (৪) মুছে ফেলা লিফট Recycle bin-এ আসে না, শুধু আড়াল হয়; Lift ID আবার ব্যবহার করা যায়। (৫) MOTCUBE-এর কোনো যন্ত্রাংশ আপনার Excel-এ ছিল না, তাই MOTCUBE মডেল ফাঁকা; Super Admin "New component model" দিয়ে যোগ করবেন।</div>
+<div class="note">Selected motor অংশ Component Selection-এর ডেটা ব্যবহার করে। যে QM user-এর Component Selection অপশন নেই, তার ফর্মে "Search motors" বাটন বন্ধ থাকবে; তাকে ওই অপশনটা টিক দিন।</div></section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2><ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নামিয়ে রাখুন (আগের মতোই)।</li></ol></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেজ আপডেট</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V259.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। ফাইলটা বড় (প্রায় ১২৫ KB, ক্যাটালগের ডেটাসহ), পেস্ট হতে কয়েক সেকেন্ড লাগতে পারে। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফল:<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>controller_rows</code></td><td><code>414</code></td></tr>
+<tr><td><code>avr_sizes</code></td><td><code>8</code></td></tr>
+<tr><td><code>qms_lifts_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>v259_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">দুবার চালালেও ক্যাটালগে ডুপ্লিকেট সারি হয় না (ডেটা একবারই ঢোকে)। কোনো পুরোনো ডেটা মোছে না। Edge Function-এ কোনো বদল নেই।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.5.9-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message বক্সে ছোট একটা লাইন লিখুন: <code>v2.5.9 Hardware Catalogue, QMS lifts, catalogue demand</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol><div class="attention">ক্রম: আগে SQL, পরে GitHub। Commit message-এ SQL-এর লেখা পেস্ট করবেন না।</div></section>
+
+<section id="s4"><h2>৪. যাচাই</h2><ol>
+<li>Ctrl+F5; ⋮ মেনুর নিচে <b>WLF v2.5.9</b>।</li>
+<li>Super Admin হিসেবে বাঁ মেনুতে <b>Hardware Catalogue</b> → AVR → AVR 20 KVA: ১০টা ফাঁকা সারি। একটায় Edit দিয়ে কিছু লিখে Save করে দেখুন।</li>
+<li><b>QMS</b> → QMS Input: Lift ID, Project, Delivery date, Control system MOT → Controller model MOT 7.5 kW বেছে Save। একই Lift ID আবার দিলে "Lift ID already exists" আসবে।</li>
+<li><b>QMS Data</b> → Lift ID লিখে Search → পাঁচটা টেবিল → Download Excel।</li>
+<li>একটা request Receive করে Hardware Issue = Yes দিন: Raise Damage Demand-এ Component model ও Supplier আগে, তারপর যন্ত্রাংশ বেছে Quantity দিয়ে Submit।</li></ol></section>
+
+<section id="perm"><h2>৫. কে কী করতে পারবে (Super Admin ঠিক করবে)</h2><div class="scroll"><table><tr><th>কাজ</th><th>কে পারবে</th></tr>
+<tr><td>Hardware Catalogue দেখা ও এডিট</td><td>Super Admin, অথবা যাকে <b>Hardware Catalogue / Add, edit, delete, import</b> টিক দেওয়া হয়েছে</td></tr>
+<tr><td>Raise Demand-এ ক্যাটালগ থেকে যন্ত্রাংশ বাছা</td><td>যেকোনো R&amp;I (ক্যাটালগ শুধু পড়া যায়, বদলানো যায় না)</td></tr>
+<tr><td>QMS-এ নতুন লিফট ভরা ও দেখা</td><td>Super Admin, অথবা <b>QMS Component Tracking / View and record</b> টিক</td></tr>
+<tr><td>সেভ করা লিফট এডিট</td><td>Super Admin, অথবা <b>QMS / Edit saved lift records</b> টিক</td></tr>
+<tr><td>লিফট ডিলিট</td><td>Super Admin, অথবা <b>QMS / Delete saved lift records</b> টিক</td></tr></table></div>
+<p class="small">টিক দেওয়ার জায়গা: Users → ব্যবহারকারী → Access options (QMS গ্রুপ)।</p></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>STOP: apply UPDATE_V258.sql</td><td>v2.5.8-এর SQL চালানো হয়নি</td><td>আগে <code>UPDATE_V258.sql</code>, তারপর V259</td></tr>
+<tr><td>Hardware Catalogue মেনু নেই</td><td>ব্যবহারকারী Super Admin নন বা টিক নেই</td><td>Super Admin দিয়ে দেখুন, বা টিক দিন</td></tr>
+<tr><td>"Hardware Catalogue access required"</td><td>SQL চালানো হয়নি, বা ব্যবহারকারী R&amp;I নন</td><td>ধাপ ২ নিশ্চিত করুন</td></tr>
+<tr><td>Demand ফর্মে "Select the component from the Hardware Catalogue…"</td><td>যন্ত্রাংশ বাছা হয়নি</td><td>Component model, Supplier, তারপর তালিকা থেকে একটা বেছে নিন</td></tr>
+<tr><td>"This Lift ID already exists"</td><td>Lift ID আগেই আছে</td><td>QMS Data-তে খুঁজে Edit করুন</td></tr>
+<tr><td>"QMS edit permission required"</td><td>Edit টিক নেই</td><td>Super Admin টিক দেবে</td></tr>
+<tr><td>Search motors বাটন বন্ধ</td><td>Component Selection ডেটা লোড হয়নি/অনুমতি নেই</td><td>Component Selection একবার খুলুন, বা টিক দিন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.8-এর পর <code>UPDATE_V259.sql</code> দুবার চালানো: ৪১৪ সারি, AVR ৮ সাইজ × ১০, MOT 7.5 kW-এ ৩১, NICE3000+ 45 kW-এ ২৪; ক্যাটালগ এডিট/ডিলিট/মডেল কপি/নাম বদল/ইমপোর্ট; permission ছাড়া বাধা; Lift ID unique (বড়/ছোট হাত ও ফাঁকা সহ); পরে ক্যাটালগ বদলালে পুরোনো লিফট অপরিবর্তিত; Edit/Delete আলাদা permission; Demand ক্যাটালগ থেকে (জাল করা নাম/কোড উপেক্ষা), হাতে লেখা শুধু স্পষ্ট টিক দিলে; Dashboard গণনা।</li>
+<li>ব্রাউজার (Playwright): Catalogue পাতা (AVR এডিট, নতুন মডেল, সার্চ, Excel, Problem suggestions), QMS ফর্ম (মোটর বাছাই সহ), duplicate Lift ID আটকানো, Lift ID সার্চ, ৫ টেবিল, Excel, Edit ও history, Raise Demand-এ model → supplier → যন্ত্রাংশ → Submit এবং ডাটাবেসে catalog_id, model, supplier সংরক্ষণ; সাধারণ R&amp;I ব্যবহারকারী Catalogue/QMS দেখে না। ডেস্কটপ ও মোবাইল, লাইট ও ডার্ক স্ক্রিনশট দেখে ঠিক করা হয়েছে।</li>
+<li><code>npm test</code> ১২২টি পাস, e2e পাস (ঢাকা ও UTC)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো, GitHub-এর CI, সত্যিকারের ফোনে ব্যবহার। আপনার আসল Component Selection ডেটার সাথে Selected motor-এর ফল (আমি টেস্টের নমুনা ডেটায় দেখেছি)।</div></section>
+<footer>WLF Electrical Solution · v2.5.9</footer>
+</main>
+</body>
+</html>

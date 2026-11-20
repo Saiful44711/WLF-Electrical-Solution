@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.8-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.5.9-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -335,8 +335,13 @@ assert.equal(await page.locator('#supportBadge').innerText(),'1');
 await page.locator('#supportHardware input[value=true]').check();
 let dialog=page.locator('#wlfDamageDialog');
 await dialog.waitFor();
-assert.deepEqual(await dialog.locator('input').evaluateAll(nodes=>nodes.map(node=>node.name)),
- ['confirmedBy','itemName','itemCode','itemSpec','quantity']);
+assert.deepEqual(await dialog.locator('input').evaluateAll(nodes=>nodes.filter(node=>node.type!=='radio').map(node=>node.name)),
+ ['confirmedBy','hwDemManual','itemName','itemCode','itemSpec','quantity']);
+assert.equal(await dialog.locator('#hwDemModel').count(),1);
+assert.equal(await dialog.locator('#hwDemSupplier').count(),1);
+assert.ok((await dialog.locator('#hwDemModel option').count())>20,'every catalogue model is listed');
+await dialog.locator('#hwDemList tbody tr').first().waitFor();
+assert.equal(await dialog.locator('#hwDemSupplier').inputValue()!=='' || (await dialog.locator('#hwDemSupplier option').count())>1,true);
 assert.equal(await dialog.locator('[name=confirmedBy]').inputValue(),'rni');
 assert.equal(await dialog.locator('[name=confirmedBy]').evaluate(n=>n.readOnly),true);
 assert.equal(await dialog.getByText('Replace the damaged main contactor.',{exact:true}).count(),0);
@@ -352,6 +357,7 @@ await page.keyboard.press('Escape');
 await dialog.waitFor({state:'hidden'});
 assert.equal(await page.locator('#supportHardware input[value=false]').isChecked(),true);
 await page.locator('#supportHardware input[value=true]').check();
+await dialog.locator('#hwDemManual').check();
 await dialog.locator('[name=itemName]').fill('Main contactor');
 await dialog.locator('[name=itemCode]').fill('=1+1');
 await dialog.locator('[name=itemSpec]').fill('24 V DC');
@@ -452,31 +458,70 @@ await dialog.getByRole('button',{name:'Close',exact:true}).click();
 await logout();
 
 await login('sa');
-assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
+assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=catalogue] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
+fs.mkdirSync('test-results/v259',{recursive:true});
 await tab('qms');
-await page.locator('#qmsAdd').click();
-await page.locator('#qmsComponentForm [name=project]').fill('WLF North Tower');
-await page.locator('#qmsComponentForm [name=component]').fill('Drive unit');
-await page.locator('#qmsComponentForm [name=lift_id]').fill('L-101');
-await page.locator('#qmsComponentForm [name=quantity]').fill('3');
-await page.locator('#qmsComponentForm [type=submit]').click();
-await page.locator('#tab-qms tbody').getByText('Drive unit',{exact:true}).waitFor();
-await page.locator('[data-qms-view]').click();
-await page.locator('#qmsComponentForm [name=status]').selectOption('Verified');
-await page.locator('#qmsComponentForm [type=submit]').click();
-await page.locator('#tab-qms tbody').getByText('Verified',{exact:true}).waitFor();
+await page.locator('#qmsLiftForm').waitFor();
+await page.locator('#qmsLiftForm [name=liftId]').fill('L-101');
+await page.locator('#qmsLiftForm [name=project]').fill('WLF North Tower');
+await page.locator('#qmsLiftForm [name=address]').fill('Gulshan-2, Dhaka');
+await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-25');
+await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
+await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 7.5 kW');
+assert.ok((await page.locator('#qmsLiftForm .hw-table tbody tr').count())>=20,'controller hardware rows are listed');
+for(let i=await page.locator('[data-control-pick]').count();i>0;i--) await page.locator('[data-control-pick]').first().selectOption({index:1}).catch(()=>{});
+await page.locator('#qmsLiftForm [name=sl-drive]').fill('D-88213');
+await page.locator('#qmsLiftForm [name=lop]').selectOption({index:1});
+await page.locator('#qmsLiftForm [name=cop0]').selectOption({index:1});
+await page.locator('#qmsLiftForm [name=transom]').selectOption({index:1});
+await page.locator('#qmsLiftForm [name=cable]').selectOption({index:1});
+await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 20 KVA');
+assert.match(await page.locator('#qmsLiftForm').innerText(),/no items yet/);
+assert.equal(await page.locator('#hwMotorSearch').isDisabled(),false,'motor list is available from Component Selection data');
+await page.locator('#hwMotorSearch').click();await page.locator('.hw-motor-chip').first().click();await page.locator('#hwMotorResult table').first().waitFor();
+const motorModel=await page.locator('#hwMotorResult table').first().innerText();
+await page.locator('#qmsLiftForm input[name=other]').first().check();
+await page.screenshot({path:'test-results/v259/03-qms-input-desktop.png',fullPage:true});
+await page.locator('#qmsLiftForm [type=submit]').click();
+await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor();
+await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
+await page.locator('#qmsLiftForm [name=project]').fill('Other');
+await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-26');
+await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
+await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 5.5 kW');
+for(let i=await page.locator('[data-control-pick]').count();i>0;i--) await page.locator('[data-control-pick]').first().selectOption({index:1}).catch(()=>{});
+await page.locator('#qmsLiftForm [type=submit]').click();
+await page.locator('#qmsLiftStatus').filter({hasText:'Lift ID already exists'}).waitFor();
+await page.locator('#qmsTabData').click();
+await page.locator('#qmsSearch [name=liftId]').fill('L-101');
+await page.locator('#qmsSearch [type=submit]').click();
+await page.locator('.hw-out h3').filter({hasText:'L-101'}).waitFor();
+assert.equal(await page.locator('.hw-out .overview-eyebrow').count()>=5,true,'five output sections');
+const qmsText=await page.locator('#tab-qms').innerText();
+for(const word of ['PROJECT INFORMATION','SELECTED MOTOR','Capacity','CONTROL SYSTEM','COP · LOP','OTHER COMPONENTS','WLF North Tower','D-88213']) assert.ok(qmsText.toLowerCase().includes(word.toLowerCase()),word);
+await page.screenshot({path:'test-results/v259/04-qms-data-desktop.png',fullPage:true});
+const qmsDl=page.waitForEvent('download');
+await page.locator('#qmsExcel').click();
+await (await qmsDl).saveAs('test-results/v259/qms-L-101.xlsx');
+const qmsZip=await Zip.loadAsync(fs.readFileSync('test-results/v259/qms-L-101.xlsx'));
+assert.match(await qmsZip.file('xl/worksheets/sheet1.xml').async('string'),/L-101/);assert.match(await qmsZip.file('xl/worksheets/sheet2.xml').async('string'),/Travelling Cable TVVB 36 core/);
+await page.locator('#qmsEdit').click();
+await page.locator('#qmsLiftForm [name=project]').fill('WLF North Tower 2');
+await page.locator('#qmsLiftForm [type=submit]').click();
+await page.locator('.hw-out h3').filter({hasText:'WLF North Tower 2'}).waitFor();
+assert.match(await page.locator('.hw-history').textContent(),/edited \(Project\)/);
 await tab('workspace-dashboard');
 await page.getByRole('heading',{name:'Management Dashboard'}).waitFor();
 await page.locator('.mgmt-card').nth(5).waitFor();
 assert.deepEqual((await page.locator('.mgmt-card h3').allInnerTexts()).map(t=>t.replace(/\s+/g,'')),['1R&ITeamActivity','2R&IProjectManager','3TechnicalSupport','4DamageDemand','5QMS','6Supplierclaim']);
-assert.equal(await page.locator('.mgmt-card').nth(4).locator('.overview-metric').filter({hasText:'Verified'}).locator('strong').innerText(),'1');
+assert.equal(await page.locator('.mgmt-card').nth(4).locator('.overview-metric').filter({hasText:'Lifts recorded'}).locator('strong').innerText(),'1');
 assert.equal(await page.locator('.mgmt-card').nth(2).locator('svg.mgmt-chart').count(),1);
 assert.equal(await page.locator('#workspaceFilters [name=from]').inputValue(),(await page.evaluate(()=>AccessCore.dateKey(new Date()))).slice(0,8)+'01','this month by default');
 const kpiFile=page.waitForEvent('download');
 await page.locator('#workspaceExport').click();
 await (await kpiFile).saveAs('test-results/workspace-kpis.xlsx');
 const kpiZip=await Zip.loadAsync(fs.readFileSync('test-results/workspace-kpis.xlsx'));
-assert.match(await kpiZip.file('xl/worksheets/sheet10.xml').async('string'),/Verified/);
+assert.match(await kpiZip.file('xl/worksheets/sheet10.xml').async('string'),/Lifts recorded/);
 await page.evaluate(()=>setAppearance('light'));
 await page.screenshot({path:'test-results/workspace-kpis.png'});
 await page.setViewportSize({width:320,height:760});
@@ -484,11 +529,9 @@ await page.waitForFunction(()=>document.getElementById('sidebar').getBoundingCli
 await checkRiMobileFit('#tab-workspace-dashboard');
 await page.screenshot({path:'test-results/workspace-kpis-mobile.png'});
 await tab('qms');
-await page.locator('[data-qms-view]').waitFor();
+await page.locator('#qmsLiftForm').waitFor();
 await checkRiMobileFit('#tab-qms');
-await page.locator('#qmsAdd').click();
-await checkRiMobileFit('#qmsDialog');
-await page.locator('#qmsClose').click();
+await page.screenshot({path:'test-results/v259/03-qms-input-mobile.png',fullPage:true});
 await page.setViewportSize({width:1280,height:900});
 await logout();
 
@@ -1020,6 +1063,7 @@ now=await mark();assert.equal(now.n,before.n,'red count is back: '+JSON.stringif
 await sequential(()=>h.db.query('delete from wlf_private.push_subscriptions where endpoint=$1',['https://push.example/e2e']));
 await v257shot('03-after-solved',{phone:false});
 }
+fs.mkdirSync('test-results/v259',{recursive:true});
 /* ---- v2.5.8 ---- */
 fs.mkdirSync('test-results/v258',{recursive:true});
 {
@@ -1064,6 +1108,69 @@ await logout();await login('sa');await category();await page.locator('#supportFi
 const dl=page.waitForEvent('download');await page.locator('#downloadSupportCSV').click();await(await dl).saveAs('test-results/support-report-v258.csv');
 const csv=fs.readFileSync('test-results/support-report-v258.csv','utf8');assert.match(csv,/Submitted · user \(US-5\)/);assert.match(csv,/Forwarded · /);assert.ok(!/"(submit|receive|forward|solve)"/.test(csv)&&!/\{"action"/.test(csv),'no raw action names in the export');
 await page.locator('#supportFilterRequester').selectOption('');await logout();await login('user');
+}
+/* ---- v2.5.9 ---- */
+{
+const v259shot=async(name,{phone=true,full=false}={})=>{for(const [w,hh,label] of [[1440,900,'desktop'],[390,844,'mobile']]){if(label==='mobile'&&!phone)continue;await page.setViewportSize({width:w,height:hh});if(w<500)await page.evaluate(()=>{if(typeof closeSidebar==='function')closeSidebar();});await page.waitForTimeout(250);for(const theme of ['light','dark']){await page.evaluate(t=>{if(typeof setAppearance==='function')setAppearance(t);},theme);await page.waitForTimeout(120);await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:`test-results/v259/${name}-${label}-${theme}.png`,fullPage:full});}}await page.evaluate(()=>{if(typeof setAppearance==='function')setAppearance('light');});await page.setViewportSize({width:1440,height:900});};
+// 1) a normal R&I user sees neither the catalogue nor QMS until the Super Admin ticks it
+await logout();await login('rni');
+assert.equal(await page.locator('#nav [data-tab=catalogue]').isVisible(),false);assert.equal(await page.locator('#nav [data-tab=qms]').isVisible(),false);
+// 2) Super Admin: Hardware Catalogue
+await logout();await login('sa');
+await tab('catalogue');await page.locator('.hw-layout').waitFor();
+await page.locator('[data-hw-system="AVR"]').click();await page.locator('[data-hw-model="AVR 20 KVA"]').click();
+assert.equal(await page.locator('#hwTable tbody tr').count(),10,'AVR 20 KVA has ten blank rows');
+await page.locator('[data-hw-edit]').first().click();
+await page.locator('#hwRowForm [name=itemCode]').fill('900020');await page.locator('#hwRowForm [name=itemName]').fill('AVR Servo Stabilizer 20 KVA');
+await page.locator('#hwRowForm [name=spec]').fill('3 Phase');await page.locator('#hwRowForm [name=brand]').fill('Demo brand');await page.locator('#hwRowForm [name=supplier]').fill('Demo supplier');await page.locator('#hwRowForm [name=value]').fill('1250.5');
+await page.locator('#hwRowForm [type=submit]').click();
+await page.locator('#hwTable').getByText('AVR Servo Stabilizer 20 KVA').waitFor();
+assert.match(await page.locator('#hwTable').innerText(),/1,250\.50/);
+await v259shot('05-catalogue-avr');
+await page.locator('#hwNewModel').click();await page.locator('#hwModelForm [name=system]').fill('AVR');await page.locator('#hwModelForm [name=model]').fill('AVR 150 KVA');await page.locator('#hwModelForm [type=submit]').click();
+await page.locator('[data-hw-model="AVR 150 KVA"].on').waitFor();assert.equal(await page.locator('#hwTable tbody tr').count(),6);
+await page.locator('[data-hw-system="MOT"]').click();await page.locator('[data-hw-model="MOT 7.5 kW"]').click();assert.equal(await page.locator('#hwTable tbody tr').count(),31);
+await page.locator('#hwSearch').fill('UPS');assert.ok(await page.locator('#hwTable tbody tr').count()>=2);await page.locator('#hwSearch').fill('');
+const catDl=page.waitForEvent('download');await page.locator('#hwExport').click();await(await catDl).saveAs('test-results/v259/catalogue.xlsx');
+assert.match(await(await Zip.loadAsync(fs.readFileSync('test-results/v259/catalogue.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/AVR Servo Stabilizer 20 KVA/);
+await page.locator('#hwMap').click();assert.ok((await page.locator('#hwMapRows tr').count())>=10);await page.locator('#hwCancel').click();
+await v259shot('06-catalogue-mot');
+// 3) the new AVR item shows up in the QMS form
+await tab('qms');await page.locator('#qmsLiftForm').waitFor();
+await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 20 KVA');
+assert.match(await page.locator('#qmsLiftForm [name=avr]').innerText(),/AVR Servo Stabilizer 20 KVA/);
+// 4) Raise Damage Demand takes the part from the catalogue
+await logout();await login('user');await category();
+for(let i=0;i<4&&!(await page.locator('#supportRequestForm').isVisible());i++){await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor({timeout:4000}).catch(()=>{});}
+await page.locator('#supportRequestForm').waitFor();
+await page.locator('#supportRequestForm [name=pm]').selectOption({index:1});await page.locator('#supportRequestForm [name=project]').fill('Catalogue Tower');await page.locator('#supportRequestForm [name=lift]').fill('7001');
+await page.locator('#supportRequestForm [name=controller]').selectOption('MOTCUBE');await page.locator('#supportRequestForm [name=problem]').fill('Drive trips');
+await page.locator('#supportRequestForm [name=problem_category]').selectOption('MOTCUBE drive error');await page.locator('.wlf-dependent').waitFor();
+await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#wlfPicker[open]').waitFor();await page.locator('#wlfPicker [data-pick="H8"]').click();
+await page.locator('#supportRequestForm [type=submit]').click();await page.locator('#supportDetail h3').filter({hasText:/-7001-/}).waitFor();
+const demandReq=await page.locator('#supportDetail').getAttribute('data-record-id');
+const rr=(await sequential(()=>h.db.query('select revision from public.wlf_requests where id=$1',[demandReq]))).rows[0].revision;
+await sequential(()=>h.rpc('rni','transitionSupportRequest',[{id:demandReq,revision:rr,action:'receive',mutationId:crypto.randomUUID()}]));
+await logout();await login('rni');await category();
+await page.locator(`[data-ticket="${demandReq}"]`).click();
+await page.locator('#supportComment').fill('Replace the drive card.');await page.locator('#supportDuration').fill('30');
+await page.locator('#supportHardware input[value=true]').check();
+const dd=page.locator('#wlfDamageDialog');await dd.waitFor();
+await dd.locator('#hwDemList tbody tr').first().waitFor();
+assert.ok(await dd.locator('#hwDemSuggest .hw-pick').count()>=1,'drive problem suggests drive parts');
+assert.match(await dd.locator('#hwDemSuggest').innerText(),/SUGGESTED FOR THIS PROBLEM/);
+await dd.locator('#hwDemModel').selectOption({label:'NICE3000+ 11 kW'});
+await dd.locator('#hwDemSupplier').selectOption('Monarch');
+await dd.locator('#hwDemList input[name=hwDemPick]').first().check();
+const pickedCode=await dd.locator('#hwDemList input[name=hwDemPick]:checked').evaluate(n=>n.closest('tr').children[1].innerText);
+await dd.locator('[name=quantity]').fill('2');
+await v259shot('07-raise-demand-picker');
+await dd.getByRole('button',{name:'Submit demand',exact:true}).click();
+await page.locator('#supportActionStatus').filter({hasText:'Damage demand submitted to Dispatch.'}).waitFor();
+const dem=(await sequential(()=>h.db.query('select item_code,item_name,item_spec,component_model,supplier,catalog_id,quantity from wlf_private.damage_demands where request_id=$1',[demandReq]))).rows[0];
+assert.equal(dem.component_model,'NICE3000+ 11 kW');assert.ok(dem.catalog_id);assert.equal(dem.quantity,2);assert.match(dem.item_spec,/Model: NICE3000\+ 11 kW/);
+if(pickedCode.trim()!=='no code')assert.equal(dem.item_code,pickedCode.trim());
+await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
