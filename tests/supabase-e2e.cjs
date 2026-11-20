@@ -482,15 +482,16 @@ await page.locator('#hwMotorSearch').click();await page.locator('.hw-motor-chip'
 const motorModel=await page.locator('#hwMotorResult table').first().innerText();
 await page.locator('#qmsLiftForm input[name=other]').first().check();
 await page.screenshot({path:'test-results/v259/03-qms-input-desktop.png',fullPage:true});
-await page.locator('#qmsLiftForm [type=submit]').click();
-await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor();
+const qmsSubmit=async()=>{const b=page.locator('#qmsLiftForm [type=submit]');await b.scrollIntoViewIfNeeded();await b.focus();await page.waitForTimeout(200);await b.click();};/* CI lesson (v2.5.1): focus first so scrolling cannot move the button between mousedown and mouseup */
+await qmsSubmit();
+await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor().catch(async e=>{throw Error('QMS-DIAG status=['+(await page.locator('#qmsLiftStatus').innerText().catch(()=>'?'))+'] errors='+JSON.stringify(errors)+' console='+JSON.stringify((globalThis.consoleErrors||[]).slice(-5))+' disabled='+(await page.locator('#qmsLiftForm [type=submit]').isDisabled().catch(()=>'?')));});
 await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
 await page.locator('#qmsLiftForm [name=project]').fill('Other');
 await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-26');
 await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
 await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 5.5 kW');
 for(let i=await page.locator('[data-control-pick]').count();i>0;i--) await page.locator('[data-control-pick]').first().selectOption({index:1}).catch(()=>{});
-await page.locator('#qmsLiftForm [type=submit]').click();
+await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift ID already exists'}).waitFor();
 await page.locator('#qmsTabData').click();
 await page.locator('#qmsSearch [name=liftId]').fill('L-101');
@@ -507,7 +508,7 @@ const qmsZip=await Zip.loadAsync(fs.readFileSync('test-results/v259/qms-L-101.xl
 assert.match(await qmsZip.file('xl/worksheets/sheet1.xml').async('string'),/L-101/);assert.match(await qmsZip.file('xl/worksheets/sheet2.xml').async('string'),/Travelling Cable TVVB 36 core/);
 await page.locator('#qmsEdit').click();
 await page.locator('#qmsLiftForm [name=project]').fill('WLF North Tower 2');
-await page.locator('#qmsLiftForm [type=submit]').click();
+await qmsSubmit();
 await page.locator('.hw-out h3').filter({hasText:'WLF North Tower 2'}).waitFor();
 assert.match(await page.locator('.hw-history').textContent(),/edited \(Project\)/);
 await tab('workspace-dashboard');
