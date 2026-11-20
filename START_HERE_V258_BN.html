@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.5.8 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.5.7 → 2.5.8 · ১৯ নভেম্বর ২০২৬</p>
+  <h1>MOTCUBE drive error (Support form) ও history-র সঠিক লেখা: deployment নির্দেশিকা</h1>
+  <p>প্যাকেজ তিনটা: <b>WLF-Supabase-v2.5.8.zip</b>, <b>WLF-GitHub-v2.5.8-UPLOAD.zip</b> (v2.5.7-এর পর বদলানো ফাইল) আর <b>WLF-GitHub-v2.5.8.zip</b> (পুরো প্রজেক্ট)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. Supabase SQL</a><a href="#s3">৩. GitHub</a><a href="#s4">৪. যাচাই</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে</h2><ul>
+<li><b>Request-এর Activity history-র লেখা:</b> আগে <code>submit</code>, <code>receive</code>, <code>forward</code>, <code>solve</code> ছোট হাতের লেখা দেখাত। এখন <b>Submitted</b>, <b>Received</b>, <b>Forwarded</b>, <b>Solved</b>, <b>Not Solved</b>, <b>Kept Pending</b>।</li>
+<li><b>"→ নিজের নাম" আর দেখায় না।</b> আগে Received-এর পাশে "→ একই ব্যক্তির নাম" লেখা থাকত। এখন তীর (→) শুধু <b>Forwarded</b>-এ থাকে এবং কাকে forward করা হলো তা দেখায়।</li>
+<li><b>Excel/CSV report-এর "Activity history" কলাম:</b> আগে কোড-আকারে (JSON) ছিল। এখন পড়ার মতো লেখা: <code>Submitted · নাম · তারিখ</code>, প্রতি ঘটনা আলাদা লাইনে।</li>
+<li><b>Support form-এর Problem Category:</b> <b>NICE3000+ drive error</b>-এর ঠিক নিচে নতুন অপশন <b>MOTCUBE drive error</b>। এটা বেছে নিলে <b>Problem Sub-Category</b> বাধ্যতামূলক হয় এবং MOTCUBE-এর error code-এর তালিকা খোলে (MOT drive Error-এর মতোই; সার্চ করা যায়, একটা কোড বাছতে হয়)। পাঁচটা team-এর ফর্মে (Commissioning, After Sales, Production, QC, Factory Maintenance) যোগ হয়। Installation ফর্মে Problem Category শুধু Mechanical/Electrical, তাই সেখানে নয়।</li>
+<li>যে request আগেই জমা হয়ে গেছে তা বদলায় না।</li>
+</ul>
+<div class="attention"><b>কোডের তালিকা নিয়ে:</b> আপনি লিখেছিলেন H1 থেকে H61। ম্যানুয়ালে কোড আছে <b>H1 থেকে H62</b>, কিন্তু <b>H20 নেই</b>। তাই মোট ৬১টা কোড। তালিকায় H1–H19 এবং H21–H62 আছে। ম্যানুয়ালে H20 ছাড়া অন্য কোনো ফাঁক নেই।</div>
+<div class="note">Super Admin পরে <b>Manage form fields</b> থেকে এই তালিকা বদলাতে পারেন (MOT/NICE3000+ তালিকার মতোই)। SQL আবার চালালে আপনার বদল মুছবে না: অপশন আগে থেকে থাকলে SQL কিছু করে না।</div></section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2><ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> আর <code>02_DATA_BACKUP.sql</code> চালিয়ে CSV নিন, <code>03_RESTORE_TOOL.html</code>-এ সবুজ ✓ দেখুন।</li></ol></section>
+
+<section id="s2"><h2>২. Supabase-এ ডাটাবেজ আপডেট</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V258.sql</code> Notepad-এ খুলে Ctrl+A, Ctrl+C, পেস্ট করে <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফল:<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>forms_with_motcube</code></td><td><code>5</code></td></tr>
+<tr><td><code>forms_with_problem_category</code></td><td><code>6</code> (Installation-এ শুধু Mechanical/Electrical, তাই 5 আর 6 ভিন্ন হওয়াই ঠিক)</td></tr>
+<tr><td><code>v258_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="note">দুবার চালালেও সমস্যা নেই। কোনো ডাটা মোছে না। Edge Function-এ কোনো বদল নেই।</div></section>
+
+<section id="s3"><h2>৩. GitHub-এ ফাইল আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.5.8-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message বক্সে ছোট একটা লাইন লিখুন: <code>v2.5.8 MOTCUBE drive error, history labels</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol><div class="attention">ক্রম: আগে SQL, পরে GitHub। আর Commit message-এ SQL ফাইলের লেখা পেস্ট করবেন না (v2.5.7-এর commit-এর শিরোনামে SQL-এর লেখা ঢুকে গিয়েছিল; কোনো ক্ষতি হয়নি, শুধু তালিকা অগোছালো দেখায়)।</div></section>
+
+<section id="s4"><h2>৪. যাচাই</h2><ol>
+<li>Ctrl+F5; ⋮ মেনুর নিচে <b>WLF v2.5.8</b>।</li>
+<li>Technical Support → একটা team → <b>+ New request</b> → Problem Category ড্রপডাউনে NICE3000+ drive error-এর নিচে <b>MOTCUBE drive error</b>।</li>
+<li>সেটা বাছুন, Problem Sub-Category না বেছে Submit চাপুন: কোডের তালিকা খুলবে। একটা কোড (যেমন H8) বেছে জমা দিন।</li>
+<li>যেকোনো request খুলে "Activity history" দেখুন: Submitted, Received, Forwarded… বড় হাতের শুরু।</li></ol></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>STOP: apply UPDATE_V257.sql</td><td>v2.5.7-এর SQL চালানো হয়নি</td><td>আগে <code>UPDATE_V257.sql</code>, তারপর V258</td></tr>
+<tr><td>Problem Category-তে MOTCUBE নেই</td><td>SQL চালানো হয়নি বা পুরনো পাতা</td><td>ধাপ ২, তারপর Ctrl+F5 / অ্যাপ বন্ধ করে খুলুন</td></tr>
+<tr><td>কোনো একটা team-এ MOTCUBE নেই</td><td>ওই ফর্মে Super Admin আগে Problem Sub-Category ফিল্ড মুছে ফেলেছিলেন (তখন SQL ওই ফর্মে হাত দেয় না)</td><td>Manage form fields থেকে ফিল্ডটা আবার যোগ করুন, তারপর অপশনটা হাতে যোগ করুন</td></tr>
+<tr><td>"Required: Problem Sub-Category"</td><td>MOTCUBE বেছে কোড বাছা হয়নি</td><td>ঠিক আছে: তালিকা থেকে একটা কোড বাছুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>সাইট আগের মতোই</td><td>লগের শেষে "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে</h2>
+<ul><li>কপি-ডাটাবেসে v2.5.7-এর পর <code>UPDATE_V258.sql</code> দুবার চালানো হয়েছে: ৫টা ফর্মে অপশন NICE3000+ drive error-এর ঠিক নিচে, ৬১টা কোড (H20 ছাড়া), অন্য তালিকা অপরিবর্তিত, দ্বিতীয়বার চালালে ফর্ম আর বদলায় না, Super Admin আগে বদলালে সেটা মানা হয়, MOTCUBE বেছে কোড না দিলে বা ভুল কোড দিলে সার্ভার প্রত্যাখ্যান করে।</li>
+<li>ব্রাউজার (Playwright): ড্রপডাউনে অবস্থান, তালিকা ৬১টা (H1 প্রথমে, H62 শেষে, H20 নেই), সার্চ, কোড না বেছে Submit করলে তালিকা খোলা, জমা হলে H62 সংরক্ষিত, history-তে Submitted/Received/Forwarded/Not Solved/Solved, তীর শুধু Forwarded-এ, CSV-তে কোড-আকারের লেখা নেই। মোবাইল/ডেস্কটপ, লাইট/ডার্ক স্ক্রিনশট দেখা হয়েছে।</li>
+<li><code>npm test</code> ১১৭টি পাস, e2e পাস (ঢাকা ও UTC সময় দুভাবেই)।</li></ul>
+<div class="attention"><b>যা এখানে যাচাই করা যায়নি:</b> আসল Supabase-এ SQL চালানো আর GitHub-এর CI।</div></section>
+<footer>WLF Electrical Solution · v2.5.8</footer>
+</main>
+</body>
+</html>

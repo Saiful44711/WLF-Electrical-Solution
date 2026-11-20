@@ -1,4 +1,10 @@
-# WLF Electrical Solution v2.5.7
+# WLF Electrical Solution v2.5.8
+
+## v2.5.8 MOTCUBE drive error in support forms, readable history labels (19 November 2026)
+
+- Support forms: Problem Category gets **MOTCUBE drive error** directly below *NICE3000+ drive error*; choosing it requires one code from the Problem Sub-Category list (H1 to H62, no H20 in the manual: 61 codes). Applied to every form that has both the Problem Category and Problem Sub-Category fields (five teams). Installation (Mechanical / Electrical only) and forms where Super Admin changed or removed the fields are left alone; submitted requests keep their own form.
+- Request history shows Submitted / Received / Forwarded / Solved / Not Solved / Kept Pending (`AccessCore.historyLabel`); the arrow shows only on Forwarded; the report column "Activity history" is readable text instead of JSON.
+- Run `supabase/UPDATE_V258.sql` after v2.5.7. See `START_HERE_V258_BN.html`.
 
 ## v2.5.7 Technical Support split screen, requester red mark and push, activity-log auto-delete (19 November 2026)
 
