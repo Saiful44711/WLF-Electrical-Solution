@@ -201,6 +201,23 @@ function openTab(name) {
   if (name === 'dashboard') loadStats();
   window.scrollTo(0, 0);
 }
+/* v2.6.1: the phone Back button steps back through the pages instead of closing the app */
+var curTab = '', navStarted = false, navPopping = false;
+function wlfNavRecord(name) {
+  try {
+    if (navPopping) { curTab = name; return; }
+    if (!navStarted) { history.replaceState({ wlfTab: name }, ''); navStarted = true; }
+    else if (name !== curTab) history.pushState({ wlfTab: name }, '');
+  } catch (e) {}
+  curTab = name;
+}
+window.addEventListener('popstate', function (e) {
+  var t = e.state && e.state.wlfTab;
+  if (!t || !navStarted || !$('tab-' + t)) return;
+  if (t === curTab) { closeSidebar(); return; }
+  navPopping = true;
+  try { openTab(t); } finally { navPopping = false; }
+});
 function toggleSidebar() {
   $('sidebar').classList.toggle('open');
   $('overlay').classList.toggle('show');

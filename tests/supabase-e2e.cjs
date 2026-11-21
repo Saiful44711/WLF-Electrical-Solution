@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.0-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.1-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -512,6 +512,11 @@ await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:/Enter the Drive SL/}).waitFor();
 await fillSerials();
 await page.screenshot({path:'test-results/v260/03-qms-input-desktop.png',fullPage:true});
+{const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.waitForTimeout(300);
+const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,wide:[...document.querySelectorAll('#qmsLiftForm *')].filter(e=>e.getBoundingClientRect().right>document.documentElement.clientWidth+1).slice(0,3).map(e=>e.tagName+'.'+e.className)}));
+await page.screenshot({path:'test-results/v260/03-qms-motor-selected-360.png',fullPage:true});
+if(over.sw>over.cw+1||over.wide.length)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
+await page.setViewportSize(vp);}
 await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor().catch(async e=>{throw Error('QMS-DIAG status=['+(await page.locator('#qmsLiftStatus').innerText().catch(()=>'?'))+'] errors='+JSON.stringify(errors)+' console='+JSON.stringify((globalThis.consoleErrors||[]).slice(-5))+' disabled='+(await page.locator('#qmsLiftForm [type=submit]').isDisabled().catch(()=>'?')));});
 await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
@@ -1256,6 +1261,41 @@ assert.equal(nowRows.some(r=>r.values[3]!=='2:1'&&r.values[3]!=='4:1'),false,'ro
 await tab('selection');await page.locator('#sel-capacity').selectOption('450');await page.locator('#sel-speed').selectOption('1');await page.locator('#sel-usageType').selectOption('MR');await page.locator('#sel-roping').selectOption('2:1');await page.locator('#searchBtn').click();await page.locator('#matchesList .chip').first().waitFor();
 await tab('components');await page.locator('#componentsTable tbody tr').first().waitFor();
 await page.screenshot({path:'test-results/v260/05-components-after-import.png'});
+// v2.6.1: QMS Data fits a phone, no 1/2 marks on the QMS tabs, Back button steps back through pages
+{const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});
+await tab('qms');
+assert.equal((await page.locator('#qmsTabInput').innerText()).trim(),'QMS Input');assert.equal((await page.locator('#qmsTabData').innerText()).trim(),'QMS Data');
+await page.locator('#qmsTabData').click();await page.locator('#qmsResults .tbl').waitFor();await page.waitForTimeout(300);
+const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,wide:[...document.querySelectorAll('#qmsPanel *')].filter(e=>{const r=e.getBoundingClientRect();return r.right>document.documentElement.clientWidth+1&&!e.closest('.tbl-wrap');}).slice(0,3).map(e=>e.tagName+'.'+e.className)}));
+await page.screenshot({path:'test-results/v260/06-qms-data-360.png',fullPage:true});
+if(over.sw>over.cw+1||over.wide.length)throw Error('MOBILE-OVERFLOW-DATA '+JSON.stringify(over));
+await page.setViewportSize(vp);
+await tab('account');await tab('qms');
+await page.goBack();await page.locator('#tab-account').waitFor({state:'visible'});assert.equal(await page.locator('#tab-qms').isVisible(),false);
+await page.goForward();await page.locator('#tab-qms').waitFor({state:'visible'});
+await page.goBack();await page.locator('#tab-account').waitFor({state:'visible'});
+await tab('account');}
+// v2.6.1: QMS rows keep references only; Storage & Backup shows the new options, backs up and restores them
+{const raw=(await sequential(()=>h.db.query('select parts, selection from wlf_private.qms_lifts limit 1'))).rows[0];
+assert.ok(raw.parts.length&&raw.parts.every(p=>p.h&&!p.name&&!p.code),'QMS rows keep references, not copies');assert.ok(!raw.selection||raw.selection.h,'motor data is a reference too');
+await tab('storage');await page.locator('#wlfUsageTable table').waitFor();
+const usageText=await page.locator('#wlfUsageTable').innerText();for(const n of['QMS lift records','Hardware Catalogue','Components Data','Technical Support','Activity log (usage)'])assert.ok(usageText.includes(n),'usage lists '+n);
+await page.screenshot({path:'test-results/v260/07-storage-desktop.png',fullPage:true});
+const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.waitForTimeout(300);
+const over=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);await page.screenshot({path:'test-results/v260/07-storage-360.png',fullPage:true});
+if(over>1)throw Error('MOBILE-OVERFLOW-STORAGE '+over);await page.setViewportSize(vp);
+const dc=page.waitForEvent('download');await page.locator('#wlfBackupCatalogue').click();const cat=await dc;await cat.saveAs('test-results/v260/catalogue-backup.json');
+const catJson=JSON.parse(fs.readFileSync('test-results/v260/catalogue-backup.json','utf8'));assert.equal(catJson.kind,'catalogue');assert.ok(catJson.rows.length>300);
+await page.locator('#wlfDataStatus').filter({hasText:'Hardware Catalogue backup downloaded'}).waitFor();
+const dq=page.waitForEvent('download');await page.locator('#wlfBackupQms').click();const qd=await dq;await qd.saveAs('test-results/v260/qms-backup.json');
+const qmsJson=JSON.parse(fs.readFileSync('test-results/v260/qms-backup.json','utf8'));assert.equal(qmsJson.kind,'qms');assert.ok(qmsJson.rows.length>=1);assert.ok(qmsJson.rows[0].parts[0].code,'the QMS file holds readable data');
+page.once('dialog',d=>d.accept());await page.locator('#wlfDataRestoreFile').setInputFiles('test-results/v260/qms-backup.json');
+await page.locator('#wlfDataStatus').filter({hasText:/QMS restored: 0 lift\(s\) added/}).waitFor();
+page.once('dialog',d=>d.accept());await page.locator('#wlfDataRestoreFile').setInputFiles('test-results/v260/catalogue-backup.json');
+await page.locator('#wlfDataStatus').filter({hasText:/Hardware Catalogue restored: 0 row\(s\) added/}).waitFor();
+fs.writeFileSync('test-results/v260/bad-backup.json','{"hello":1}');page.once('dialog',d=>d.accept());await page.locator('#wlfDataRestoreFile').setInputFiles('test-results/v260/bad-backup.json');
+await page.locator('#wlfDataStatus').filter({hasText:'not a WLF'}).waitFor();
+await tab('account');}
 await logout();await login('user');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);

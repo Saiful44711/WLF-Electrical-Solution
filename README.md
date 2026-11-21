@@ -1,4 +1,11 @@
-# WLF Electrical Solution v2.6.0
+# WLF Electrical Solution v2.6.1
+
+## v2.6.1 Phone fixes, shared QMS data, Storage & Backup for QMS and Hardware Catalogue (20 November 2026)
+
+- QMS Input and QMS Data fit a phone screen; wide tables scroll sideways inside their own box. The 1 / 2 marks on the QMS buttons are removed. The phone Back button steps back through the pages instead of closing the app.
+- **QMS lift records no longer hold a private copy of every part.** Each distinct catalogue row (as it was on the day a lift was saved) is stored once in `wlf_private.hw_snap`; a lift keeps short references. A lift still shows the data of its save day; a changed catalogue only affects lifts saved or edited later. Existing lifts are converted by `UPDATE_V261.sql`.
+- **Storage & Backup** (Super Admin): "Database use by option", download backup files of the Hardware Catalogue and of the QMS lift records, and restore from such a file (adds missing rows only, never deletes). Components Data keeps its CSV download/import. These backups are files on your computer; they are not sent to Google Drive and need no Edge Function change.
+- Run `supabase/UPDATE_V261.sql` after v2.6.0. See `START_HERE_V261_BN.html`.
 
 ## v2.6.0 Motor-first QMS, Controller Model on Support forms, Components CSV import (20 November 2026)
 

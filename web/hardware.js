@@ -729,7 +729,7 @@ const WlfHardware = (() => {
   async function openQms() {
     const root = el('tab-qms');
     const run = ++qmsRun;
-    root.innerHTML = `<div class="hw-stack"><div class="hw-tabs" role="tablist"><button type="button" class="btn" id="qmsTabInput">① QMS Input</button><button type="button" class="btn ghost" id="qmsTabData">② QMS Data</button></div>
+    root.innerHTML = `<div class="hw-stack"><div class="hw-tabs" role="tablist"><button type="button" class="btn" id="qmsTabInput">QMS Input</button><button type="button" class="btn ghost" id="qmsTabData">QMS Data</button></div>
       <div id="qmsPanel"><div class="card"><p class="note">Loading the catalogue…</p></div></div></div>`;
     el('qmsTabInput').onclick = () => openInput();
     el('qmsTabData').onclick = () => openData();

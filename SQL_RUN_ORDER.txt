@@ -1,13 +1,15 @@
-WLF Electrical Solution v2.6.0 - SQL run order
+WLF Electrical Solution v2.6.1 - SQL run order
 
-A) EXISTING live project (your current Supabase project) - this update only:
+A) EXISTING live project (v2.6.1 needs UPDATE_V260.sql applied first):
    1. backup-kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql (download both CSVs)
-   2. UPDATE_V260.sql (needs UPDATE_V259.sql already applied)
-      -> mot_faceplates = 6, motcube_models = 3, forms_with_controller_model >= 3, v260_ready = true
+   2. UPDATE_V261.sql (needs UPDATE_V260.sql, which needs UPDATE_V259.sql)
+      -> unconverted_parts = 0, v261_ready = true  (QMS shared snapshot rows, Storage & Backup actions)
+   2b. only if V260 is not applied yet: UPDATE_V260.sql first
+      (V260 result: mot_faceplates = 6, motcube_models = 3, forms_with_controller_model >= 3, v260_ready = true)
          (COP Faceplate models, MOTCUBE tables, Controller Model on Support forms,
           QMS serial/MOTCUBE checks, Components Data CSV import)
-   3. Edge Functions: no change in v2.6.0
-   4. Upload the GitHub files (WLF-GitHub-v2.6.0-UPLOAD.zip)
+   3. Edge Functions: no change in v2.6.1
+   4. Upload the GitHub files (WLF-GitHub-v2.6.1-UPLOAD.zip)
    5. Components Data page -> Import CSV -> Components-Data-2026-11-20.csv (replaces all rows)
 
 B) NEW empty project built from source (staging / disaster recovery without a backup):
@@ -30,6 +32,7 @@ B) NEW empty project built from source (staging / disaster recovery without a ba
    full-source/supabase/UPDATE_V258.sql
    full-source/supabase/UPDATE_V259.sql
    full-source/supabase/UPDATE_V260.sql
+   full-source/supabase/UPDATE_V261.sql
    then create the first Super Admin (full-source/supabase/02_FIRST_SUPER_ADMIN.sql)
    and deploy the Edge Functions in full-source/supabase/functions/
    (wlf-admin, wlf-maintenance, wlf-push - all with Verify JWT OFF).
