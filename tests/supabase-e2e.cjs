@@ -48,6 +48,7 @@ else if(url.pathname==='/auth/v1/user'){const id=JSON.parse(Buffer.from(request.
 else if(url.pathname==='/functions/v1/wlf-maintenance'){
  const id=JSON.parse(Buffer.from(request.headers().authorization.split('.')[1],'base64url').toString()).sub;
  if(id!==IDS.sa)throw Error('Super Admin only');const p=body.payload||{};
+ if(process.env.WLF_EDGE_DELAY)await new Promise(r=>setTimeout(r,Number(process.env.WLF_EDGE_DELAY)));
  const sql=async(action,payload=p)=>(await h.db.query('select public.wlf_backup_admin($1,$2,$3)result',[action,id,payload])).rows[0].result;
  const excelSql=async(action,payload={})=>sequential(async()=>(await h.db.query('select public.wlf_excel_admin($1,$2,$3) result',[action,id,payload])).rows[0].result);
  if(body.action==='status')data={...await sequential(()=>sql('status')),driveConfigured:true};
@@ -1298,7 +1299,7 @@ fs.writeFileSync('test-results/v260/bad-backup.json','{"hello":1}');page.once('d
 await page.locator('#wlfDataStatus').filter({hasText:'not a WLF'}).waitFor();
 await tab('account');}
 // v2.6.2: Excel backup for R&I Project, QMS data, Damage Demand, Supplier Claim; history delete; QMS lift in the Recycle bin; Documents Links permission
-{fs.mkdirSync('test-results/v262',{recursive:true});page.removeAllListeners('dialog');
+{fs.mkdirSync('test-results/v262',{recursive:true});page.removeAllListeners('dialog');if(process.env.WLF_SLOW){const cdp=await page.context().newCDPSession(page);await cdp.send('Emulation.setCPUThrottlingRate',{rate:Number(process.env.WLF_SLOW)});}
 await tab('storage');await page.locator('[data-excel-kind=claim]').waitFor();
 for(const k of['support','activity','project','qms','damage','claim'])assert.equal(await page.locator('[data-excel-kind='+k+']').count(),1,'button '+k);
 await page.locator('#wlfExcelHistory table').waitFor();await page.screenshot({path:'test-results/v262/01-storage-excel-desktop.png',fullPage:true});
@@ -1311,16 +1312,18 @@ const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:
 if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW-EXCEL '+JSON.stringify(over));await page.setViewportSize(vp);
 await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark.png',fullPage:false});await page.setViewportSize({width:360,height:800});await page.waitForTimeout(200);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark-360.png',fullPage:false});await page.setViewportSize(vp);await page.evaluate(()=>setAppearance('light'));
 const book=async(path)=>Zip.loadAsync(fs.readFileSync(path));
+const excelDownload=async(kind,file)=>{const d=page.waitForEvent('download',{timeout:60000});d.catch(()=>{});await page.locator('[data-excel-kind='+kind+']').click();
+ try{await(await d).saveAs(file);}catch(e){throw Error('Excel '+kind+': no download. On-screen status: "'+(await page.locator('#wlfExcelStatus').innerText().catch(()=>'?'))+'"');}};
 // QMS data without clear: downloaded, saved to Drive, nothing removed
 const liftsBefore=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n);assert.ok(liftsBefore>=1);
-let dl=page.waitForEvent('download');await page.locator('[data-excel-kind=qms]').click();await(await dl).saveAs('test-results/v262/qms.xlsx');
+let dl;await excelDownload('qms','test-results/v262/qms.xlsx');
 await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();
 assert.match(await(await book('test-results/v262/qms.xlsx')).file('xl/workbook.xml').async('string'),/QMS Components/);
 assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n),liftsBefore);
 // R&I Project and Supplier Claim without clear
-dl=page.waitForEvent('download');await page.locator('[data-excel-kind=project]').click();await(await dl).saveAs('test-results/v262/project.xlsx');
+await excelDownload('project','test-results/v262/project.xlsx');
 await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();assert.match(await(await book('test-results/v262/project.xlsx')).file('xl/workbook.xml').async('string'),/Projects/);
-dl=page.waitForEvent('download');await page.locator('[data-excel-kind=claim]').click();await(await dl).saveAs('test-results/v262/claim.xlsx');
+await excelDownload('claim','test-results/v262/claim.xlsx');
 await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();assert.match(await(await book('test-results/v262/claim.xlsx')).file('xl/workbook.xml').async('string'),/Supplier Claim/);
 // Damage Demand with clear, then restore from the history row
 await sequential(()=>h.db.query(`insert into wlf_private.damage_demands(request_id,category,request_reference,requester_id,requester_name,requested_at,project,lift_id,controllers,problem_categories,form_schema,form_values,confirmed_by,confirmed_name,solution_statement,item_name,item_code,item_spec,quantity,create_operation,create_payload_hash,received_at,received_by,received_name)
@@ -1329,7 +1332,7 @@ const demandsBefore=Number((await sequential(()=>h.db.query('select count(*) n f
 const eligible=Number((await sequential(()=>h.db.query("select count(*) n from wlf_private.damage_demands d where wlf_private.excel_eligible('damage',d)"))).rows[0].n);
 await page.locator('input[name=wlfExcelMode][value=clear]').check();
 page.once('dialog',d=>d.accept());
-dl=page.waitForEvent('download');await page.locator('[data-excel-kind=damage]').click();await(await dl).saveAs('test-results/v262/damage.xlsx');
+await excelDownload('damage','test-results/v262/damage.xlsx');
 await page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) cleared/}).waitFor();
 assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n),demandsBefore-eligible);
 assert.match(await(await book('test-results/v262/damage.xlsx')).file('xl/workbook.xml').async('string'),/Damage Demand/);
@@ -1369,7 +1372,7 @@ await logout();await setDocs(true);await login('user');
 await page.locator('#nav [data-tab=documents]').waitFor({state:'visible'});await tab('documents');await page.locator('#tab-documents').waitFor({state:'visible'});await page.waitForTimeout(400);
 assert.equal(await page.locator('#wlfAddCategory').isVisible().catch(()=>false),false,'a normal user cannot add or edit documents');
 await page.screenshot({path:'test-results/v262/05-documents-user.png',fullPage:true});await tab('account');
-await logout();await setDocs(false);await login('user');await page.waitForTimeout(400);
+await logout();await setDocs(false);await login('user');await page.locator('#nav [data-tab=documents]').waitFor({state:'hidden'});
 assert.equal(await page.locator('#nav [data-tab=documents]').isVisible(),false,'Documents Links is hidden without the permission');
 await logout();await setDocs(true);await login('user');}
 }
