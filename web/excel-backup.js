@@ -105,7 +105,8 @@ const WlfExcelBackup=(()=>{
       finally{if(current()){await history();api.lock(false);}}
     }
     async function start(kind) {
-      if(api.busy()||!current())return;
+      if(!current())return;
+      if(api.busy()){status('Another backup is still running. Wait a moment and try again.',true);return;}
       if(!api.configured){status('Configure Google Drive before starting an Excel backup.',true);return;}
       const withClear=get('input[name=wlfExcelMode]:checked').value==='clear';
       const payload={kind,from:from.value,to:to.value,withClear};
