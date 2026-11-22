@@ -54,8 +54,8 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  if(body.action==='status')data={...await sequential(()=>sql('status')),driveConfigured:true};
  else if(body.action==='excelHistory')data=await excelSql('history');
  else if(body.action==='excelDeleteHistory')data=await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id});
- else if(body.action.startsWith('excel'))data=await excelMaintenance({action:body.action,payload:p,sql:excelSql,
-  drive,folder:async()=>'test-folder',project:'wlf-test',Zip});
+ else if(body.action.startsWith('excel')){(globalThis.edgeLog||(globalThis.edgeLog=[])).push(body.action+(p.kind?':'+p.kind:'')+(p.withClear?':clear':''));data=await excelMaintenance({action:body.action,payload:p,sql:excelSql,
+  drive,folder:async()=>'test-folder',project:'wlf-test',Zip});globalThis.edgeLog.push(body.action+' ok');}
  else if(body.action==='backupPart'){let nonce=crypto.randomUUID(),part=await sql('prepare',{...p,project:'wlf-test',nonce});if(!part.alreadyVerified){archiveParts.set(p.id+':'+p.batch,part);await sql('verify',{...p,nonce,fileId:'drive_sample_'+p.batch,sha256:'a'.repeat(64)});}data={verified:true};}
  else if(body.action==='downloadPart')data=archiveParts.get(p.id+':'+p.batch);
  else if(body.action==='restore')data=await sql('restore',{archive:p.archive,project:'wlf-test'});
@@ -63,7 +63,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  else data=await sql(({clearPart:'clear'})[body.action]||body.action);
  }
 else throw Error('Unexpected mocked route '+url.pathname);
-}catch(e){status=400;data={message:e.message,code:'P0001'};}await route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(data)});});
+}catch(e){status=400;data={message:e.message,code:'P0001'};if(url.pathname==='/functions/v1/wlf-maintenance')(globalThis.edgeLog||(globalThis.edgeLog=[])).push((body&&body.action)+' ERROR '+e.message);}await route.fulfill({status,contentType:'application/json',headers:{'Access-Control-Allow-Origin':'*'},body:JSON.stringify(data)});});
 await page.goto(origin+'/wlf/');await page.locator('#loginEmail').waitFor();
 await page.locator('#tabRegister').click();await page.locator('#regName').waitFor();await page.locator('#regName').fill('New Person');await page.locator('#regSection').selectOption('Factory Maintenance');assert.equal(await page.locator('#regSection option').count(),14);await page.locator('#regEmail').fill('new.person@example.test');await page.locator('#regPassword').fill('long-password-1');await page.locator('#regBtn').click();await page.locator('#authMsg').filter({hasText:'ID'}).waitFor();await page.locator('#regId').fill('NP-9');await page.locator('#regPassword').fill('');
 await page.locator('#tabLogin').click();
@@ -1312,12 +1312,20 @@ const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:
 if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW-EXCEL '+JSON.stringify(over));await page.setViewportSize(vp);
 await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark.png',fullPage:false});await page.setViewportSize({width:360,height:800});await page.waitForTimeout(200);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark-360.png',fullPage:false});await page.setViewportSize(vp);await page.evaluate(()=>setAppearance('light'));
 const book=async(path)=>Zip.loadAsync(fs.readFileSync(path));
-const excelDownload=async(kind,file)=>{await page.waitForFunction(()=>[...document.querySelectorAll('[data-excel-kind]')].every(b=>!b.disabled),null,{timeout:60000});
+const excelDownload=async(kind,file,attempt=1)=>{await page.waitForFunction(()=>[...document.querySelectorAll('[data-excel-kind]')].every(b=>!b.disabled),null,{timeout:60000});
  // Capture the bytes the app hands to the browser, so a CI Chrome that throttles repeated automatic downloads cannot fail the test.
- await page.evaluate(()=>{const s=document.querySelector('#wlfExcelStatus');if(s)s.textContent='';window.__wlfExcel=null;const W=window.WlfExports;if(W&&!W.__wrapped){const orig=W.download;W.download=function(data,name){try{const u=data instanceof Uint8Array?data:new Uint8Array(data);let b='';for(let i=0;i<u.length;i+=32768)b+=String.fromCharCode.apply(null,u.subarray(i,i+32768));window.__wlfExcel={name,b64:btoa(b)};}catch(e){window.__wlfExcel={name,error:String(e)};}return orig.apply(this,arguments);};W.__wrapped=true;}});
- const c=page.waitForFunction(()=>window.__wlfExcel,null,{timeout:90000}).then(async()=>{const x=await page.evaluate(()=>window.__wlfExcel);if(!x.b64)throw Error(x.error);fs.writeFileSync(file,Buffer.from(x.b64,'base64'));return 'captured';});c.catch(()=>{});
- await page.locator('[data-excel-kind='+kind+']').click();
- try{await c;}catch(e){throw Error('Excel '+kind+': no download. On-screen status: "'+(await page.locator('#wlfExcelStatus').innerText().catch(()=>'?'))+'"; busy buttons: '+(await page.locator('[data-excel-kind]:disabled').count()));}};
+ await page.evaluate(()=>{const s=document.querySelector('#wlfExcelStatus');if(s)s.textContent='';window.__wlfExcel=null;window.__wlfRoot=document.querySelector('#wlfExcelBackupRoot');const W=window.WlfExports;if(W&&!W.__wrapped){const orig=W.download;W.download=function(data,name){try{const u=data instanceof Uint8Array?data:new Uint8Array(data);let b='';for(let i=0;i<u.length;i+=32768)b+=String.fromCharCode.apply(null,u.subarray(i,i+32768));window.__wlfExcel={name,b64:btoa(b)};}catch(e){window.__wlfExcel={name,error:String(e)};}return orig.apply(this,arguments);};W.__wrapped=true;}});
+ const logStart=(globalThis.edgeLog||[]).length;
+ const c=page.waitForFunction(()=>window.__wlfExcel,null,{timeout:attempt===1?45000:90000}).then(async()=>{const x=await page.evaluate(()=>window.__wlfExcel);if(!x.b64)throw Error(x.error);fs.writeFileSync(file,Buffer.from(x.b64,'base64'));return 'captured';});c.catch(()=>{});
+ if(!(process.env.WLF_DROP_CLICK===kind&&attempt===1))await page.locator('[data-excel-kind='+kind+']').click();
+ if(process.env.WLF_FORCE_REMOUNT===kind&&attempt===1)await page.evaluate(()=>WlfTools.storage());
+ try{await c;}catch(e){
+  const info='On-screen status: "'+(await page.locator('#wlfExcelStatus').innerText().catch(()=>'?'))+'"; busy buttons: '+(await page.locator('[data-excel-kind]:disabled').count())+
+   '; page re-rendered: '+(await page.evaluate(()=>window.__wlfRoot!==document.querySelector('#wlfExcelBackupRoot')))+'; mode: '+(await page.locator('input[name=wlfExcelMode]:checked').getAttribute('value').catch(()=>'?'))+
+   '; edge calls: '+((globalThis.edgeLog||[]).slice(logStart).join(' | ')||'none')+'; console: '+globalThis.consoleErrors.slice(-3).join(' | ');
+  if(attempt===1){console.log('WARN Excel '+kind+' first attempt gave no file, retrying once. '+info);
+   if(kind==='damage'){await page.locator('input[name=wlfExcelMode][value=clear]').check();if(!page.listenerCount('dialog'))page.once('dialog',d=>d.accept());}return excelDownload(kind,file,2);}
+  throw Error('Excel '+kind+': no download. '+info);}};
 // QMS data without clear: downloaded, saved to Drive, nothing removed
 const liftsBefore=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n);assert.ok(liftsBefore>=1);
 let dl;await excelDownload('qms','test-results/v262/qms.xlsx');
@@ -1340,7 +1348,7 @@ await excelDownload('damage','test-results/v262/damage.xlsx');
 {const cleared=page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) cleared/});
  if(!await cleared.waitFor({timeout:20000}).then(()=>true,()=>false)){ // page was re-rendered mid-run: finish through the history row
   const row=page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=clear]');
-  await row.waitFor({timeout:30000});page.once('dialog',d=>d.accept());await row.click();await cleared.waitFor();}}
+  await row.waitFor({timeout:30000});if(!page.listenerCount('dialog'))page.once('dialog',d=>d.accept());await row.click();await cleared.waitFor();}}
 assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n),demandsBefore-eligible);
 assert.match(await(await book('test-results/v262/damage.xlsx')).file('xl/workbook.xml').async('string'),/Damage Demand/);
 await page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=restore]').waitFor();await page.screenshot({path:'test-results/v262/02-history-desktop.png',fullPage:true});
