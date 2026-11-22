@@ -29,6 +29,8 @@ Deno.serve(async(req)=>{
  return new Response(JSON.stringify({deleted:true}),{headers});
  }
  if(action==='excelHistory')return new Response(JSON.stringify(await excelSql('history')),{headers});
+ if(action==='deleteBackupHistory')return new Response(JSON.stringify(await sql('deleteBackupHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
+ if(action==='excelDeleteHistory')return new Response(JSON.stringify(await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  const excelAction=['excelBackup','excelDownload','excelClear','excelRestore'].includes(action);
  if(action==='start')return new Response(JSON.stringify(await sql('start',p)),{headers});
  if(action==='restore'){

@@ -98,7 +98,52 @@ export function activitySheets(categories,entries) {
     ['Entry ID','Recorded status','Submitted by','Submitted at (UTC)','Last updated (UTC)'],
     r=>[r.id,r.status,r.author_name,r.created_at,r.updated_at],r=>r.form_schema));
 }
+const when=value=>value?String(value):'';
+const hwSections={control:'Control system',lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable',other:'Other components',avr:'AVR'};
+export function projectSheets(records) {
+  const tasks=r=>Array.isArray(r.project?.data?.tasks)?r.project.data.tasks:[];
+  const progress=list=>list.length?Math.round(list.reduce((sum,t)=>sum+Number(t.progress||0),0)/list.length):0;
+  return [
+    {name:'Projects',headers:['Project ID','Project','Status','Lead','Start','End','Created by','Created at (UTC)','Updated at (UTC)','Tasks','Progress %','Brief'],
+      rows:records.map(r=>{const d=r.project.data||{};return [r.project.id,d.name,d.status,d.lead,d.start,d.end,r.ownerName,when(r.project.created_at),
+        when(r.project.updated_at),tasks(r).length,progress(tasks(r)),d.brief];})},
+    {name:'Tasks',headers:['Project','Task','Assignee','Start','End','Status','Progress %'],
+      rows:records.flatMap(r=>tasks(r).map(t=>[r.project.data?.name,t.name,t.owner,t.start,t.end,t.status,Number(t.progress||0)]))}
+  ];
+}
+export function qmsSheets(records) {
+  const lifts=records.map(r=>r.lift);
+  return [
+    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components'],
+      rows:lifts.map(l=>[l.lift_id,l.project,l.address,l.delivery_date,l.motor_type,l.lift_type,l.system,l.controller_model,l.created_name,when(l.created_at),
+        l.updated_name,when(l.updated_at),(l.parts||[]).length])},
+    {name:'QMS Components',headers:['Lift ID','Project','Section','Group','Hardware','Spec','Item code','Item name','Brand','Supplier','Price (BDT)','Serial'],
+      rows:lifts.flatMap(l=>(l.parts||[]).map(p=>[l.lift_id,l.project,hwSections[p.section]||p.section||'',p.grp,p.hardware,p.spec,p.code,p.name,p.brand,p.supplier,
+        p.value===null||p.value===undefined||p.value===''?'':Number(p.value),p.serial]))},
+    {name:'QMS Serial numbers',headers:['Lift ID','Project','Part','Serial number'],
+      rows:lifts.flatMap(l=>Object.entries(l.serials||{}).filter(([,v])=>v).map(([k,v])=>[l.lift_id,l.project,k,v]))}
+  ];
+}
+export function demandSheets(records) {
+  const d=records.map(r=>r.demand);
+  return [{name:'Damage Demand',headers:['Demand no','Request','Team','Project','Lift ID','Requested by','Requested at (UTC)','Controllers','Problem categories','Item name','Item code','Item spec','Quantity',
+    'Solution','Duration (min)','Confirmed by','Received by','Received at (UTC)','Supplier claim','Supplier'],
+    rows:d.map(x=>[x.demand_no,x.request_reference,x.category,x.project,x.lift_id,x.requester_name,when(x.requested_at),x.controllers,x.problem_categories,x.item_name,x.item_code,
+      x.item_spec,x.quantity,x.solution_statement,x.duration_minutes===null?'':Number(x.duration_minutes),x.confirmed_name,x.received_name||'',when(x.received_at),
+      x.claim_at?(x.sc_received_at?'Goods received':x.confirm_at?'Confirmed':'Yes'):'No',x.claim_supplier||''])}];
+}
+export function claimSheets(records) {
+  const d=records.map(r=>r.demand);
+  return [{name:'Supplier Claim',headers:['Demand no','Request','Team','Project','Lift ID','Item name','Item code','Quantity','Supplier','Claim date','Claim raised by','Claim raised at (UTC)',
+    'Note','Confirmed by','Confirmed at (UTC)','Goods received by','Goods received at (UTC)'],
+    rows:d.map(x=>[x.demand_no,x.request_reference,x.category,x.project,x.lift_id,x.item_name,x.item_code,x.quantity,x.claim_supplier||'',x.claim_date||'',x.claim_name||'',
+      when(x.claim_at),x.claim_note||'',x.confirm_name||'',when(x.confirm_at),x.sc_received_name||'',when(x.sc_received_at)])}];
+}
 export function backupSheets(snapshot) {
+  if (snapshot.kind==='project') return projectSheets(snapshot.records);
+  if (snapshot.kind==='qms') return qmsSheets(snapshot.records);
+  if (snapshot.kind==='damage') return demandSheets(snapshot.records);
+  if (snapshot.kind==='claim') return claimSheets(snapshot.records);
   if (snapshot.kind==='activity') return activitySheets(snapshot.categories,snapshot.records.map(r=>r.entry));
   return supportSheets(snapshot.categories,snapshot.records.map(item=>{
     const r=item.request;

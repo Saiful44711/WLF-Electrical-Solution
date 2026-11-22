@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.2 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.0 → 2.6.2 · ২১ নভেম্বর ২০২৬</p>
+  <h1>Excel ব্যাকআপে ৪টি নতুন মডিউল, হিস্ট্রি ডিলিট, QMS Recycle bin ও Documents Links অনুমতি: deployment নির্দেশিকা</h1>
+  <p>আপনি এখনো v2.6.1 apply করেননি, তাই <b>v2.6.2-এ v2.6.1-এর সব পরিবর্তনও আছে</b> (মোবাইল ফিক্স, Back বাটন, QMS ডেটা শেয়ারিং, Storage &amp; Backup-এর JSON ব্যাকআপ)। এবার <b>দুটো SQL ক্রমে চালাতে হবে</b> (আগে UPDATE_V261.sql, তারপর UPDATE_V262.sql), <b>একটা Edge Function (wlf-maintenance) আবার deploy</b> করতে হবে, তারপর GitHub আপলোড। প্যাকেজ: <b>WLF-Supabase-v2.6.2.zip</b>, <b>WLF-GitHub-v2.6.2-UPLOAD.zip</b> (আপনার লাইভ v2.6.0-এর পর বদলানো ফাইল), <b>WLF-GitHub-v2.6.2.zip</b> (পুরো সোর্স)।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#assume">অনুমান</a><a href="#s1">১. ব্যাকআপ</a><a href="#s2">২. SQL (দুটো)</a><a href="#s3">৩. Edge Function</a><a href="#s4">৪. GitHub</a><a href="#s5">৫. যাচাই</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে (v2.6.2)</h2><ul>
+<li><b>Storage &amp; Backup → Excel backup-এ ছয়টা বাটন:</b> Technical Support, R&amp;I Team Activity এবং নতুন <b>R&amp;I Project, QMS data, Damage Demand, Supplier Claim</b>।
+ <ul><li>প্রতিটার জন্য <b>Backup without Clear</b> (কিছু মোছে না) ও <b>Backup with Clear</b>।</li>
+ <li>দুই ক্ষেত্রেই Excel ফাইল <b>Google Drive-এ সেভ + ফেরত পড়ে যাচাই</b> হয়, আর <b>PC-তে ডাউনলোড</b> হয়।</li>
+ <li>Clear করলে Excel ফাইলের সাথে একটা <b>recovery ফাইলও</b> Drive-এ সেভ ও যাচাই হয়; দুটোই ঠিক থাকলে তবেই মোছা হয়। ব্যাকআপের পরে যে রেকর্ড বদলেছে সেটা মোছা হয় না।</li>
+ <li>History-র সারিতে <b>Restore recovery copy</b> দিয়ে মোছা রেকর্ড ফিরিয়ে আনা যায়।</li></ul></li>
+<li><b>পুরোনো ব্যাকআপ history ডিলিট:</b> Excel backup history ও Support data backup history, দুটোতেই প্রতি সারিতে <b>Delete</b> এবং <b>Delete all history</b> (DELETE লিখে নিশ্চিত করতে হয়)। শুধু তালিকার এন্ট্রি মোছে; <b>Google Drive-এর ফাইল কখনো মোছে না</b>।</li>
+<li><b>QMS:</b> ভুল লিফট Delete করলে এখন <b>Recycle Bin</b>-এ যায় (ধরন: "QMS lift record")। <b>Restore</b> করলে সব parts সহ ফিরে আসে; <b>Delete permanently</b> করলে ডাটাবেস থেকে সম্পূর্ণ মুছে যায়। v2.6.2 চালানোর আগে যে লিফটগুলো মোছা হয়েছিল (কিন্তু বিনে ছিল না) সেগুলোও বিনে দেখাবে।</li>
+<li><b>Documents Links:</b> User Management-এ নতুন অপশন <b>Documents Links / Open documents</b>। Super Admin যাকে টিক দেবেন সে-ই Documents Links খুলতে পারবে। <b>এখন যারা খুলতে পারত তারা SQL-এর পর নিজে থেকেই অনুমতি পাবে</b> (কারো কিছু বন্ধ হবে না); নতুন ইউজারে ডিফল্ট টিক নেই, আপনি দেবেন। Add / Edit / Delete (ডকুমেন্ট, ফোল্ডার, সাব মেনু) <b>শুধু Super Admin</b> — এটা ডাটাবেসেও আটকানো।</li>
+<li><b>আগেই করা ছিল (নতুন কাজ নেই):</b> Request access-এর বাধ্যতামূলক ঘর (v2.5.7), ৭ দিনের পুরোনো <code>wlf_usage</code> স্বয়ংক্রিয় মোছা (v2.5.7), MOTCUBE drive error ও history-র সুন্দর নাম (v2.5.8)।</li></ul></section>
+
+<section id="assume"><h2>আমি যা ধরে নিয়েছি</h2><div class="scroll"><table><tr><th>বিষয়</th><th>অনুমান</th></tr>
+<tr><td>R&amp;I Project: Clear</td><td>শুধু status <b>Done</b> প্রজেক্ট মোছে; In Progress / On Hold / Cancelled থাকে</td></tr>
+<tr><td>QMS data: Clear</td><td>ওই Period-এর (তৈরির তারিখ) <b>সব লিফট</b> মোছে। কারণ লিফটের "সম্পূর্ণ" অবস্থা নেই। ৫-১০ বছরের tracing দরকার হলে Clear ব্যবহার না করাই নিরাপদ।</td></tr>
+<tr><td>Damage Demand: Clear</td><td>Received হয়েছে এমন demand, এবং যেটা supplier-এ গেছে তার মাল Received হলে। Pending demand থাকে।</td></tr>
+<tr><td>Supplier Claim: Clear</td><td>মাল Received হয়েছে এমন claim। Damage Demand ও Supplier Claim <b>একই রেকর্ড</b>, তাই Clear করলে পুরো demand-রেকর্ডই যায় (Restore দিয়ে ফেরে)। Period হিসাব: claim করার তারিখ।</td></tr>
+<tr><td>Period</td><td>তৈরির তারিখ, বাংলাদেশ সময়</td></tr>
+<tr><td>QMS Excel-এর আকার</td><td>প্রতি ফাইল সর্বোচ্চ ১০০০ রেকর্ড ও ~৪ MB; QMS-এ লিফট প্রতি প্রায় ১২-১৫ KB ধরলে ~৩০০ লিফট। বেশি হলে "Choose a shorter date range" আসবে, তখন ছোট Period বাছুন।</td></tr>
+<tr><td>History ডিলিট</td><td>শুধু তালিকার সারি মোছে; Drive-এর ফাইল থাকে। Clear করা কিন্তু Restore না-করা ব্যাকআপের history মুছলে এই পেজ থেকে আর Restore হবে না (recovery ফাইল Drive-এ থাকে)। অ্যাপ এ নিয়ে সতর্ক করে।</td></tr>
+<tr><td>Drive থেকে ফাইল মোছা</td><td>অ্যাপ থেকে Drive-এর ফাইল মোছা হয় না (নিরাপত্তার জন্য)।</td></tr>
+<tr><td>Documents Links অনুমতি</td><td>বর্তমান সব approved ইউজার (Super Admin ছাড়া) স্বয়ংক্রিয়ভাবে টিক পায়; Super Admin সবসময় খুলতে পারে</td></tr></table></div></section>
+
+<section id="s1"><h2>১. ব্যাকআপ (বাধ্যতামূলক)</h2><ol><li><code>backup-kit</code> থেকে <code>01_STRUCTURE_BACKUP.sql</code> ও <code>02_DATA_BACKUP.sql</code> চালিয়ে দুটো CSV নামান।</li></ol></section>
+
+<section id="s2"><h2>২. Supabase SQL (দুটো, এই ক্রমে)</h2>
+<h3>২.১ UPDATE_V261.sql</h3><ol>
+<li>Supabase → বাঁ মেনুতে <b>SQL Editor</b> → <b>New query</b>।</li>
+<li>প্যাকেজের <code>UPDATE_V261.sql</code> ফাইল খুলে Ctrl+A, Ctrl+C; Editor-এ পেস্ট; <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফল: <code>unconverted_parts</code> = <code>0</code>, <code>v261_ready</code> = <code>true</code>।</li></ol>
+<h3>২.২ UPDATE_V262.sql</h3><ol>
+<li>আবার <b>New query</b>; <code>UPDATE_V262.sql</code> খুলে সব কপি, পেস্ট, <b>Run</b> (RLS বার্তায় <b>Run without RLS</b>)।</li>
+<li>ফলাফল:<div class="scroll"><table><tr><th>কলাম</th><th>যা থাকা উচিত</th></tr>
+<tr><td><code>documents_permission_ready</code></td><td><code>true</code></td></tr>
+<tr><td><code>qms_lifts_in_bin</code></td><td>আগে মোছা লিফটের সংখ্যা (না থাকলে 0)</td></tr>
+<tr><td><code>users_without_documents</code></td><td><code>0</code></td></tr>
+<tr><td><code>v262_ready</code></td><td><code>true</code></td></tr></table></div></li></ol>
+<div class="attention"><b>ক্রম:</b> V261 না চালিয়ে V262 চালালে "STOP: apply UPDATE_V261.sql" আসবে ও কিছু বদলাবে না। দুটোই দুবার চালালেও সমস্যা নেই। V260 আগে চালানো আছে (আপনি v2.6.0 চালু করেছেন)।</div></section>
+
+<section id="s3"><h2>৩. Edge Function <code>wlf-maintenance</code> আবার deploy (একটাই ফাইল)</h2>
+<p>নতুন মডিউলগুলোর জন্য Google Drive-এ সেভ করার কোড এই ফাংশনে থাকে, তাই এটা বদলাতে হবে। <b>Google-এর তিনটা secret আগের মতোই থাকবে; নতুন করে কিছু দিতে হবে না।</b> ফাংশনের কোড এবার <b>একটাই ফাইলে</b> দেওয়া আছে: প্যাকেজের <code>edge-function/wlf-maintenance/index.ts</code>।</p>
+<ol>
+<li>Supabase ড্যাশবোর্ডে আপনার প্রজেক্ট খুলুন → বাঁ মেনুতে <b>Edge Functions</b>।</li>
+<li>তালিকা থেকে <b>wlf-maintenance</b>-এ ক্লিক করুন।</li>
+<li>উপরের ট্যাবগুলো থেকে <b>Code</b> (কোনো সংস্করণে <b>Editor</b>) খুলুন। বাঁ পাশে ফাইলের তালিকায় <code>index.ts</code> আছে; তার ওপর ক্লিক করে খুলুন।</li>
+<li>ডান পাশের কোড বক্সে ক্লিক করে <b>Ctrl+A</b> (সব নির্বাচন), তারপর <b>Delete</b>।</li>
+<li>কম্পিউটারে প্যাকেজের <code>edge-function/wlf-maintenance/index.ts</code> ফাইলটা Notepad (বা যেকোনো টেক্সট এডিটর) দিয়ে খুলুন → <b>Ctrl+A</b>, <b>Ctrl+C</b>।</li>
+<li>Supabase-এর কোড বক্সে <b>Ctrl+V</b> দিয়ে পেস্ট করুন। (প্রথম লাইন <code>// @ts-nocheck</code>। লাল দাগ/সতর্কতা দেখালে চিন্তা নেই: এই লাইন থাকলে টাইপ-চেক বন্ধ।)</li>
+<li>ডান-নিচে বা উপরে <b>Deploy updates</b> (কখনো শুধু <b>Deploy</b>) বাটনে ক্লিক করুন। "Successfully deployed" বার্তা আসা পর্যন্ত অপেক্ষা করুন।</li>
+<li><b>Details</b> (বা Settings) ট্যাব খুলে দেখুন <b>Verify JWT</b> (বা "Verify JWT with legacy secret") <b>বন্ধ (OFF)</b> আছে। না থাকলে বন্ধ করে <b>Save changes</b>। (<code>wlf-push</code>-এর সাথে যেভাবে আছে সেভাবেই।)</li>
+<li>বাঁ পাশে আগে থেকে আরও ফাইল (যেমন <code>_shared/...</code>) থাকলে সেগুলো <b>মুছতে হবে না</b>; নতুন index.ts সেগুলো ব্যবহার করে না।</li></ol>
+<div class="attention"><b>ক্রম:</b> SQL আগে, Edge Function পরে। উল্টো হলে নতুন বাটনে "Choose a valid module…" ধরনের error আসবে; SQL চালালেই ঠিক। <code>wlf-admin</code> ও <code>wlf-push</code> বদলাতে হবে না।</div></section>
+
+<section id="s4"><h2>৪. GitHub-এ আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.6.2-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub repo → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.6.2 Excel backup modules, history delete, QMS recycle bin, documents permission</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা।</li></ol>
+<div class="attention">আগে SQL (দুটো), তারপর Edge Function, সবশেষে GitHub।</div></section>
+
+<section id="s5"><h2>৫. যাচাই</h2><ol>
+<li>Ctrl+F5 / অ্যাপ রিলোড; ⋮ মেনুর নিচে <b>WLF v2.6.2</b>।</li>
+<li>Super Admin → <b>Storage &amp; Backup</b> → <b>Excel backup</b>: ছয়টা বাটন আছে কি দেখুন। "Backup without Clear" রেখে <b>R&amp;I Project</b> চাপুন: Excel নামবে, নিচের status-এ "A verified copy was saved to Google Drive", Drive-এর <i>WLF Backups</i> ফোল্ডারে ফাইল।</li>
+<li>History-তে ওই সারির <b>Delete</b> চেপে মুছে দেখুন (Drive-এর ফাইল থাকবে)।</li>
+<li>কোনো পরীক্ষামূলক লিফট QMS Data থেকে Delete → <b>Recycle Bin</b>-এ "QMS lift record" → Restore।</li>
+<li>User Management → কোনো ইউজার খুলুন: <b>Documents Links / Open documents</b> টিক দেখা যাবে; বন্ধ করে ওই ইউজারে লগইন করলে Documents Links মেনু থাকবে না।</li>
+<li><b>Clear</b> আসল ডেটায় চালানোর আগে অবশ্যই একবার "without Clear" চালিয়ে Excel খুলে মিলিয়ে নিন।</li></ol></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>STOP: apply UPDATE_V261.sql</td><td>V261 চালানো হয়নি</td><td>আগে V261, তারপর V262</td></tr>
+<tr><td>Choose a valid module and date range</td><td>Edge Function নতুন, SQL পুরোনো (বা উল্টো)</td><td>দুটো SQL চালান; তারপর Edge Function deploy নিশ্চিত করুন</td></tr>
+<tr><td>Unsupported action</td><td>Edge Function পুরোনো কোডে</td><td>ধাপ ৩ আবার করুন</td></tr>
+<tr><td>Choose a shorter date range / Excel backup is too large</td><td>এক ফাইলে ১০০০ রেকর্ড বা ~৪ MB-এর বেশি</td><td>ছোট Period বাছুন (বিশেষ করে QMS)</td></tr>
+<tr><td>Google Drive authorization expired</td><td>Drive সংযোগ বাতিল/মেয়াদ শেষ</td><td>আগের Google Drive setup গাইড অনুযায়ী refresh token নতুন করুন</td></tr>
+<tr><td>Cannot restore "…" (Recycle bin)</td><td>ওই Lift ID দিয়ে নতুন লিফট তৈরি হয়ে গেছে</td><td>নতুনটার Lift ID বদলান বা মুছুন, তারপর Restore</td></tr>
+<tr><td>কারো Documents Links নেই</td><td>Super Admin টিক দেননি / সরিয়েছেন</td><td>User Management → ওই ইউজার → Documents Links টিক</td></tr>
+<tr><td>Actions লাল ✗</td><td>CI ব্যর্থ</td><td>লগের "FAILURE SUMMARY"-র নিচের লেখা কপি করে দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে ও যা পারিনি</h2><ul>
+<li>SQL test (৪ নতুন মডিউল): without Clear কিছু মোছে না; with Clear শুধু যোগ্য ও অপরিবর্তিত রেকর্ড মোছে; Restore হুবহু ফেরত দেয় (QMS-এর parts, demand নম্বর); ব্যাকআপের পর বদলানো রেকর্ড মোছা হয় না; history ডিলিট (এক/সব, DELETE ছাড়া নয়, Super Admin ছাড়া নয়); QMS লিফট Recycle bin → Restore / Delete permanently; Documents অনুমতি ও Super Admin-only edit।</li>
+<li>একটাই-ফাইল Edge Function আসল কোডের মতো mock Google Drive দিয়ে চালিয়ে: Excel সেভ → ফেরত পড়ে যাচাই → Clear → Restore। ফাইলটা সোর্সের সাথে মেলে কি না তার টেস্টও আছে।</li>
+<li>Playwright e2e (Dhaka ও UTC), ডেস্কটপ ও ৩৬০px ফোন-প্রস্থ, light ও dark স্ক্রিনশট দেখে যাচাই।</li>
+<li><div class="attention"><b>যাচাই করতে পারিনি:</b> আসল Supabase-এ SQL রান; <b>আসল Google Drive-এ আপলোড/ফেরত-পড়া</b> (পরীক্ষায় নকল Drive); আসল Edge Function deploy; GitHub CI (সেখানে নতুন PGlite/Playwright সংস্করণ); আসল Android ফোনের Back বাটন। তাই প্রথমবার "Backup without Clear" দিয়ে শুরু করুন।</div></li></ul></section>
+<footer>WLF Electrical Solution · v2.6.2</footer>
+</main>
+</body>
+</html>

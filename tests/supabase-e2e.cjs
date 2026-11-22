@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.1-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.2-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});page=await context.newPage();globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -52,6 +52,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  const excelSql=async(action,payload={})=>sequential(async()=>(await h.db.query('select public.wlf_excel_admin($1,$2,$3) result',[action,id,payload])).rows[0].result);
  if(body.action==='status')data={...await sequential(()=>sql('status')),driveConfigured:true};
  else if(body.action==='excelHistory')data=await excelSql('history');
+ else if(body.action==='excelDeleteHistory')data=await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id});
  else if(body.action.startsWith('excel'))data=await excelMaintenance({action:body.action,payload:p,sql:excelSql,
   drive,folder:async()=>'test-folder',project:'wlf-test',Zip});
  else if(body.action==='backupPart'){let nonce=crypto.randomUUID(),part=await sql('prepare',{...p,project:'wlf-test',nonce});if(!part.alreadyVerified){archiveParts.set(p.id+':'+p.batch,part);await sql('verify',{...p,nonce,fileId:'drive_sample_'+p.batch,sha256:'a'.repeat(64)});}data={verified:true};}
@@ -1296,7 +1297,81 @@ await page.locator('#wlfDataStatus').filter({hasText:/Hardware Catalogue restore
 fs.writeFileSync('test-results/v260/bad-backup.json','{"hello":1}');page.once('dialog',d=>d.accept());await page.locator('#wlfDataRestoreFile').setInputFiles('test-results/v260/bad-backup.json');
 await page.locator('#wlfDataStatus').filter({hasText:'not a WLF'}).waitFor();
 await tab('account');}
-await logout();await login('user');
+// v2.6.2: Excel backup for R&I Project, QMS data, Damage Demand, Supplier Claim; history delete; QMS lift in the Recycle bin; Documents Links permission
+{fs.mkdirSync('test-results/v262',{recursive:true});page.removeAllListeners('dialog');
+await tab('storage');await page.locator('[data-excel-kind=claim]').waitFor();
+for(const k of['support','activity','project','qms','damage','claim'])assert.equal(await page.locator('[data-excel-kind='+k+']').count(),1,'button '+k);
+await page.locator('#wlfExcelHistory table').waitFor();await page.screenshot({path:'test-results/v262/01-storage-excel-desktop.png',fullPage:true});
+{const legacy=await page.locator('[data-backup-delete]').count();assert.ok(legacy>=1,'the Support backup history has a Delete button');
+page.once('dialog',d=>{assert.match(d.message(),/not deleted/);d.accept();});await page.locator('[data-backup-delete]').first().click();
+await page.locator('#wlfBackupStatus').filter({hasText:/history entry deleted/}).waitFor();await page.locator('#wlfExcelHistory table').waitFor();
+assert.equal(await page.locator('[data-backup-delete]').count(),legacy-1);await page.locator('#wlfBackupDeleteAll').waitFor();}
+const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.waitForTimeout(300);
+const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));await page.screenshot({path:'test-results/v262/01-storage-excel-360.png',fullPage:true});
+if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW-EXCEL '+JSON.stringify(over));await page.setViewportSize(vp);
+await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark.png',fullPage:false});await page.setViewportSize({width:360,height:800});await page.waitForTimeout(200);await page.locator('#wlfExcelDeleteAll').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v262/01-storage-excel-dark-360.png',fullPage:false});await page.setViewportSize(vp);await page.evaluate(()=>setAppearance('light'));
+const book=async(path)=>Zip.loadAsync(fs.readFileSync(path));
+// QMS data without clear: downloaded, saved to Drive, nothing removed
+const liftsBefore=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n);assert.ok(liftsBefore>=1);
+let dl=page.waitForEvent('download');await page.locator('[data-excel-kind=qms]').click();await(await dl).saveAs('test-results/v262/qms.xlsx');
+await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();
+assert.match(await(await book('test-results/v262/qms.xlsx')).file('xl/workbook.xml').async('string'),/QMS Components/);
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n),liftsBefore);
+// R&I Project and Supplier Claim without clear
+dl=page.waitForEvent('download');await page.locator('[data-excel-kind=project]').click();await(await dl).saveAs('test-results/v262/project.xlsx');
+await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();assert.match(await(await book('test-results/v262/project.xlsx')).file('xl/workbook.xml').async('string'),/Projects/);
+dl=page.waitForEvent('download');await page.locator('[data-excel-kind=claim]').click();await(await dl).saveAs('test-results/v262/claim.xlsx');
+await page.locator('#wlfExcelStatus').filter({hasText:'verified copy'}).waitFor();assert.match(await(await book('test-results/v262/claim.xlsx')).file('xl/workbook.xml').async('string'),/Supplier Claim/);
+// Damage Demand with clear, then restore from the history row
+await sequential(()=>h.db.query(`insert into wlf_private.damage_demands(request_id,category,request_reference,requester_id,requester_name,requested_at,project,lift_id,controllers,problem_categories,form_schema,form_values,confirmed_by,confirmed_name,solution_statement,item_name,item_code,item_spec,quantity,create_operation,create_payload_hash,received_at,received_by,received_name)
+ values(gen_random_uuid(),'aftersales','R-E2E',$1,'u',now(),'P','1','{}','{}','{}','{}',$1,'rni','fixed','Received fixture','C-1','spec',2,gen_random_uuid(),'\\x00',now(),$1,'sa')`,[IDS.sa]));
+const demandsBefore=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n);
+const eligible=Number((await sequential(()=>h.db.query("select count(*) n from wlf_private.damage_demands d where wlf_private.excel_eligible('damage',d)"))).rows[0].n);
+await page.locator('input[name=wlfExcelMode][value=clear]').check();
+page.once('dialog',d=>d.accept());
+dl=page.waitForEvent('download');await page.locator('[data-excel-kind=damage]').click();await(await dl).saveAs('test-results/v262/damage.xlsx');
+await page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) cleared/}).waitFor();
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n),demandsBefore-eligible);
+assert.match(await(await book('test-results/v262/damage.xlsx')).file('xl/workbook.xml').async('string'),/Damage Demand/);
+await page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=restore]').waitFor();await page.screenshot({path:'test-results/v262/02-history-desktop.png',fullPage:true});
+assert.ok(eligible>=1,'a Received demand exists');page.once('dialog',d=>d.accept());await page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=restore]').click();
+await page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) restored/}).waitFor();
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n),demandsBefore);
+// history: delete one row, then all
+const rowsBefore=await page.locator('#wlfExcelHistory tbody tr').count();assert.ok(rowsBefore>=5);
+page.once('dialog',d=>{assert.match(d.message(),/not deleted/);d.accept();});
+await page.locator('#wlfExcelHistory tr').filter({hasText:'Supplier Claim'}).first().locator('[data-excel-action=delete]').click();
+await page.locator('#wlfExcelStatus').filter({hasText:'history entry deleted'}).waitFor();await page.waitForFunction(n=>document.querySelectorAll('#wlfExcelHistory tbody tr').length===n-1,rowsBefore);
+page.once('dialog',d=>d.dismiss());await page.locator('#wlfExcelDeleteAll').click();await page.waitForTimeout(200);assert.equal(await page.locator('#wlfExcelHistory tbody tr').count(),rowsBefore-1,'cancel keeps the history');
+page.once('dialog',d=>d.accept('DELETE'));await page.locator('#wlfExcelDeleteAll').click();
+await page.locator('#wlfExcelStatus').filter({hasText:/history entr(y|ies) deleted/}).waitFor();await page.locator('#wlfExcelHistory').filter({hasText:'No verified Excel backups yet'}).waitFor();
+await page.screenshot({path:'test-results/v262/03-history-empty.png',fullPage:true});
+// QMS: delete a lift -> Recycle bin -> restore -> delete -> delete permanently
+await tab('qms');await page.locator('#qmsTabData').click();await page.locator('#qmsResults .tbl').waitFor();
+const qmsLabel=(await page.locator('#qmsResults [data-qms-open]').first().innerText()).trim();
+await page.locator('#qmsResults [data-qms-open]').first().click();await page.locator('#qmsDelete').waitFor();
+await page.locator('#qmsDelete').click();assert.match(await page.locator('body').innerText(),/moves to the Recycle bin/);
+await page.locator('#hwConfirm').click();await page.locator('#qmsResults').filter({hasText:'moved to the Recycle bin'}).waitFor().catch(()=>{});
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n),liftsBefore-1);
+await page.locator('#nav [data-tab=recycle-bin]').click();await page.locator('#binTable').waitFor();
+const qmsRow=page.locator('#binTable tr').filter({hasText:'QMS lift record'});await qmsRow.waitFor();await page.screenshot({path:'test-results/v262/04-recycle-bin-qms.png',fullPage:true});
+await qmsRow.locator('[data-bin-restore]').click();await page.locator('#binStatus').filter({hasText:/Restored/}).waitFor();
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where deleted_at is null'))).rows[0].n),liftsBefore);
+const lid=(await sequential(()=>h.db.query('select id from wlf_private.qms_lifts where deleted_at is null limit 1'))).rows[0].id;
+await sequential(()=>h.rpc('sa','deleteQmsLift',[{id:lid}]));
+await tab('qms');await tab('recycle-bin');await page.locator('#binTable tr').filter({hasText:'QMS lift record'}).locator('[data-bin-purge]').click();await page.locator('#wlfAdminDialog[open]').waitFor();
+await page.locator('#wlfAdminYes').click();await page.locator('#binStatus').filter({hasText:/deleted/i}).waitFor();
+assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.qms_lifts where id=$1',[lid]))).rows[0].n),0,'permanently removed from the database');
+await tab('account');}
+// v2.6.2: Documents Links follows the new permission; only the Super Admin sees the edit buttons
+{const setDocs=on=>sequential(()=>h.db.query(on?"update public.wlf_profiles set permissions=array_append(array_remove(permissions,'documents:view'),'documents:view'),access_revision=access_revision+1 where id=$1":"update public.wlf_profiles set permissions=array_remove(permissions,'documents:view'),access_revision=access_revision+1 where id=$1",[IDS.user]));
+await logout();await setDocs(true);await login('user');
+await page.locator('#nav [data-tab=documents]').waitFor({state:'visible'});await tab('documents');await page.locator('#tab-documents').waitFor({state:'visible'});await page.waitForTimeout(400);
+assert.equal(await page.locator('#wlfAddCategory').isVisible().catch(()=>false),false,'a normal user cannot add or edit documents');
+await page.screenshot({path:'test-results/v262/05-documents-user.png',fullPage:true});await tab('account');
+await logout();await setDocs(false);await login('user');await page.waitForTimeout(400);
+assert.equal(await page.locator('#nav [data-tab=documents]').isVisible(),false,'Documents Links is hidden without the permission');
+await logout();await setDocs(true);await login('user');}
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');

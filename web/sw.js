@@ -1,5 +1,5 @@
 // Immutable, versioned app shell; no auth, API responses or private data in CacheStorage.
-const CACHE='wlf-pwa-2.6.1-bin-__CACHE_HASH__',ASSETS=__PRECACHE__;
+const CACHE='wlf-pwa-2.6.2-bin-__CACHE_HASH__',ASSETS=__PRECACHE__;
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS.map(asset=>new Request(asset,{cache:'reload'}))))));
 self.addEventListener('message',event=>{if(event.data==='ACTIVATE_UPDATE')self.skipWaiting();});
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('wlf-pwa-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));

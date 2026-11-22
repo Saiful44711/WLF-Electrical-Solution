@@ -2,23 +2,27 @@
 const WlfExcelBackup=(()=>{
   'use strict';
   const h=value=>esc(String(value??''));
-  const moduleNames={support:'Technical Support',activity:'R&I Team Activity'};
+  const moduleNames={support:'Technical Support',activity:'R&I Team Activity',project:'R&I Project',qms:'QMS data',damage:'Damage Demand',claim:'Supplier Claim'};
+  const clearText={support:'Solved support requests',activity:'Completed or Solved activity entries',project:'projects whose status is Done',
+    qms:'QMS lift records (every lift in this backup)',damage:'demands that are Received (and, if sent to the supplier, whose claim goods are Received)',
+    claim:'supplier claims whose goods are Received'};
   const today=()=>AccessCore.dateKey(new Date());
   function mount(root,api) {
     let retry=null;
     const account=T();
     root.innerHTML='<section class="card wlf-module"><div><h3>Excel backup</h3>'+
-      '<p class="note">Download one workbook and save a verified copy in Google Drive. Each support team or activity form has its own worksheet.</p></div>'+
+      '<p class="note">Download one workbook and save a verified copy in Google Drive. Technical Support, R&amp;I Team Activity, R&amp;I Project, QMS data, Damage Demand and Supplier Claim each get their own workbook.</p></div>'+
       '<div class="wlf-period"><label>Period<select id="wlfExcelPeriod"><option value="all">All dates</option><option value="year">Last 12 months</option>'+
       '<option value="custom">From date → To date</option></select></label><label>From date<input id="wlfExcelFrom" type="date" disabled></label>'+
       '<label>To date<input id="wlfExcelTo" type="date" disabled></label></div>'+
       '<div class="wlf-choice-list"><label class="wlf-choice"><input type="radio" name="wlfExcelMode" value="keep" checked> Backup without Clear</label>'+
       '<label class="wlf-choice"><input type="radio" name="wlfExcelMode" value="clear"> Backup with Clear</label></div>'+
-      '<div class="wlf-tools-actions"><button type="button" class="btn" data-excel-kind="support">Technical Support</button>'+
-      '<button type="button" class="btn ghost" data-excel-kind="activity">R&amp;I Team Activity</button></div>'+
-      '<p class="note">Period uses the submission date in Bangladesh time. Clear is offered for unchanged Solved support and Completed or Solved activity entries.</p>'+
+      '<div class="wlf-tools-actions">'+Object.keys(moduleNames).map((k,i)=>'<button type="button" class="btn'+(i?' ghost':'')+'" data-excel-kind="'+k+'">'+h(moduleNames[k])+'</button>').join('')+'</div>'+
+      '<p class="note">Period uses the created date in Bangladesh time (Supplier Claim: the date the claim was raised). Backup without Clear never removes anything. Backup with Clear removes a record only after the Excel file and a recovery copy are saved and verified on Google Drive, and only if it was not changed afterwards: Solved support requests, Completed or Solved activity entries, Done projects, all QMS lifts of the period, Received demands and Received supplier claims. Every backup is also downloaded to this computer.</p>'+
       '<div id="wlfExcelStatus" role="status" aria-live="polite"></div></section>'+
-      '<section class="card"><h3>Excel backup history</h3><div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>';
+      '<section class="card"><div class="wlf-tools-actions" style="justify-content:space-between"><h3>Excel backup history</h3><button type="button" class="btn ghost" id="wlfExcelDeleteAll">Delete all history</button></div>'+
+      '<p class="note">Deleting history only removes the list entry here. The files already saved in Google Drive stay there. A deleted entry can no longer download, review Clear or restore from this page.</p>'+
+      '<div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>';
     const get=selector=>root.querySelector(selector);
     const period=get('#wlfExcelPeriod'),from=get('#wlfExcelFrom'),to=get('#wlfExcelTo');
     const current=()=>root.isConnected&&T()===account;
@@ -57,7 +61,7 @@ const WlfExcelBackup=(()=>{
             (run.restored_at?'Restored':run.clear_finished?'Clear reviewed':run.with_clear?'Verified · Clear available':'Verified on Drive')+
             '</td><td><div class="wlf-tools-actions">'+historyButton('Download Excel','download',run)+
             (run.with_clear&&!run.clear_finished&&run.actor===account?historyButton('Review Clear','clear',run):'')+
-            (run.cleared>0&&!run.restored_at?historyButton('Restore recovery copy','restore',run):'')+'</div></td></tr>').join('')||
+            (run.cleared>0&&!run.restored_at?historyButton('Restore recovery copy','restore',run):'')+historyButton('Delete','delete',run)+'</div></td></tr>').join('')||
             '<tr><td colspan="7">No verified Excel backups yet.</td></tr>')+'</tbody></table></div>';
         pane.querySelectorAll('[data-excel-action]').forEach(b=>{
           b.disabled=api.busy();
@@ -69,7 +73,7 @@ const WlfExcelBackup=(()=>{
       return '<button class="btn ghost" type="button" data-excel-action="'+action+'" data-excel-id="'+h(run.id)+'">'+label+'</button>';
     }
     async function clear(run) {
-      const eligible=run.kind==='support'?'Solved support requests':'Completed or Solved activity entries';
+      const eligible=clearText[run.kind]||'records';
       if(!confirm('Clear eligible '+eligible+' from this verified workbook? Records changed since the backup will be kept.'))return;
       status('Checking the workbook and recovery copy on Drive…');
       const result=await api.edge('excelClear',{id:run.id,confirmed:true});
@@ -80,7 +84,12 @@ const WlfExcelBackup=(()=>{
       if(api.busy()||!current()||!run)return;
       api.lock(true);
       try{
-        if(action==='restore'){
+        if(action==='delete'){
+          const open=run.with_clear&&run.cleared>0&&!run.restored_at;
+          if(!confirm('Delete this backup from the history list?'+(open?'\n\nWarning: it cleared '+run.cleared+' record(s) and they are not restored yet. After deleting, this page can no longer restore them (the recovery file stays in Google Drive).':'')+'\n\nThe files in Google Drive are not deleted.'))return;
+          await api.edge('excelDeleteHistory',{id:run.id});
+          status('Backup history entry deleted.');
+        }else if(action==='restore'){
           if(!confirm('Restore the records cleared by this backup from its verified recovery copy?'))return;
           status('Restoring from Drive…');
           const result=await api.edge('excelRestore',{id:run.id,confirmed:true});
@@ -117,6 +126,17 @@ const WlfExcelBackup=(()=>{
       }catch(err){status(err.message,true);}
       finally{if(current()){await history();api.lock(false);}}
     }
+    get('#wlfExcelDeleteAll').onclick=async()=>{
+      if(api.busy()||!current())return;
+      const typed=prompt('Delete ALL Excel backup history entries?\nFiles in Google Drive are not deleted, but recovery from this page will no longer be possible.\n\nType DELETE to continue.');
+      if(typed===null)return;
+      api.lock(true);
+      try{
+        const result=await api.edge('excelDeleteHistory',{all:true,confirm:typed.trim()});
+        status(result.deleted+' history entr'+(result.deleted===1?'y':'ies')+' deleted.');
+      }catch(err){status(err.message,true);}
+      finally{if(current()){await history();api.lock(false);}}
+    };
     root.querySelectorAll('[data-excel-kind]').forEach(b=>{b.onclick=()=>start(b.dataset.excelKind);});
     history();
   }

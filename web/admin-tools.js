@@ -14,7 +14,7 @@ const WlfAdmin = (() => {
   const monthStart = () => today().slice(0, 8) + '01';
   const team = c => String((AccessCore.supportTitles && AccessCore.supportTitles[c]) || c).replace(/ Team Support Request$/, '').replace(/ Support Request$/, '');
   const KIND = {request:'Support request', 'ri-entry':'R&I entry', project:'Project', task:'Project task', troubleshooting:'Troubleshooting',
-    document:'Document link', 'doc-category':'Document sub menu', 'doc-folder':'Folder', announcement:'Announcement'};
+    document:'Document link', 'doc-category':'Document sub menu', 'doc-folder':'Folder', announcement:'Announcement', 'qms-lift':'QMS lift record'};
   let epoch = 0;
 
   /* ------------------------------------------------------------ confirm dialog */

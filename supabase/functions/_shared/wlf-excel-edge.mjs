@@ -15,7 +15,7 @@ function base64(bytes) {
   return result;
 }
 function fileName(run,extension='xlsx') {
-  const module=run.kind==='support'?'Technical-Support':'RI-Team-Activity';
+  const module={support:'Technical-Support',activity:'RI-Team-Activity',project:'RI-Project',qms:'QMS-Data',damage:'Damage-Demand',claim:'Supplier-Claim'}[run.kind]||'Backup';
   const period=run.date_from?run.date_from+'_to_'+run.date_to:'All-Dates';
   return 'WLF-'+module+'-'+period+'-'+run.id.slice(0,8)+'.'+extension;
 }

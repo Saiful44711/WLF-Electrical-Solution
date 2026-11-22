@@ -668,12 +668,12 @@ const WlfHardware = (() => {
       bindQmsForm(rec, () => showLift(rec));
     };
     if (del) el('qmsDelete').onclick = () => {
-      openDialog('Delete lift record', `<p>Delete the record of lift <b>${h(rec.liftId)}</b>? The Lift ID becomes free for a new record.</p>
+      openDialog('Delete lift record', `<p>Delete the record of lift <b>${h(rec.liftId)}</b>? It moves to the Recycle bin, where the Super Admin can restore it or delete it permanently. The Lift ID becomes free for a new record.</p>
         <p class="note overview-status" id="hwDialogStatus" role="status"></p>
         <div class="overview-actions"><button class="btn danger" type="button" id="hwConfirm">Delete</button><button class="btn ghost" type="button" id="hwCancel">Cancel</button></div>`);
       el('hwCancel').onclick = closeDialog;
       el('hwConfirm').onclick = async () => {
-        try { await rpc('deleteQmsLift', [T(), {id: rec.id}]); closeDialog(); openData('Lift record deleted.'); }
+        try { await rpc('deleteQmsLift', [T(), {id: rec.id}]); closeDialog(); openData('Lift record moved to the Recycle bin.'); }
         catch (err) { el('hwDialogStatus').textContent = cleanError(err); }
       };
     };
