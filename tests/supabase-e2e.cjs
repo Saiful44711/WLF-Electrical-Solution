@@ -1333,7 +1333,10 @@ const eligible=Number((await sequential(()=>h.db.query("select count(*) n from w
 await page.locator('input[name=wlfExcelMode][value=clear]').check();
 page.once('dialog',d=>d.accept());
 await excelDownload('damage','test-results/v262/damage.xlsx');
-await page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) cleared/}).waitFor();
+{const cleared=page.locator('#wlfExcelStatus').filter({hasText:/record\(s\) cleared/});
+ if(!await cleared.waitFor({timeout:20000}).then(()=>true,()=>false)){ // page was re-rendered mid-run: finish through the history row
+  const row=page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=clear]');
+  await row.waitFor({timeout:30000});page.once('dialog',d=>d.accept());await row.click();await cleared.waitFor();}}
 assert.equal(Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.damage_demands'))).rows[0].n),demandsBefore-eligible);
 assert.match(await(await book('test-results/v262/damage.xlsx')).file('xl/workbook.xml').async('string'),/Damage Demand/);
 await page.locator('#wlfExcelHistory tr').filter({hasText:'Damage Demand'}).first().locator('[data-excel-action=restore]').waitFor();await page.screenshot({path:'test-results/v262/02-history-desktop.png',fullPage:true});

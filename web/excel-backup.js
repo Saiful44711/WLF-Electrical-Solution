@@ -102,7 +102,7 @@ const WlfExcelBackup=(()=>{
           if(action==='clear')await clear(run);
         }
       }catch(err){status(err.message,true);}
-      finally{if(current()){await history();api.lock(false);}}
+      finally{try{if(current())await history();}finally{api.lock(false);}}
     }
     async function start(kind) {
       if(!current())return;
@@ -119,13 +119,12 @@ const WlfExcelBackup=(()=>{
       try{
         status('Building and verifying the workbook in Google Drive…');
         const result=await api.edge('excelBackup',{...payload,id:retry.id});
-        if(!current())return;
         retry=null;
         download(result);
         status('Excel download started. A verified copy was saved to Google Drive.');
-        if(withClear&&result.run.total)await clear(result.run);
+        if(current()&&withClear&&result.run.total)await clear(result.run);
       }catch(err){status(err.message,true);}
-      finally{if(current()){await history();api.lock(false);}}
+      finally{try{if(current())await history();}finally{api.lock(false);}}
     }
     get('#wlfExcelDeleteAll').onclick=async()=>{
       if(api.busy()||!current())return;
@@ -136,7 +135,7 @@ const WlfExcelBackup=(()=>{
         const result=await api.edge('excelDeleteHistory',{all:true,confirm:typed.trim()});
         status(result.deleted+' history entr'+(result.deleted===1?'y':'ies')+' deleted.');
       }catch(err){status(err.message,true);}
-      finally{if(current()){await history();api.lock(false);}}
+      finally{try{if(current())await history();}finally{api.lock(false);}}
     };
     root.querySelectorAll('[data-excel-kind]').forEach(b=>{b.onclick=()=>start(b.dataset.excelKind);});
     history();
