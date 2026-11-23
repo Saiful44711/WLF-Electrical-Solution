@@ -4,10 +4,10 @@ const WlfHardware = (() => {
 
   const el = id => document.getElementById(id);
   const h = value => esc(String(value ?? ''));
-  const CONTROL_SKIP = ['LOP', 'COP', 'Transom', 'COP Faceplate', 'Other components'];
+  const CONTROL_SKIP = ['LOP', 'COP', 'Transom', 'COP Faceplate', 'Other components', 'Paid feature'];
   const QMS_SKIP = ['AVR', 'MOTCUBE'];            /* AVR is picked as an AVR size; MOTCUBE is no longer delivered, so it is not a QMS controller */
   const SYSTEM_ORDER = ['MOT', 'NICE3000+', 'MOTCUBE', 'AVR'];
-  const MODEL_TAIL = ['COP', 'LOP', 'Transom', 'COP Faceplate', 'Other components'];   /* controller models first (small to big), then these */
+  const MODEL_TAIL = ['COP', 'LOP', 'Transom', 'COP Faceplate', 'Other components', 'Paid feature'];   /* controller models first (small to big), then these */
   const sizeOf = text => { const m = String(text).match(/(\d+(?:\.\d+)?)\s*(?:kw|kva)\b/i); return m ? parseFloat(m[1]) : null; };
   const modelRank = m => { const i = MODEL_TAIL.indexOf(m); return i < 0 ? 0 : 100 + i; };
   const byModel = (a, b) => modelRank(a) - modelRank(b) || (sizeOf(a) ?? 1e9) - (sizeOf(b) ?? 1e9) || a.localeCompare(b, undefined, {numeric: true});
@@ -330,7 +330,7 @@ const WlfHardware = (() => {
   }
 
   /* ---------------------------------------------------------------- QMS */
-  const SECTION_NAMES = {control: 'Control system', lop: 'LOP', cop: 'COP', faceplate: 'COP faceplate', transom: 'Transom', cable: 'Travelling cable', other: 'Other components', avr: 'AVR'};
+  const SECTION_NAMES = {control: 'Control system', lop: 'LOP', cop: 'COP', faceplate: 'COP faceplate', transom: 'Transom', cable: 'Travelling cable', other: 'Other components', avr: 'AVR', paid: 'Paid feature'};
   const SERIALS = [['motor', 'Motor SL'], ['encoder', 'Encoder SL'], ['drive', 'Drive SL'], ['ups', 'UPS SL'], ['cartop', 'Cartop PCB SL'], ['cop', 'COP PCB SL'], ['copDisplay', 'COP Display SL']];
   let draft = null;
 
@@ -344,13 +344,23 @@ const WlfHardware = (() => {
   }
   const optionLabel = r => [label(r), r.itemCode ? '· ' + r.itemCode : '· no code', r.spec ? '· ' + r.spec : ''].join(' ');
 
+  /* ---- paid features: one chip per group; a group whose rows have different non-empty Spec (e.g. Regenerative drive kW) asks for one choice, otherwise every row is output */
+  const paidRows = system => system ? rowsOf(system, 'Paid feature').filter(usable) : [];
+  function paidGroups(system) {
+    const groups = [];
+    paidRows(system).forEach(r => { const name = r.grp || r.hardware; let g = groups.find(x => x.name === name); if (!g) groups.push(g = {name, rows: []}); g.rows.push(r); });
+    groups.forEach(g => { const specs = [...new Set(g.rows.map(r => r.spec).filter(Boolean))]; g.choose = specs.length > 1; });
+    return groups;
+  }
+  const savedPaidGroups = parts => [...new Set(parts.filter(p => p.section === 'paid').map(p => p.grp || p.hardware))];
+
   function newDraft() { return {id: crypto.randomUUID(), revision: 0, liftId: '', project: '', address: '', deliveryDate: '', motorType: 'Gearless', liftType: 'Passenger',
-    system: '', controllerModel: '', serials: {}, selection: null, parts: [], pick: {}}; }
+    system: '', controllerModel: '', serials: {}, selection: null, parts: [], pick: {}, paidNote: ''}; }
 
   function draftFromRecord(rec) {
     const d = {...newDraft(), id: rec.id, revision: rec.revision, liftId: rec.liftId, project: rec.project, address: rec.address || '', deliveryDate: rec.deliveryDate || '',
       motorType: rec.motorType || 'Gearless', liftType: rec.liftType || 'Passenger', system: rec.system, controllerModel: rec.controllerModel,
-      serials: rec.serials || {}, selection: rec.selection || null, parts: rec.parts || [], pick: {}};
+      serials: rec.serials || {}, selection: rec.selection || null, parts: rec.parts || [], pick: {}, paidNote: rec.paidNote || ''};
     return d;
   }
 
@@ -464,10 +474,25 @@ const WlfHardware = (() => {
         <label>AVR size<select name="avrModel">${optionList(avrSizes, avrModel, '— none —')}</select></label>
         <label>AVR item<select name="avr"><option value="">— none —</option>${avrRows.map(r => `<option value="${h(r.id)}" ${(d.pick.avr ?? savedAvr?.catalogueId) === r.id ? 'selected' : ''}>${h(optionLabel(r))}</option>`).join('')}</select></label></div>
         ${avrModel && !avrRows.length ? '<p class="note">This AVR size has no items yet. The Super Admin fills them in the Hardware Catalogue.</p>' : ''}
+        ${p.other.length ? '<div class="hw-toolbar hw-selectall"><button class="btn ghost" type="button" data-other-all>Select all</button><button class="btn ghost" type="button" data-other-none>Clear all</button></div>' : ''}
         <div class="hw-checks">${p.other.map(r => `<label class="hw-check"><input type="checkbox" name="other" value="${h(r.id)}" ${otherChecked.has(r.id) ? 'checked' : ''}> ${h(optionLabel(r))}${r.supplier ? ' <small>' + h(r.supplier) + '</small>' : ''}</label>`).join('') || '<p class="note">No other components for this control system.</p>'}</div>`)}
+      ${sec('6 · Paid feature information', paidBlock(d))}
       <p class="note overview-status" id="qmsLiftStatus" role="status"></p>
       <div class="overview-actions"><button class="btn" type="submit">${record ? 'Save changes' : 'Save lift record'}</button>
         ${record ? '<button class="btn ghost" type="button" id="qmsLiftCancel">Cancel</button>' : '<button class="btn ghost" type="reset" id="qmsLiftReset">Clear form</button>'}</div></form>`;
+  }
+
+  function paidBlock(d) {
+    const groups = paidGroups(d.system);
+    if (!d.system) return '<p class="note">Select the control system first. The paid features follow it.</p>';
+    if (!groups.length) return '<p class="note">No paid feature is set up for ' + h(d.system) + ' yet. The Super Admin adds them in the Hardware Catalogue under the model “Paid feature”.</p>';
+    const on = new Set(d.pickPaid ?? savedPaidGroups(d.parts));
+    const chosen = g => d.pickPaidKw?.[g.name] ?? d.parts.find(p => p.section === 'paid' && (p.grp || p.hardware) === g.name)?.catalogueId ?? '';
+    return `<p class="note">Select the paid features of this lift. Every selected feature is listed in the output table with all its items.</p>
+      <div class="hw-chips" role="group" aria-label="Paid features">${groups.map(g => `<button type="button" class="chip hw-chip ${on.has(g.name) ? 'on' : ''}" aria-pressed="${on.has(g.name)}" data-paid-chip="${h(g.name)}">${h(g.name)}</button>`).join('')}</div>
+      ${groups.filter(g => on.has(g.name) && g.choose).map(g => `<label class="hw-paid-pick">${h(g.name)} · choose one<select name="paidkw:${h(g.name)}" required>
+        <option value="">Select…</option>${g.rows.map(r => `<option value="${h(r.id)}" ${r.id === chosen(g) ? 'selected' : ''}>${h([r.spec, r.itemCode ? '· ' + r.itemCode : '· no code'].join(' '))}</option>`).join('')}</select></label>`).join('')}
+      <label>Special note (optional)<textarea name="paidNote" maxlength="500" rows="3" placeholder="Anything to record about the paid features of this lift">${h(d.paidNote)}</textarea></label>`;
   }
 
   function readDraft() {
@@ -481,6 +506,8 @@ const WlfHardware = (() => {
     for (const k of ['lop', 'cop0', 'cop1', 'faceplate', 'transom', 'cable', 'avr']) if (f.elements[k]) draft.pick[k] = f.elements[k].value;
     draft.pick.avrModel = v('avrModel');
     draft.pickOther = [...f.querySelectorAll('input[name=other]:checked')].map(x => x.value);
+    if (f.elements.paidNote) { draft.paidNote = f.elements.paidNote.value.trim(); draft.pickPaid ??= savedPaidGroups(draft.parts); }
+    f.querySelectorAll('select[name^="paidkw:"]').forEach(s => { (draft.pickPaidKw ??= {})[s.name.slice(7)] = s.value; });
   }
 
   function buildItems() {
@@ -504,16 +531,33 @@ const WlfHardware = (() => {
       else if (all[0]) items.push({catalogueId: all[0].id, section: 'avr'});   /* size not filled in the catalogue yet: the size is recorded */
     }
     for (const id of draft.pickOther || []) items.push({catalogueId: id, section: 'other'});
+    const wanted = new Set(draft.pickPaid ?? savedPaidGroups(draft.parts));
+    for (const g of paidGroups(draft.system).filter(x => wanted.has(x.name))) {
+      if (g.choose) {
+        const id = draft.pickPaidKw?.[g.name] || draft.parts.find(p => p.section === 'paid' && (p.grp || p.hardware) === g.name)?.catalogueId;
+        if (!id || !g.rows.some(r => r.id === id)) throw new Error('Choose the option (kW) for “' + g.name + '”, or switch that paid feature off.');
+        items.push({catalogueId: id, section: 'paid'});
+      } else g.rows.forEach(r => items.push({catalogueId: r.id, section: 'paid'}));
+    }
     return items;
   }
 
   function bindQmsForm(record, back) {
     const f = el('qmsLiftForm');
     const repaint = keep => { if (!keep) readDraft(); el('qmsPanel').innerHTML = qmsForm(record); bindQmsForm(record, back); };
-    f.elements.system.onchange = () => { readDraft(); draft.controllerModel = ''; draft.pick = {}; draft.pickOther = []; draft.parts = []; repaint(); };
+    f.elements.system.onchange = () => { readDraft(); draft.controllerModel = ''; draft.pick = {}; draft.pickOther = []; draft.pickPaid = []; draft.pickPaidKw = {}; draft.parts = []; repaint(); };
     f.elements.controllerModel.onchange = () => { readDraft(); for (const k of Object.keys(draft.pick)) if (k.startsWith('control:')) delete draft.pick[k]; draft.parts = draft.parts.filter(x => x.section !== 'control'); repaint(); };
     f.elements.avrModel.onchange = () => { readDraft(); setAvr(draft.pick.avrModel); repaint(true); };
     bindSuggest(f, repaint);
+    f.querySelectorAll('[data-other-all]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = true; }));
+    f.querySelectorAll('[data-other-none]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = false; }));
+    f.querySelectorAll('[data-paid-chip]').forEach(b => b.onclick = () => {
+      readDraft();
+      const set = new Set(draft.pickPaid); const g = b.dataset.paidChip;
+      if (set.has(g)) set.delete(g); else set.add(g);
+      draft.pickPaid = [...set];
+      repaint(true);
+    });
     f.querySelectorAll('[data-control-pick]').forEach(s => s.onchange = () => { readDraft(); repaint(); });
     bindMotor(f, () => { el('hwSuggest').innerHTML = suggestHtml(); bindSuggest(f, repaint); });
     if (el('qmsLiftCancel')) el('qmsLiftCancel').onclick = back;
@@ -531,7 +575,7 @@ const WlfHardware = (() => {
         status.textContent = 'Saving…';
         const saved = await rpc('saveQmsLift', [T(), {id: draft.id, revision: draft.revision, liftId: draft.liftId, project: draft.project, address: draft.address,
           deliveryDate: draft.deliveryDate, motorType: draft.motorType, liftType: draft.liftType, system: draft.system, controllerModel: draft.controllerModel,
-          serials: draft.serials, selection: draft.selection, items}]);
+          serials: draft.serials, selection: draft.selection, paidNote: draft.paidNote, items}]);
         if (record) { showLift(saved, 'Changes saved.'); return; }
         draft = newDraft();
         el('qmsPanel').innerHTML = qmsForm(null);
@@ -622,7 +666,10 @@ const WlfHardware = (() => {
       <section class="card hw-out"><div class="overview-eyebrow">6 · OTHER COMPONENTS (INCLUDING AVR)</div>${
         tbl(['Category', 'Item code', 'Item name', 'Spec', 'Supplier', 'Brand', 'Price (৳)'], [
           ...parts(['avr', 'other']).map(p => [h(p.section === 'avr' ? p.model : p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand), h(money(p.value))]),
-          ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>`;
+          ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">7 · PAID FEATURE INFORMATION</div>${
+        tbl(['Category', 'Item code', 'Item name', 'Spec', 'Brand', 'Supplier', 'Price (৳)'], parts(['paid']).map(p => [h(p.grp || p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.brand), h(p.supplier), h(money(p.value))]), 'No paid feature was selected.')}
+        ${rec.paidNote ? `<p class="hw-paid-note"><b>Special note:</b> ${h(rec.paidNote)}</p>` : ''}</section>`;
   }
 
   async function downloadLifts(records, name, status) {

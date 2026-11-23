@@ -20,7 +20,7 @@ test('QMS tables follow the six tables of QMS Data, with prices as numbers and "
   const {qmsTables} = await import('../supabase/functions/_shared/wlf-excel.mjs');
   const {blocks} = qmsTables(lift);
   const byNo = n => blocks.filter(b => b.no === n);
-  assert.deepEqual([...new Set(blocks.map(b => b.no))], [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual([...new Set(blocks.map(b => b.no))], [1, 2, 3, 4, 5, 6, 7]);
   for (const b of blocks) if (b.columns.length) assert.equal(b.columns.reduce((a, c) => a + c.span, 0), 10, 'grid width of table ' + b.no);
   assert.deepEqual(byNo(1)[0].columns.map(c => c.head), ['Project', 'Lift ID', 'Address', 'Delivery', 'Motor type', 'Lift type']);
   assert.equal(byNo(1)[0].rows[0].delivery, '20 Nov 2026');

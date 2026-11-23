@@ -98,7 +98,7 @@ export function activitySheets(categories,entries) {
     [],r=>[],r=>r.form_schema));
 }
 const when=value=>value?String(value):'';
-const hwSections={control:'Control system',lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable',other:'Other components',avr:'AVR'};
+const hwSections={control:'Control system',lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable',other:'Other components',avr:'AVR',paid:'Paid feature'};
 export function projectSheets(records) {
   const tasks=r=>Array.isArray(r.project?.data?.tasks)?r.project.data.tasks:[];
   const progress=list=>list.length?Math.round(list.reduce((sum,t)=>sum+Number(t.progress||0),0)/list.length):0;
@@ -113,9 +113,9 @@ export function projectSheets(records) {
 export function qmsSheets(records) {
   const lifts=records.map(r=>r.lift);
   return [
-    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components'],
+    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components','Paid feature note'],
       rows:lifts.map(l=>[l.lift_id,l.project,l.address,l.delivery_date,l.motor_type,l.lift_type,l.system,l.controller_model,l.created_name,when(l.created_at),
-        l.updated_name,when(l.updated_at),(l.parts||[]).length])},
+        l.updated_name,when(l.updated_at),(l.parts||[]).length,l.paid_note||''])},
     {name:'QMS Components',headers:['Lift ID','Project','Section','Group','Hardware','Spec','Item code','Item name','Brand','Supplier','Price (BDT)','Serial'],
       rows:lifts.flatMap(l=>(l.parts||[]).map(p=>[l.lift_id,l.project,hwSections[p.section]||p.section||'',p.grp,p.hardware,p.spec,p.code,p.name,p.brand,p.supplier,
         p.value===null||p.value===undefined||p.value===''?'':Number(p.value),p.serial]))},
@@ -173,7 +173,7 @@ const pick=(a,b)=>a!==undefined&&a!==null?a:b;
 export function qmsNormalize(l) {
   return {liftId:pick(l.liftId,l.lift_id)||'',project:l.project||'',address:l.address||'',deliveryDate:pick(l.deliveryDate,l.delivery_date)||'',
     motorType:pick(l.motorType,l.motor_type)||'',liftType:pick(l.liftType,l.lift_type)||'',system:l.system||'',
-    controllerModel:pick(l.controllerModel,l.controller_model)||'',serials:l.serials||{},selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
+    controllerModel:pick(l.controllerModel,l.controller_model)||'',paidNote:pick(l.paidNote,l.paid_note)||'',serials:l.serials||{},selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
     createdName:pick(l.createdName,l.created_name)||'',updatedName:pick(l.updatedName,l.updated_name)||'',updatedAt:pick(l.updatedAt,l.updated_at)||''};
 }
 const qmsSdb=sel=>{
@@ -215,6 +215,10 @@ export function qmsTables(raw) {
   if (qmsSdb(sel)) other.push({a:'SDB main breaker rating',code:'—',name:'—',spec:qmsSdb(sel),supplier:'',brand:'',price:''});
   blocks.push({no:6,name:'Other components (including AVR)',short:'Other components',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
     {head:'Spec',key:'spec',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],rows:other});
+  blocks.push({no:7,name:'Paid feature information',short:'Paid feature information',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
+    {head:'Spec',key:'spec',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
+    rows:parts(['paid']).map(p=>({a:p.grp||p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),
+    note:rec.paidNote,empty0:'No paid feature was selected.'});
   return {rec,blocks};
 }
 /* One flat sheet for analysis: one row per table row, with the lift columns first. */
@@ -225,7 +229,8 @@ export function qmsFlatRows(raw) {
   const blank=v=>v==='—'?'':v;
   for (const b of blocks) {
     const name=b.short||b.name.split(' — ')[0];
-    const rows=b.flat?b.flat():b.rows;
+    const rows=b.flat?b.flat():[...b.rows];
+    if (b.note) rows.push({a:'Special note',spec:b.note});
     for (const r of rows) {
       out.push([...lead,b.no,name,b.sub||'',r.a||'',r.b||'',blank(r.spec??''),blank(r.code||''),blank(r.name||''),r.brand||'',r.supplier||'',r.price===undefined?'':r.price]);
     }
@@ -304,7 +309,8 @@ export async function buildReportWorkbook(Zip,report) {
       }
       put(cells,Math.max(18,lines*14+6));
     }
-    if (!block.rows.length) { row=r+1; put(span(row,0,UNITS,'Nothing recorded.',5),18); }
+    if (!block.rows.length) { row=r+1; put(span(row,0,UNITS,block.empty0||'Nothing recorded.',5),18); }
+    if (block.note) { row=r+1; const t='Special note: '+block.note; put(span(row,0,UNITS,t,5),Math.max(18,linesFor(t,UNITS)*14+6)); }
     put([],8);
   }
   const cols='<cols><col min="1" max="'+UNITS+'" width="'+UNIT+'" customWidth="1"/></cols>';

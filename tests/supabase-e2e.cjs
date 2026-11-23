@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.4-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.5-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -1231,7 +1231,7 @@ assert.equal(await page.locator('#menuDot').count(),0);
 await tab('catalogue');await page.locator('.hw-sys-btn').first().waitFor();
 assert.deepEqual(await page.locator('.hw-sys-btn b').allInnerTexts(),['MOT','NICE3000+','MOTCUBE','AVR'],'catalogue systems: controllers first, then AVR');
 await page.locator('[data-hw-system="MOT"]').click();
-assert.deepEqual((await page.locator('.hw-model').evaluateAll(n=>n.map(x=>x.firstChild.textContent.trim()))),['MOT 5.5 kW','MOT 7.5 kW','MOT 11 kW','MOT 15 kW','MOT 22 kW','MOT 37 kW','COP','LOP','Transom','COP Faceplate','Other components']);
+assert.deepEqual((await page.locator('.hw-model').evaluateAll(n=>n.map(x=>x.firstChild.textContent.trim()))),['MOT 5.5 kW','MOT 7.5 kW','MOT 11 kW','MOT 15 kW','MOT 22 kW','MOT 37 kW','COP','LOP','Transom','COP Faceplate','Other components','Paid feature']);
 await page.locator('[data-hw-model="MOT 7.5 kW"]').click();
 assert.match(await page.locator('#hwTable thead').innerText(),/Price \(৳\)/i);
 await page.locator('[data-hw-system="MOTCUBE"]').click();
@@ -1490,6 +1490,63 @@ assert.equal(dl2.suggestedFilename(),'QMS-data.xlsx');await dl2.saveAs('test-res
 {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v264/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
  const wb=await zip.file('xl/workbook.xml').async('string');assert.match(wb,/QMS Output Tables/);for(const t of ['Lift ID','Table name','X-264','Control system','Serial numbers'])assert.ok(xml.includes(t),'flat sheet has '+t);}
 await page.setViewportSize({width:1280,height:900});await page.screenshot({path:'test-results/v264/06-qms-data.png',fullPage:false});
+}
+// v2.6.5: Paid feature information (chips, kW choice, special note, table 7), Select all / Clear all
+fs.mkdirSync('test-results/v265',{recursive:true});
+{const shot=async(name,full)=>{await page.screenshot({path:'test-results/v265/'+name+'.png',fullPage:!!full});};
+ const form='#qmsLiftForm ';
+ const basics=async(id,system)=>{await tab('qms');await page.locator('#qmsTabInput').click();await page.locator(form).waitFor();
+  await page.locator(form+'[name=liftId]').fill(id);await page.locator(form+'[name=project]').fill('Paid Tower');await page.locator(form+'[name=deliveryDate]').fill('2026-11-27');
+  await page.locator(form+'[name=system]').selectOption(system);await page.locator(form+'[name=controllerModel]').selectOption({index:1});
+  for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
+  for(const [k,v] of Object.entries({motor:'M-1',encoder:'E-1',drive:'D-1',ups:'U-1',cartop:'C-1',cop:'P-1',copDisplay:'CD-1'})) await page.locator(form+'[name=sl-'+k+']').fill(v);};
+ const submit=async()=>{const b=page.locator(form+'[type=submit]');await b.scrollIntoViewIfNeeded();await b.focus();await page.waitForTimeout(200);await b.click();};
+ await basics('PF-MOT','MOT');
+ const total=await page.locator(form+'input[name=other]').count();assert.ok(total>1,'other components exist');
+ await page.locator('[data-other-all]').click();assert.equal(await page.locator(form+'input[name=other]:checked').count(),total,'Select all ticks every component');
+ await page.locator('[data-other-none]').click();assert.equal(await page.locator(form+'input[name=other]:checked').count(),0,'Clear all unticks them');
+ await page.locator('[data-other-all]').click();
+ const motChips=await page.locator('[data-paid-chip]').allInnerTexts();
+ assert.deepEqual(motChips,['Voice Announcer','Access Controller Card+Finger','Access Controller Card+Finger+Password','Access Controller AI Face','RFID Card','Cloud Monitoring','Remote Alarm','BMS','Regenerative drive']);
+ assert.match(await page.locator(form+'legend').last().innerText(),/^6 · Paid feature information/);
+ await page.locator('[data-paid-chip="Voice Announcer"]').click();await page.locator('[data-paid-chip="Remote Alarm"]').click();await page.locator('[data-paid-chip="Regenerative drive"]').click();
+ assert.equal(await page.locator('[data-paid-chip].on').count(),3);
+ assert.equal(await page.locator('select[name^="paidkw:"]').count(),0,'MOT has one Regenerative drive, so no kW choice');
+ assert.equal(await page.locator(form+'input[name=other]:checked').count(),total,'chip clicks keep the other components ticked');
+ await page.locator(form+'[name=paidNote]').fill('Install after handover');
+ await page.locator('[data-paid-chip="BMS"]').scrollIntoViewIfNeeded();await shot('01-paid-input-desktop');
+ {const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
+  await page.locator('[data-paid-chip="BMS"]').scrollIntoViewIfNeeded();await shot('02-paid-input-360-dark');
+  const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
+  await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
+ await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Lift PF-MOT saved'}).waitFor();
+ await basics('PF-NICE','NICE3000+');
+ const niceChips=await page.locator('[data-paid-chip]').allInnerTexts();assert.ok(niceChips.includes('Regenerative drive')&&niceChips.includes('BMS'));
+ await page.locator('[data-paid-chip="Regenerative drive"]').click();
+ const kw=page.locator('select[name="paidkw:Regenerative drive"]');await kw.waitFor();
+ assert.deepEqual((await kw.locator('option').allInnerTexts()).slice(1).map(x=>x.split(' ·')[0]),['5 kW','7 kW','11 kW','15 kW','18 kW','22 kW','30 kW']);
+ await submit();await page.locator('#qmsLiftStatus').filter({hasText:/Choose the option \(kW\)/}).waitFor();
+ await kw.selectOption({label:'15 kW · 494757'});await shot('03-paid-input-nice-kw');
+ await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Lift PF-NICE saved'}).waitFor();
+ await page.locator('#qmsTabData').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-MOT');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
+ const t7=page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'});
+ const t7text=await t7.innerText();
+ for(const x of ['Voice Announcer','270428','G&Z-PLUS LIFT ANNOUNCER','Remote Alarm','Arline-M Center Module','Arline-S-Int Speaking Uni','Regenerative drive','321528','Special note: Install after handover'])assert.ok(t7text.includes(x),'table 7 has '+x);
+ assert.equal(await t7.locator('tbody tr').count(),1+4+1,'one Voice Announcer row, four Remote Alarm rows and one Regenerative drive row');
+ await t7.scrollIntoViewIfNeeded();await shot('04-paid-output-desktop');
+ const [dl]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsExcel').click()]);
+ await dl.saveAs('test-results/v265/QMS-PF-MOT.xlsx');
+ {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-PF-MOT.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
+  for(const t of ['7 · Paid feature information','Arline-M Center Module','Special note: Install after handover','G&amp;Z-PLUS LIFT ANNOUNCER'])assert.ok(xml.includes(t),'Excel has '+t);}
+ await page.locator('#qmsEdit').click();await page.locator(form).waitFor();
+ assert.equal(await page.locator('[data-paid-chip].on').count(),3,'saved paid features are ticked when editing');
+ assert.equal(await page.locator(form+'[name=paidNote]').inputValue(),'Install after handover');
+ await page.locator('[data-paid-chip="Remote Alarm"]').click();await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Changes saved.'}).waitFor();
+ assert.equal(await page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'}).locator('tbody tr').count(),2,'Remote Alarm switched off');
+ await page.locator('#qmsBack').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsResults table').waitFor();
+ const [dl3]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);await dl3.saveAs('test-results/v265/QMS-data.xlsx');
+ {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
+  for(const t of ['Paid feature information','Regenerative Device - MCTC-AFE-4015N'])assert.ok(xml.includes(t),'flat sheet has '+t);}
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');

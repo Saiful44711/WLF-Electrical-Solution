@@ -1,5 +1,13 @@
 # WLF Electrical Solution v2.6.4
 
+## v2.6.5 QMS Paid feature information (23 Nov 2026)
+- QMS Input has a new section "6 · Paid feature information". The chips follow the lift's control system (MOT or NICE3000+); data comes from the Hardware Catalogue model "Paid feature" (seeded from QMS_Paid_feature_information_input_output.xlsx, editable by the Super Admin).
+- Choosing a chip outputs all rows of that category in new table "7 · Paid feature information". A category with several kW options (NICE3000+ Regenerative drive) asks for one kW.
+- Optional special note (max 500 characters) is shown under table 7.
+- Other components: "Select all" and "Clear all" buttons beside the one-by-one ticks.
+- Table 7 and the note are in the lift Excel report, the flat QMS sheet, the QMS Lifts / Components sheets, the QMS JSON backup, the Excel backup and the full backup/restore.
+- Run UPDATE_V265.sql, then redeploy the Edge Function `wlf-maintenance` (single index.ts), then upload to GitHub.
+
 ## v2.6.4 Admin Panel, one Backup card, QMS Excel in one sheet (23 Nov 2026)
 - **Admin Panel** (the old "Dashboard" menu): wide layout with a Full screen button. At the top, one card per approved R&I user: activity by sector (Team Activity, SCM & Supplier communication, Sales Support, Reports) as Completed / Ongoing / Incomplete with the time invested, Technical Support received / solved / not solved / forwarded, Damage Demands and Supplier Claims raised, and a 12-month performance curve. The "Who handled them" table is gone from Technical Support. Who sees it is set per user in User Management (permission "Admin Panel").
 - **Backup** (Storage & Backup): one card. Work data (Technical Support, R&I Team Activity, R&I Project Manager, QMS data, Damage Demand, Supplier Claim) with period and optional Clear; below it the settings and reference data backup (never cleared). The older Technical Support file backup is kept in a collapsed section.
