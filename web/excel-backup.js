@@ -2,7 +2,7 @@
 const WlfExcelBackup=(()=>{
   'use strict';
   const h=value=>esc(String(value??''));
-  const moduleNames={support:'Technical Support',activity:'R&I Team Activity',project:'R&I Project',qms:'QMS data',damage:'Damage Demand',claim:'Supplier Claim'};
+  const moduleNames={support:'Technical Support',activity:'R&I Team Activity',project:'R&I Project Manager',qms:'QMS data',damage:'Damage Demand',claim:'Supplier Claim'};
   const clearText={support:'Solved support requests',activity:'Completed or Solved activity entries',project:'projects whose status is Done',
     qms:'QMS lift records (every lift in this backup)',damage:'demands that are Received (and, if sent to the supplier, whose claim goods are Received)',
     claim:'supplier claims whose goods are Received'};
@@ -10,8 +10,8 @@ const WlfExcelBackup=(()=>{
   function mount(root,api) {
     let retry=null;
     const account=T();
-    root.innerHTML='<section class="card wlf-module"><div><h3>Excel backup</h3>'+
-      '<p class="note">Download one workbook and save a verified copy in Google Drive. Technical Support, R&amp;I Team Activity, R&amp;I Project, QMS data, Damage Demand and Supplier Claim each get their own workbook.</p></div>'+
+    root.innerHTML='<section class="card wlf-module" id="wlfBackupCard"><div><h3>Backup</h3>'+
+      '<p class="note">One place for every backup. <b>Work data</b>: choose a period, then press a button to download an Excel workbook and save a verified copy in Google Drive. Technical Support, R&amp;I Team Activity, R&amp;I Project Manager, QMS data (every output table, lift by lift), Damage Demand and Supplier Claim each get their own workbook; these can also be cleared after the backup. <b>Settings and reference data</b> (further down this card) are backed up only and are never cleared.</p></div>'+
       '<div class="wlf-period"><label>Period<select id="wlfExcelPeriod"><option value="all">All dates</option><option value="year">Last 12 months</option>'+
       '<option value="custom">From date → To date</option></select></label><label>From date<input id="wlfExcelFrom" type="date" disabled></label>'+
       '<label>To date<input id="wlfExcelTo" type="date" disabled></label></div>'+
@@ -19,19 +19,19 @@ const WlfExcelBackup=(()=>{
       '<label class="wlf-choice"><input type="radio" name="wlfExcelMode" value="clear"> Backup with Clear</label></div>'+
       '<div class="wlf-tools-actions">'+Object.keys(moduleNames).map((k,i)=>'<button type="button" class="btn'+(i?' ghost':'')+'" data-excel-kind="'+k+'">'+h(moduleNames[k])+'</button>').join('')+'</div>'+
       '<p class="note">Period uses the created date in Bangladesh time (Supplier Claim: the date the claim was raised). Backup without Clear never removes anything. Backup with Clear removes a record only after the Excel file and a recovery copy are saved and verified on Google Drive, and only if it was not changed afterwards: Solved support requests, Completed or Solved activity entries, Done projects, all QMS lifts of the period, Received demands and Received supplier claims. Every backup is also downloaded to this computer.</p>'+
-      '<div id="wlfExcelStatus" role="status" aria-live="polite"></div></section>'+
-      '<section class="card"><div class="wlf-tools-actions" style="justify-content:space-between"><h3>Excel backup history</h3><button type="button" class="btn ghost" id="wlfExcelDeleteAll">Delete all history</button></div>'+
-      '<p class="note">Deleting history only removes the list entry here. The files already saved in Google Drive stay there. A deleted entry can no longer download, review Clear or restore from this page.</p>'+
-      '<div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>'+
-      '<section class="card wlf-module" id="wlfFullBackup"><div><h3>Backup</h3>'+
-      '<p class="note">Saves your other data as one file in its own Google Drive folder (WLF Full Backup) and downloads it to this computer: users and access, settings, support forms, R&amp;I categories, Troubleshooting, Components Data, Documents Links, Hardware Catalogue and announcements. '+
-      'Restore only adds what is missing and never deletes. Users are kept in the file for reference only; accounts belong to Supabase Auth and are not restored here. '+
-      'Technical Support, R&amp;I Team Activity, R&amp;I Project, QMS data, Damage Demand and Supplier Claim have their own backups above.</p></div>'+
+      '<div id="wlfExcelStatus" role="status" aria-live="polite"></div>'+
+      '<div id="wlfFullBackup" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line,rgba(128,128,128,.35))"><h4 style="margin:0 0 6px">Settings and reference data</h4>'+
+      '<p class="note">Saved as one file in its own Google Drive folder (WLF Full Backup) and downloaded to this computer: users and access (for reference), settings, support forms, R&amp;I categories, Troubleshooting, Components Data, Documents Links, Hardware Catalogue and announcements. '+
+      'This part is backup only: Clear never touches it. Restore only adds what is missing and never deletes. Accounts belong to Supabase Auth and are not restored here.</p>'+
       '<div class="wlf-tools-actions"><button type="button" class="btn" id="wlfFullNow">Backup now</button>'+
       '<label class="btn ghost" for="wlfFullFile" style="cursor:pointer;text-transform:none;letter-spacing:normal">Restore from a backup file</label><input type="file" id="wlfFullFile" accept=".json,application/json" hidden>'+
       '<button type="button" class="btn ghost" id="wlfFullDeleteAll">Delete all history</button></div>'+
       '<div id="wlfFullStatus" role="status" aria-live="polite"></div>'+
-      '<div id="wlfFullHistory" aria-live="polite">Loading backup history…</div></section>';
+      '</div></section>'+
+      '<section class="card"><div class="wlf-tools-actions" style="justify-content:space-between"><h3>Backup history · work data</h3><button type="button" class="btn ghost" id="wlfExcelDeleteAll">Delete all history</button></div>'+
+      '<p class="note">Deleting history only removes the list entry here. The files already saved in Google Drive stay there. A deleted entry can no longer download, review Clear or restore from this page.</p>'+
+      '<div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>'+
+      '<section class="card"><h3>Backup history · settings and reference data</h3><div id="wlfFullHistory" aria-live="polite">Loading backup history…</div></section>';
     const get=selector=>root.querySelector(selector);
     const period=get('#wlfExcelPeriod'),from=get('#wlfExcelFrom'),to=get('#wlfExcelTo');
     const current=()=>root.isConnected&&T()===account;

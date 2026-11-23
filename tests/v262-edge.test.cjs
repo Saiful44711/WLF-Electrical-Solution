@@ -127,7 +127,7 @@ test('Single-file Edge Function: R&I Project and QMS data workbooks', async t =>
 
   const q = await (await call('excelBackup', {id: crypto.randomUUID(), kind: 'qms', withClear: true})).json();
   assert.match(q.name, /^WLF-QMS-Data-/);
-  assert.deepEqual(await sheetNames(Buffer.from(q.bytes, 'base64')), ['QMS Lifts', 'QMS Components', 'QMS Serial numbers']);
+  assert.deepEqual(await sheetNames(Buffer.from(q.bytes, 'base64')), ['QMS Lifts', 'QMS Components', 'QMS Serial numbers', 'QMS Output Tables']);
   const qz = await Zip.loadAsync(Buffer.from(q.bytes, 'base64'));
   const comp = await qz.file('xl/worksheets/sheet2.xml').async('string');
   assert.match(comp, /L-77/); assert.match(comp, new RegExp(rows[0].itemCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

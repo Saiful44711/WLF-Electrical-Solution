@@ -1,4 +1,10 @@
-# WLF Electrical Solution v2.6.3
+# WLF Electrical Solution v2.6.4
+
+## v2.6.4 Admin Panel, one Backup card, QMS Excel in one sheet (23 Nov 2026)
+- **Admin Panel** (the old "Dashboard" menu): wide layout with a Full screen button. At the top, one card per approved R&I user: activity by sector (Team Activity, SCM & Supplier communication, Sales Support, Reports) as Completed / Ongoing / Incomplete with the time invested, Technical Support received / solved / not solved / forwarded, Damage Demands and Supplier Claims raised, and a 12-month performance curve. The "Who handled them" table is gone from Technical Support. Who sees it is set per user in User Management (permission "Admin Panel").
+- **Backup** (Storage & Backup): one card. Work data (Technical Support, R&I Team Activity, R&I Project Manager, QMS data, Damage Demand, Supplier Claim) with period and optional Clear; below it the settings and reference data backup (never cleared). The older Technical Support file backup is kept in a collapsed section.
+- **QMS Excel:** Download Excel on a lift gives ONE print-ready sheet (A4 landscape) with all six output tables in screen order. The Excel backup of QMS data and "Download Excel (these results)" get a flat sheet "QMS Output Tables" (one row per table row, lift columns first) for Filter / Pivot with many projects.
+- SQL: UPDATE_V264.sql (needs V263). Edge Function wlf-maintenance: replace with the new single file.
 
 ## v2.6.3 (22 Nov 2026)
 - **Activity log (wlf_usage):** rows older than 7 days are saved as Excel to the Drive folder `WLF Activity backup — <project>`, verified, then deleted (runs from the Super Admin session, checked every 6 hours). Safety net: rows older than 30 days are deleted even without an archive. Manual download and delete tools stay.

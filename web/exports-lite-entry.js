@@ -31,5 +31,7 @@ function ganttRange(project) {
     length:(from,to)=>(days(to)-days(from)+86400000)/(end-start)};
 }
 async function excel(groups,name) { return (await full()).excel(groups,name); }
+async function qmsExcel(lift,name) { return (await full()).qmsExcel(lift,name); }
+async function qmsFlatExcel(lifts,name) { return (await full()).qmsFlatExcel(lifts,name); }
 async function projectPpt(project,people) { return (await full()).projectPpt(project,people); }
-window.WlfExports={download,excel,supportSheets,activitySheets,projectPpt,progress,ganttRange,load:full};
+window.WlfExports={download,excel,qmsExcel,qmsFlatExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange,load:full};

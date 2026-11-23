@@ -125,3 +125,14 @@
 html[data-theme=dark] .clog-added{background:#14361f;color:#86efac}
 html[data-theme=dark] .clog-edited{background:#25254b;color:#c7d2fe}
 html[data-theme=dark] .clog-deleted{background:#3f1717;color:#fca5a5}
+
+/* v2.6.4 Admin Panel: wide, large, optional full screen */
+#tab-workspace-dashboard .admin-panel{max-width:none;width:100%}
+#tab-workspace-dashboard:fullscreen{background:var(--bg);overflow:auto;padding:24px 28px}
+.mgmt-section{margin:22px 0 8px;font-size:18px}
+.mgmt-users{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))}
+.mgmt-user-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between;margin-bottom:6px}
+.mgmt-user-head h3{margin:0;font-size:20px}
+.mgmt-user .overview-metrics{margin-top:12px}
+@media(min-width:1100px){#tab-workspace-dashboard .admin-panel .mgmt-card h3{font-size:18px}#tab-workspace-dashboard .admin-panel .tbl{font-size:14px}}
+.mgmt-user .tbl th{white-space:nowrap}

@@ -625,23 +625,11 @@ const WlfHardware = (() => {
           ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>`;
   }
 
-  const FLAT_HEAD = ['Lift ID', 'Project', 'Address', 'Delivery date', 'Motor type', 'Lift type', 'Control system', 'Controller model', 'Section', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Price (BDT)', 'Serial'];
-  const sdbRow = rec => sdbOf(rec.selection) ? [{section: 'other', hardware: 'SDB main breaker rating', spec: sdbOf(rec.selection), name: 'From Component Selection'}] : [];
-  const flat = rec => ((rec.parts.length || sdbOf(rec.selection)) ? [...rec.parts, ...sdbRow(rec)] : [{}]).map(p => [rec.liftId, rec.project, rec.address || '', rec.deliveryDate || '', rec.motorType || '', rec.liftType || '', rec.system, rec.controllerModel,
-    SECTION_NAMES[p.section] || '', p.grp || '', p.hardware || '', p.spec || '', p.code || '', p.name || '', p.brand || '', p.supplier || '', p.value ?? '', p.serial || '']);
-
   async function downloadLifts(records, name, status) {
     try {
       status.textContent = 'Preparing Excel…';
-      const sheets = [{name: 'QMS data', headers: FLAT_HEAD, rows: records.flatMap(flat)}];
-      if (records.length === 1) {
-        const rec = records[0];
-        sheets.unshift({name: 'Project', headers: ['Project', 'Lift ID', 'Address', 'Delivery date', 'Motor type', 'Lift type', 'Control system', 'Controller model', ...SERIALS.map(x => x[1])],
-          rows: [[rec.project, rec.liftId, rec.address || '', rec.deliveryDate || '', rec.motorType || '', rec.liftType || '', rec.system, rec.controllerModel, ...SERIALS.map(([k]) => rec.serials?.[k] || '')]]});
-        if (rec.selection) sheets.push({name: 'Motor selection', headers: ['Section', 'Parameter', 'Value'],
-          rows: [...Object.entries(rec.selection.inputs || {}).map(([k, v]) => ['Input', k, v]), ...(rec.selection.categories || []).flatMap(c => c.items.map(it => [c.title, it.label, it.value]))]});
-      }
-      await WlfExports.excel(sheets, name);
+      if (records.length === 1) await WlfExports.qmsExcel(records[0], name);   /* one print-ready sheet with all six tables */
+      else await WlfExports.qmsFlatExcel(records, name);   /* one flat sheet, filter by lift or table */
       status.textContent = 'Excel downloaded.';
     } catch (err) { status.textContent = cleanError(err); }
   }

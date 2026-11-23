@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.4 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.3 → 2.6.4 · ২৩ নভেম্বর ২০২৬</p>
+  <h1>Admin Panel, এক জায়গায় Backup, আর QMS Excel এক শিটে: deployment নির্দেশিকা</h1>
+  <p>এবার <b>একটা SQL</b> (<code>UPDATE_V264.sql</code>), <b>Edge Function আবার deploy</b> (QMS Output Tables শিটের জন্য) এবং GitHub আপলোড।</p>
+</header>
+<section><nav><a href="#what">কী বদলেছে</a><a href="#assume">অনুমান</a><a href="#s2">SQL</a><a href="#s3">Edge Function</a><a href="#s4">GitHub</a><a href="#s5">যাচাই</a><a href="#trouble">সমস্যা হলে</a></nav></section>
+
+<section id="what"><h2>কী বদলেছে (v2.6.4)</h2><ul>
+<li><b>Admin Panel:</b> মেনুর "Dashboard" এখন <b>Admin Panel</b>। চওড়া লেআউট ও <b>Full screen</b> বাটন। উপরে প্রতিটি অনুমোদিত R&amp;I ইউজারের আলাদা কার্ড: sector অনুযায়ী Completed / Ongoing / Incomplete ও ব্যয়িত সময় (Team Activity, SCM &amp; Supplier communication, Sales Support, Reports), Technical Support (Received / Solved / Not solved / Forwarded), Damage Demand ও Supplier Claim উত্থাপনের সংখ্যা, এবং ১২ মাসের performance curve। নিচে আগের মতো মেনু-ভিত্তিক কার্ডগুলো।</li>
+<li><b>Technical Support কার্ড থেকে "Who handled them" টেবিল সরানো হয়েছে</b> (ওই তথ্য এখন প্রতি ইউজারের কার্ডে)।</li>
+<li><b>কে Admin Panel দেখবে:</b> Super Admin ঠিক করবেন, <b>User Management → ইউজার → Permissions → "Admin Panel / View team performance and export"</b> টিক দিয়ে। (আগের Dashboard-এর টিকই, শুধু নাম বদলেছে; আগে যাদের ছিল তাদের থাকবে।)</li>
+<li><b>Storage &amp; Backup-এ একটাই "Backup" কার্ড:</b> উপরে কাজের ডেটা (Technical Support, R&amp;I Team Activity, R&amp;I Project Manager, QMS data, Damage Demand, Supplier Claim) period ও Clear সহ; একই কার্ডের নিচে "Settings and reference data" (Hardware Catalogue, Components Data, Documents Links, settings, ফর্ম, categories, Troubleshooting, announcements, ইউজার তথ্য) শুধু backup, <b>Clear কখনো এগুলো ছোঁয় না</b>। পুরোনো Technical Support ফাইল-ব্যাকআপ ভাঁজ-করা অংশে রাখা আছে।</li>
+<li><b>QMS Data → Download Excel (একটা লিফট):</b> এখন <b>একটাই শিট</b>, A4 landscape প্রিন্টের উপযোগী, স্ক্রিনের ক্রমে ৬টা table, নিচে "Design &amp; Developed by Md. Saiful Islam" ও পাতা নম্বর। (আগের ৩ শিটের ফাইল আর হয় না।)</li>
+<li><b>QMS data-র Excel backup ও "Download Excel (these results)":</b> নতুন শিট <b>QMS Output Tables</b>: প্রতি table-সারি এক সারিতে, শুরুতে Lift ID, Project, Address, Delivery date, Controller, Table no., Table name। অনেক প্রজেক্ট একসাথে ডাউনলোড করলেও এক শিটে থাকে; Filter/Pivot চলবে। আগের ৩ শিট (QMS Lifts, Components, Serial numbers) থাকছে।</li></ul></section>
+
+<section id="assume"><h2>আমি যা ধরে নিয়েছি</h2><div class="scroll"><table><tr><th>বিষয়</th><th>অনুমান</th></tr>
+<tr><td>Admin Panel-এর সময়সীমা</td><td>আপনি জানাননি, তাই "From–To" তারিখ (ডিফল্ট: এই মাস, ঢাকা সময়) রেখেছি, যেমন আগের Dashboard-এ ছিল। Curve সবসময় শেষ ১২ মাস।</td></tr>
+<tr><td>"Sector"</td><td>R&amp;I Team Activity-র চারটা ট্যাব: Team Activity, SCM &amp; Supplier communication, Sales Support, Reports।</td></tr>
+<tr><td>Completed / Ongoing / Incomplete</td><td>Status "Completed" (Solved, Done) = Completed; "Ongoing" (In Progress) = Ongoing; বাকি সব (Hold, Cancelled ইত্যাদি) = Incomplete।</td></tr>
+<tr><td>ব্যয়িত সময়</td><td>প্রতিটি R&amp;I entry-র "Duration (Minute)" ঘরের যোগফল (মিনিট)। যে ফর্মে ওই ঘর নেই বা খালি, সেখানে ০ ধরা হয়।</td></tr>
+<tr><td>R&amp;I ইউজার কে</td><td>Role = R&amp;I এবং অনুমোদিত (Approved) সবাই; entry না থাকলেও কার্ড দেখাবে।</td></tr>
+<tr><td>Damage demand / Supplier claim "উত্থাপন"</td><td>Damage demand: যে R&amp;I ইউজার ডিমান্ডটি confirm করেছেন; Supplier claim: যিনি claim করেছেন। দুটোই নির্বাচিত সময়ে।</td></tr>
+<tr><td>Technical Support সংখ্যা</td><td>ওই সময়ে ইউজারের নিজের Receive / Solve / Forward / Not solved কাজ (History থেকে)।</td></tr>
+<tr><td>Excel-এ লিফটের শিট</td><td>"১ টা শিট" অনুযায়ী আগের Project / Motor selection / QMS data শিট বাদ; সব ডেটা ওই এক শিটের ৬ table-এ।</td></tr>
+<tr><td>Table 2 "Recommended controller…" অংশ</td><td>স্ক্রিনে ভাঁজ করা থাকলেও Excel-এ খোলা অবস্থায় আছে (যদি লিফটে রেকর্ড থাকে)।</td></tr>
+<tr><td>"no code"</td><td>Item code না থাকলে Excel-এ হুবহু <code>no code</code> লেখা থাকে; Price সংখ্যা হিসেবে যায় (Sum চলবে)।</td></tr>
+<tr><td>পুরোনো Technical Support ফাইল-ব্যাকআপ</td><td>মুছিনি, কারণ আগে সেভ করা backup থেকে Restore এখান দিয়েই হয়; ভাঁজ-করা অংশে আছে।</td></tr></table></div></section>
+
+<section id="s2"><h2>১. Supabase SQL (একটাই)</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li>প্যাকেজের <code>UPDATE_V264.sql</code> খুলে Ctrl+A, Ctrl+C; Editor-এ পেস্ট; <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলে <code>admin_panel_ready</code> = <code>true</code>, <code>permission_label</code> = <code>Admin Panel / View team performance and export</code>, <code>v264_ready</code> = <code>true</code> থাকা উচিত।</li></ol>
+<div class="attention">V263 না চালিয়ে V264 চালালে "Run UPDATE_V263.sql first" আসবে ও কিছু বদলাবে না। দুবার চালালেও সমস্যা নেই।</div></section>
+
+<section id="s3"><h2>২. Edge Function <code>wlf-maintenance</code> আবার deploy (একটাই ফাইল)</h2>
+<p>QMS Output Tables শিট এই ফাংশনে তৈরি হয়। Google-এর secret বদলাতে হবে না।</p>
+<ol>
+<li>Supabase ড্যাশবোর্ড → <b>Edge Functions</b> → <b>wlf-maintenance</b> → <b>Code</b> ট্যাব; <code>index.ts</code> নির্বাচিত।</li>
+<li>কোড বক্সে ক্লিক করে <b>Ctrl+A</b>, <b>Delete</b>।</li>
+<li>প্যাকেজের <code>edge-function/wlf-maintenance/index.ts</code> Notepad-এ খুলে <b>Ctrl+A</b>, <b>Ctrl+C</b>; Supabase-এর বক্সে <b>Ctrl+V</b>।</li>
+<li><b>Deploy updates</b>; "Successfully deployed" পর্যন্ত অপেক্ষা। <b>Details</b>-এ <b>Verify JWT</b> OFF থাকতে হবে।</li></ol>
+<div class="attention"><b>ক্রম:</b> SQL আগে, Edge Function পরে, সবশেষে GitHub।</div></section>
+
+<section id="s4"><h2>৩. GitHub-এ আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.6.4-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub রিপো → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.6.4 admin panel, backup card, QMS excel</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা। লাল হলে "FAILURE SUMMARY"-র নিচের লেখার স্ক্রিনশট দিন।</li></ol></section>
+
+<section id="s5"><h2>৪. যাচাই</h2><ol>
+<li>Ctrl+Shift+R; ⋮ মেনুর নিচে <b>WLF v2.6.4</b>।</li>
+<li>মেনুতে <b>Admin Panel</b> → R&amp;I ইউজারদের কার্ড, নিচে curve। <b>Full screen</b> চেপে দেখুন।</li>
+<li><b>User Management</b>-এ কোনো ইউজারের Permissions-এ "Admin Panel" টিক দিয়ে/তুলে দেখুন সে মেনু পায় কিনা।</li>
+<li><b>Storage &amp; Backup</b>-এ একটাই "Backup" কার্ড; নিচে "Settings and reference data"।</li>
+<li><b>QMS → QMS Data</b> → একটা লিফট খুলে <b>Download Excel</b>: এক শিট; Excel-এ File → Print দিয়ে প্রিভিউ দেখুন।</li>
+<li><b>Storage &amp; Backup → QMS data</b> (Backup without Clear) চালিয়ে ফাইল খুলুন: শেষ শিট <b>QMS Output Tables</b>।</li></ol></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>Run UPDATE_V263.sql first</td><td>V263 চালানো হয়নি</td><td>আগে V263, তারপর V264</td></tr>
+<tr><td>Admin Panel-এ "Unsupported action" / লোড হয় না</td><td>SQL চালানো হয়নি বা পুরোনো পেজ</td><td>V264 চালান; Ctrl+Shift+R</td></tr>
+<tr><td>QMS backup-এ QMS Output Tables শিট নেই</td><td>Edge Function পুরোনো</td><td>ধাপ ২ আবার করুন</td></tr>
+<tr><td>Admin Panel মেনু নেই</td><td>ইউজারের permission নেই</td><td>User Management → Permissions-এ টিক দিন</td></tr>
+<tr><td>Admin Panel-এ সময় ০ min</td><td>ওই ফর্মে Duration ঘর খালি/নেই</td><td>ফর্মে "Duration (Minute)" পূরণ করতে হবে</td></tr>
+<tr><td>Actions লাল ✗</td><td>CI ব্যর্থ</td><td>"FAILURE SUMMARY"-র নিচের লেখা/স্ক্রিনশট দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে ও যা পারিনি</h2><ul>
+<li>Unit test ১৫৭টি পাস। নতুন SQL test: Admin Panel শুধু অনুমোদিত R&amp;I ইউজার দেখায়; sector-অনুযায়ী Completed / Ongoing / Incomplete ও মিনিট (দুই ধরনের duration ঘরসহ); ১২ মাসের বাইরের entry curve-এ আসে না; permission ছাড়া প্রত্যাখ্যাত; migration দুবার চালানো যায়; permission-এর নতুন নাম একবারই তালিকায়।</li>
+<li>QMS Excel test: ৬টা table-এর কলাম ও ক্রম স্ক্রিনের মতো, Price সংখ্যা, "no code" বহাল, শিট বৈধ ফাইল (LibreOffice-এ খুলে A4 প্রিন্ট-প্রিভিউ দেখে লম্বা নামের সারির উচ্চতাও ঠিক করেছি); ফ্ল্যাট শিটে সব সারির কলাম-সংখ্যা সমান।</li>
+<li>Playwright e2e (ঢাকা ও UTC সময়): Admin Panel-এর সংখ্যা ডাটাবেসের সঙ্গে মেলানো (Support received/solved/forwarded); Backup কার্ড; লিফটের Excel ডাউনলোড করে ভেতরে ৬ table ও এক শিট যাচাই; দুই লিফট একসাথে ডাউনলোডে QMS Output Tables; ডেস্কটপ/ডার্ক/৩৬০px স্ক্রিনশট দেখেছি।</li>
+<li><div class="attention"><b>যাচাই করতে পারিনি:</b> আসল Supabase-এ SQL; আসল Google Drive; আসল Edge Function deploy; GitHub CI; আসল ফোন; <b>আসল R&amp;I activity entry দিয়ে Admin Panel-এর sector ও সময়</b> (e2e-তে ওই ইউজারের activity entry ছিল না, তাই স্ক্রিনে ০ দেখা গেছে। সংখ্যার হিসাব শুধু SQL test-এ যাচাই); Excel-এর প্রিন্ট আসল Microsoft Excel/প্রিন্টারে (LibreOffice-এ দেখেছি)।</div></li></ul></section>
+<footer>WLF Electrical Solution · v2.6.4 · Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

@@ -1,9 +1,10 @@
-WLF Electrical Solution v2.6.3 - SQL run order
+WLF Electrical Solution v2.6.4 - SQL run order
 
 A) EXISTING live project (v2.6.2 needs UPDATE_V261.sql, which needs UPDATE_V260.sql):
    1. backup-kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql (download both CSVs)
    2a. UPDATE_V262.sql (needs UPDATE_V261.sql) -> documents_permission_ready = true, v262_ready = true
    2b. UPDATE_V263.sql (needs UPDATE_V262.sql) -> usage_archive_ready = true, full_backup_ready = true, v263_ready = true
+   2c. UPDATE_V264.sql (needs UPDATE_V263.sql) -> admin_panel_ready = true, permission_label starts with "Admin Panel /", v264_ready = true
        (Excel backup modules, history delete, QMS lifts in Recycle bin, Documents Links permission)
    2. UPDATE_V261.sql FIRST (needs UPDATE_V260.sql, which needs UPDATE_V259.sql)
       -> unconverted_parts = 0, v261_ready = true  (QMS shared snapshot rows, Storage & Backup actions)
@@ -11,8 +12,8 @@ A) EXISTING live project (v2.6.2 needs UPDATE_V261.sql, which needs UPDATE_V260.
       (V260 result: mot_faceplates = 6, motcube_models = 3, forms_with_controller_model >= 3, v260_ready = true)
          (COP Faceplate models, MOTCUBE tables, Controller Model on Support forms,
           QMS serial/MOTCUBE checks, Components Data CSV import)
-   3. Edge Function wlf-maintenance: REPLACE the code with edge-function/wlf-maintenance/index.ts (ONE file) and Deploy (Verify JWT OFF). wlf-admin and wlf-push: no change.
-   4. Upload the GitHub files (WLF-GitHub-v2.6.3-UPLOAD.zip)
+   3. Edge Function wlf-maintenance (CHANGED in v2.6.4: QMS Output Tables sheet): REPLACE the code with edge-function/wlf-maintenance/index.ts (ONE file) and Deploy (Verify JWT OFF). wlf-admin and wlf-push: no change.
+   4. Upload the GitHub files (WLF-GitHub-v2.6.4-UPLOAD.zip)
    5. Components Data page -> Import CSV -> Components-Data-2026-11-20.csv (replaces all rows)
 
 B) NEW empty project built from source (staging / disaster recovery without a backup):
@@ -38,6 +39,7 @@ B) NEW empty project built from source (staging / disaster recovery without a ba
    full-source/supabase/UPDATE_V261.sql
    full-source/supabase/UPDATE_V262.sql
    full-source/supabase/UPDATE_V263.sql
+   full-source/supabase/UPDATE_V264.sql
    then create the first Super Admin (full-source/supabase/02_FIRST_SUPER_ADMIN.sql)
    and deploy the Edge Functions in full-source/supabase/functions/
    (wlf-admin, wlf-maintenance, wlf-push - all with Verify JWT OFF).

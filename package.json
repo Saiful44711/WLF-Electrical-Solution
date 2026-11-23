@@ -1,13 +1,13 @@
 {
   "name": "wlf-electrical-solution",
-  "version": "2.6.3",
+  "version": "2.6.4",
   "private": true,
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "build": "node scripts/build-pwa.mjs",
-    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs tests/password-change.test.cjs tests/maintenance.test.cjs tests/maintenance-edge.test.cjs tests/release-v220.test.cjs tests/support-forms-workbook.test.cjs tests/damage-demand.test.cjs tests/workspace-update.test.cjs tests/sections-update.test.cjs tests/v240-update.test.cjs tests/v250-update.test.cjs tests/v251-update.test.cjs tests/v252-update.test.cjs tests/v253-update.test.cjs tests/v254-update.test.cjs tests/v255-update.test.cjs tests/v256-update.test.cjs tests/v257-update.test.cjs tests/v258-update.test.cjs tests/v259-update.test.cjs tests/v260-update.test.cjs tests/v261-update.test.cjs tests/v262-update.test.cjs tests/v262-edge.test.cjs tests/v263-update.test.cjs tests/v263-edge.test.cjs",
+    "test": "node --test tests/calculations.test.cjs tests/supabase.test.cjs tests/edge.test.cjs tests/password-change.test.cjs tests/maintenance.test.cjs tests/maintenance-edge.test.cjs tests/release-v220.test.cjs tests/support-forms-workbook.test.cjs tests/damage-demand.test.cjs tests/workspace-update.test.cjs tests/sections-update.test.cjs tests/v240-update.test.cjs tests/v250-update.test.cjs tests/v251-update.test.cjs tests/v252-update.test.cjs tests/v253-update.test.cjs tests/v254-update.test.cjs tests/v255-update.test.cjs tests/v256-update.test.cjs tests/v257-update.test.cjs tests/v258-update.test.cjs tests/v259-update.test.cjs tests/v260-update.test.cjs tests/v261-update.test.cjs tests/v262-update.test.cjs tests/v262-edge.test.cjs tests/v263-update.test.cjs tests/v264-update.test.cjs tests/v264-excel.test.cjs tests/v263-edge.test.cjs",
     "test:e2e": "node tests/supabase-e2e.cjs",
     "preview": "node scripts/serve.mjs",
     "build:upgrade": "node scripts/build-v220-sql.mjs",

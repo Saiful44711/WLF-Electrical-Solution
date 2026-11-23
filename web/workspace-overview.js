@@ -181,19 +181,35 @@ const WlfOverview = (() => {
 
   function dashboardFilters(filters, data) {
     return `<form id="workspaceFilters" class="card overview-panel">
-      <div class="overview-heading"><div><h3>Management Dashboard</h3>
-        <p class="note">Menu-wise performance. Dates use Dhaka time; this month by default. Curves always show the last 12 months.</p></div></div>
+      <div class="overview-heading"><div><h3>Admin Panel</h3>
+        <p class="note">Team performance. Dates use Dhaka time; this month by default. Curves always show the last 12 months.</p></div></div>
       <div class="overview-filters">
         <label>From<input type="date" name="from" value="${h(filters.from)}" required></label>
         <label>To<input type="date" name="to" value="${h(filters.to)}" required></label>
         <div class="overview-actions">
           <button class="btn" type="submit">Apply</button>
           <button class="btn ghost" type="button" id="workspaceExport" ${data ? '' : 'disabled'}>Download Excel</button>
+          <button class="btn ghost" type="button" id="workspaceFull">Full screen</button>
         </div>
       </div>
       <p class="note overview-status" id="workspaceStatus" role="status"></p>
     </form>`;
   }
+
+  const minutesText = m => { m = Math.round(Number(m || 0)); return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min'; };
+  const sectorName = {team:'Team Activity', scm:'SCM & Supplier communication', sales:'Sales Support', reports:'Reports'};
+  function userPanel(u) {
+    const total = u.sectors.reduce((t, x) => t + Number(x.entries), 0), minutes = u.sectors.reduce((t, x) => t + Number(x.minutes), 0);
+    const su = u.support || {};
+    return `<section class="card overview-panel mgmt-user"><div class="mgmt-user-head"><h3>${h(u.name)}</h3>
+        <span class="note">${count(total)} activity entries · ${h(minutesText(minutes))} recorded</span></div>
+      ${table(['Sector','Completed','Ongoing','Incomplete','Time invested'], [
+        ...u.sectors.map(x => [h(sectorName[x.section] || x.section), count(x.completed), count(x.ongoing), count(x.incomplete), h(minutesText(x.minutes))])], 'Activity by sector for ' + u.name)}
+      <div class="overview-metrics">${metric('Support received', count(su.received), 'blue')}${metric('Support solved', count(su.solved), 'teal')}${metric('Not solved', count(su.notSolved), 'amber')}${metric('Forwarded', count(su.forwarded), 'violet')}
+        ${metric('Damage demands raised', count(u.damage), 'amber')}${metric('Supplier claims raised', count(u.claims), 'blue')}</div>
+      <h4 class="mgmt-sub">Performance curve · last 12 months</h4>${lineChart(panelMonths, u.curve, 'Monthly performance of ' + u.name)}</section>`;
+  }
+  let panelMonths = [];
 
   function card(num, title, note, body) {
     return `<section class="card overview-panel mgmt-card"><h3><span class="mgmt-num">${num}</span>${h(title)}</h3>
@@ -215,7 +231,6 @@ const WlfOverview = (() => {
     const sp = data.support;
     const support = card(3, 'Technical Support', period,
       (sp.teams.length ? table(['Team','Requests','Solved','Not solved','Open'], sp.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.solved), count(t.notSolved), count(t.open)]), 'Support by team') : '<p class="note">No support requests in this period.</p>') +
-      (sp.people.length ? `<h4 class="mgmt-sub">Who handled them</h4>` + table(['R&I user','Received','Solved','Forwarded','Not solved'], sp.people.map(p => [h(p.name), count(p.received), count(p.solved), count(p.forwarded), count(p.notSolved)]), 'Support by person') : '') +
       `<h4 class="mgmt-sub">Requests per month · last 12 months</h4>` + lineChart(data.months, sp.curve, 'Support requests per month by team'));
     const dm = data.damage;
     const damage = card(4, 'Damage Demand', period,
@@ -226,7 +241,11 @@ const WlfOverview = (() => {
     const qms = card(5, 'QMS', period + ' · ' + count(q.total) + ' lift records in total',
       `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('All lift records', count(q.total), 'teal')}</div>${people(q.people)}`);
     const supplier = card(6, 'Supplier claim', '', '<div class="mgmt-soon">Coming soon</div>');
-    root.innerHTML = `<div class="overview-stack">${dashboardFilters(filters, data)}
+    panelMonths = data.months;
+    const users = (data.panel?.users || []);
+    const team = `<h3 class="mgmt-section">R&amp;I team members</h3><div class="mgmt-grid mgmt-users">${users.length ? users.map(userPanel).join('') : '<p class="note">No approved R&amp;I users.</p>'}</div>
+      <h3 class="mgmt-section">Menu-wise performance</h3>`;
+    root.innerHTML = `<div class="overview-stack admin-panel">${dashboardFilters(filters, data)}${team}
       <div class="mgmt-grid">${ri}${projects}${support}${damage}${qms}${supplier}</div></div>`;
     bindDashboard(filters, data);
   }
@@ -236,6 +255,12 @@ const WlfOverview = (() => {
     form.onsubmit = event => {
       event.preventDefault();
       loadDashboard(Object.fromEntries(new FormData(form)));
+    };
+    el('workspaceFull').onclick = () => {
+      const node = el('tab-workspace-dashboard');
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (node.requestFullscreen) node.requestFullscreen().catch(() => { el('workspaceStatus').textContent = 'Full screen is not available in this browser.'; });
+      else el('workspaceStatus').textContent = 'Full screen is not available in this browser.';
     };
     el('workspaceExport').onclick = () => {
       const edited = Object.fromEntries(new FormData(form));
@@ -251,9 +276,10 @@ const WlfOverview = (() => {
     const session = SESSION;
     const run = ++dashboardRun;
     const status = el('workspaceStatus');
-    status.textContent = 'Loading dashboard…';
+    status.textContent = 'Loading Admin Panel…';
     try {
-      const data = await rpc('getManagementDashboard',[T(),filters]);
+      const [data, panel] = await Promise.all([rpc('getManagementDashboard',[T(),filters]), rpc('getAdminPanel',[T(),filters])]);
+      data.panel = panel;
       if (SESSION === session && run === dashboardRun) renderDashboard(data,filters);
     } catch (err) {
       if (SESSION === session && run === dashboardRun && el('workspaceStatus')) el('workspaceStatus').textContent = cleanError(err);
@@ -275,15 +301,17 @@ const WlfOverview = (() => {
           rows:data.projects.list.map(p => [p.name, p.lead, p.status, p.end, p.tasks, p.progress ?? ''])},
         {name:'Technical Support',headers:['Team','Requests','Solved','Not solved','Open'],
           rows:data.support.teams.map(t => [teamName(t.team), t.total, t.solved, t.notSolved, t.open])},
-        {name:'Support by person',headers:['R&I user','Received','Solved','Forwarded','Not solved'],
-          rows:data.support.people.map(p => [p.name, p.received, p.solved, p.forwarded, p.notSolved])},
+        {name:'R&I user activity',headers:['R&I user','Sector','Entries','Completed','Ongoing','Incomplete','Time invested (min)','Support received','Support solved','Support not solved','Support forwarded','Damage demands raised','Supplier claims raised'],
+          rows:(data.panel?.users || []).flatMap(u => u.sectors.map((x, i) => [u.name, sectorName[x.section] || x.section, x.entries, x.completed, x.ongoing, x.incomplete, x.minutes,
+            ...(i ? ['','','','','',''] : [u.support?.received ?? 0, u.support?.solved ?? 0, u.support?.notSolved ?? 0, u.support?.forwarded ?? 0, u.damage ?? 0, u.claims ?? 0])]))},
+        {name:'R&I user curves',headers:['R&I user','Measure',...data.months],rows:(data.panel?.users || []).flatMap(u => Object.entries(u.curve).map(([k, v]) => [u.name, k, ...v]))},
         {name:'Support per month',headers:['Team',...data.months],rows:curve(data.support.curve)},
         {name:'Damage Demand',headers:['Team','Demands','Pending','Received','Units'],
           rows:data.damage.teams.map(t => [teamName(t.team), t.total, t.pending, t.received, t.quantity])},
         {name:'Top damaged components',headers:['Component','Units','Demands'],rows:data.damage.top.map(t => [t.item, t.quantity, t.demands])},
         {name:'Damage per month',headers:['Team',...data.months],rows:curve(data.damage.curve)},
         {name:'QMS',headers:['Measure','Lift records'],rows:[['Lifts recorded in this period', data.qms.lifts || 0],['All lift records', data.qms.total || 0]]}
-      ],'WLF-Management-Dashboard-'+data.from+'-to-'+data.to);
+      ],'WLF-Admin-Panel-'+data.from+'-to-'+data.to);
       if (status.isConnected) status.textContent = 'Excel downloaded.';
     } catch (err) {
       if (status.isConnected) status.textContent = cleanError(err);
@@ -432,12 +460,12 @@ const WlfOverview = (() => {
     const damageNav = document.querySelector('#nav [data-tab="supplier-claim"]') || document.querySelector('#nav [data-tab="damage-demand"]');
     damageNav.insertAdjacentHTML('afterend',
       '<button data-tab="qms" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 5-6"/></svg>QMS</button>'+
-      '<button data-tab="workspace-dashboard" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V11m5 9V5m5 15v-8m5 8V8M2 20h20"/></svg>Dashboard</button>');
+      '<button data-tab="workspace-dashboard" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V11m5 9V5m5 15v-8m5 8V8M2 20h20"/></svg>Admin Panel</button>');
     document.querySelector('.content').insertAdjacentHTML('beforeend',
       '<section id="tab-qms" class="tab-content hidden"></section><section id="tab-workspace-dashboard" class="tab-content hidden"></section>');
     document.body.insertAdjacentHTML('beforeend','<dialog id="qmsDialog" aria-labelledby="qmsDialogTitle"></dialog>');
     PAGES.qms = ['QMS','Project-wise component tracking'];
-    PAGES['workspace-dashboard'] = ['Dashboard','Management dashboard: menu-wise performance'];
+    PAGES['workspace-dashboard'] = ['Admin Panel','Team performance, R&I user activity and menu-wise performance'];
   });
 
   window.addEventListener('wlf-logout',() => {
