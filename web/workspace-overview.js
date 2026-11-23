@@ -135,11 +135,9 @@ const WlfOverview = (() => {
             ].map(([label,value]) => `<div><dt>${label}</dt><dd>${count(value)}</dd></div>`).join('')}</dl>
           </section>` : ''}
         </div>
-        ${activityList(data,true,offset)}
         <p class="note overview-status" id="profileStatus" role="status"></p>
       </div>`;
       el('profileRefresh').onclick = () => loadProfile();
-      if (el('profileActivityPrev')) bindPaging('profileActivity',() => loadProfile(offset-pageSize),() => loadProfile(offset+pageSize));
     } catch (err) {
       if (SESSION === session && run === profileRun) el('profileStatus').textContent = cleanError(err);
     }

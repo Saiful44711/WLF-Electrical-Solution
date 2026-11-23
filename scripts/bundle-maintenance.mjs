@@ -11,7 +11,7 @@ export function bundle() {
   const excel=read('_shared/wlf-excel.mjs').replace(/^export /gm,'');
   const edge=read('_shared/wlf-excel-edge.mjs').replace(/^import [^;]+;\s*/m,'').replace(/^export /gm,'').replace(/(?<![.\w])digest\b/g,'excelDigest');
   const index=read('wlf-maintenance/index.ts');
-  const importLine=/^import \{excelMaintenance\} from '\.\.\/_shared\/wlf-excel-edge\.mjs';\r?\n/m;
+  const importLine=/^import \{excelMaintenance,archiveMaintenance\} from '\.\.\/_shared\/wlf-excel-edge\.mjs';\r?\n/m;
   if(!importLine.test(index))throw Error('index.ts no longer imports excelMaintenance the expected way');
   const block=index.match(/^(?:import [^\n]+\n)+/m);
   const head=index.slice(0,block.index)+block[0].replace(importLine,'');

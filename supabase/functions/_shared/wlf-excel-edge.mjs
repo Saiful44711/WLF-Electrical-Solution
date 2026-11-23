@@ -85,3 +85,65 @@ export async function excelMaintenance({action,payload,sql,drive,folder,project,
   }
   throw Error('Unsupported Excel backup action');
 }
+
+// ---- v2.6.3: Activity log archive and Backup of all other data (own Google Drive folders)
+const fullFormat='WLF-FULL-2.6.3';
+const dhaka=value=>new Date(value).toLocaleString('en-GB',{timeZone:'Asia/Dhaka',hour12:false});
+async function driveRead(drive,fileId,expected) {
+  if(!/^[-a-zA-Z0-9_]{5,200}$/.test(fileId||''))throw Error('A verified backup file was not found.');
+  const response=await drive('drive/v3/files/'+encodeURIComponent(fileId)+'?alt=media');
+  const bytes=new Uint8Array(await response.arrayBuffer());
+  if(bytes.length>maxDownload||await digest(bytes)!==expected)throw Error('Google Drive verification failed.');
+  return bytes;
+}
+async function driveSave(drive,bytes,name,mimeType,parent) {
+  const boundary='wlf_'+crypto.randomUUID();
+  const body=new Blob([
+    '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name,mimeType,parents:[parent]})+'\r\n',
+    '--'+boundary+'\r\nContent-Type: '+mimeType+'\r\n\r\n',bytes,'\r\n--'+boundary+'--\r\n'
+  ]);
+  const response=await drive('upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+  const file=await response.json(),sha256=await digest(bytes);
+  await driveRead(drive,file.id,sha256);
+  return {id:file.id,sha256};
+}
+export async function archiveMaintenance({action,payload,usageSql,fullSql,drive,folderFor,project,Zip}) {
+  if(action==='usageArchive') {
+    const snapshot=await usageSql('prepare');
+    if(!snapshot.count)return {archived:0,remaining:0};
+    const sheet={name:'Activity log',headers:['When (Dhaka)','User','Activity','Details'],
+      rows:snapshot.rows.map(r=>[dhaka(r.at),r.who,r.action,r.details])};
+    const bytes=await buildWorkbook(Zip,[sheet]);
+    if(bytes.length>8000000)throw Error('The activity log file is too large. Nothing was deleted.');
+    const stamp=d=>String(d).slice(0,10);
+    const name='WLF-Activity-Log-'+stamp(snapshot.from)+'_to_'+stamp(snapshot.to)+'-'+crypto.randomUUID().slice(0,8)+'.xlsx';
+    const saved=await driveSave(drive,bytes,name,excelMime,await folderFor('activity'));
+    const done=await usageSql('finish',{maxId:snapshot.maxId,count:snapshot.count,cutoff:snapshot.cutoff,fileId:saved.id,sha256:saved.sha256});
+    return {archived:done.deleted,remaining:snapshot.remaining};
+  }
+  if(action==='fullBackup') {
+    const snapshot=await fullSql('export');
+    const archive={format:fullFormat,project,created_at:new Date().toISOString(),id:snapshot.id,counts:snapshot.counts,tables:snapshot.tables};
+    const bytes=encoder.encode(JSON.stringify(archive));
+    if(bytes.length>maxDownload)throw Error('The backup file is too large to send. Nothing was changed.');
+    const name='WLF-Backup-'+new Date().toISOString().slice(0,10)+'-'+snapshot.id.slice(0,8)+'.json';
+    const saved=await driveSave(drive,bytes,name,jsonMime,await folderFor('full'));
+    await fullSql('record',{id:snapshot.id,fileId:saved.id,sha256:saved.sha256,bytes:bytes.length,counts:snapshot.counts});
+    return {id:snapshot.id,name,bytes:base64(bytes),counts:snapshot.counts};
+  }
+  if(action==='fullDownload'||action==='fullRestore') {
+    if(action==='fullRestore'&&payload.confirmed!==true)throw Error('Confirm the restore first.');
+    let archiveBytes,name='WLF-Backup.json';
+    if(action==='fullRestore'&&payload.archive) {
+      if(payload.archive.project&&payload.archive.project!==project)throw Error('This backup belongs to another project.');
+      return fullSql('restore',{archive:payload.archive});
+    }
+    const run=await fullSql('read',{id:payload.id});
+    archiveBytes=await driveRead(drive,run.file_id,run.sha256);
+    if(action==='fullDownload')return {id:run.id,name:'WLF-Backup-'+String(run.created_at).slice(0,10)+'-'+run.id.slice(0,8)+'.json',bytes:base64(archiveBytes),counts:run.counts};
+    const archive=JSON.parse(new TextDecoder().decode(archiveBytes));
+    if(archive.project&&archive.project!==project)throw Error('This backup belongs to another project.');
+    return fullSql('restore',{archive});
+  }
+  throw Error('Unsupported backup action');
+}

@@ -95,8 +95,7 @@ export function supportSheets(categories,tickets) {
 }
 export function activitySheets(categories,entries) {
   return categories.map(c=>formSheet(c.name,c.schema,entries.filter(r=>r.category===c.id),
-    ['Entry ID','Recorded status','Submitted by','Submitted at (UTC)','Last updated (UTC)'],
-    r=>[r.id,r.status,r.author_name,r.created_at,r.updated_at],r=>r.form_schema));
+    [],r=>[],r=>r.form_schema));
 }
 const when=value=>value?String(value):'';
 const hwSections={control:'Control system',lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable',other:'Other components',avr:'AVR'};

@@ -748,9 +748,8 @@ function loadStats() {
       html += '<td><b>' + r.total + '</b></td><td>' + esc(r.lastActive) + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
-    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="componentLogCard"></div><div id="riDashboard"></div><div id="tbDashboard"></div>'+html;
+    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="componentLogCard"></div>'+html;
     if(typeof WlfAdmin!=='undefined'){WlfAdmin.usageLog({member:'',offset:0});WlfAdmin.componentLog();}
-    if(typeof Troubleshooting!=='undefined')Troubleshooting.dashboard();if(typeof WlfRi!=='undefined')WlfRi.dashboard();
   }).withFailureHandler(fail).adminStats(T());
 }
 

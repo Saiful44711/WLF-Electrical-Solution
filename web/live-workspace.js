@@ -27,7 +27,7 @@ function applyAccess(){if(!SESSION||applying)return;applying=true;
  if(e('tbErrors')&&controller)hide(e('tbErrors'),!keyAllowed('tb:'+controller+':error'));
  document.querySelectorAll('[data-procedure]').forEach(function(b){hide(b.closest('.tb-option-card'),!keyAllowed('tb:option:'+b.dataset.procedure));});
  document.querySelectorAll('#tab-components [onclick^="openEditor"],#tab-components .actions,#tab-components [onclick^="deleteComponent"]').forEach(function(b){hide(b,!superUser());});
- hide(e('saveRecordBtn'),!superUser());var pw=document.querySelector('#tab-account [onclick="changePw()"]');hide(pw,!C.approved(me()));
+var pw=document.querySelector('#tab-account [onclick="changePw()"]');hide(pw,!C.approved(me()));
  applying=false;
 }
 function componentAccess(){return keyAllowed('selection')||keyAllowed('calc:energy')||keyAllowed('calc:solar');}

@@ -1,7 +1,7 @@
 // Server only. No secret belongs in web/config.js or GitHub.
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import JSZip from 'npm:jszip@3.10.1';
-import {excelMaintenance} from '../_shared/wlf-excel-edge.mjs';
+import {excelMaintenance,archiveMaintenance} from '../_shared/wlf-excel-edge.mjs';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
@@ -20,6 +20,8 @@ Deno.serve(async(req)=>{
  const body=await req.json(),action=body.action,p=body.payload||{};
  const project=new URL(url).hostname.split('.')[0];
  async function sql(action:string,payload:any={}){const r=await admin.rpc('wlf_backup_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
+async function usageSql(action:string,payload:any={}){const r=await admin.rpc('wlf_usage_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
+ async function fullSql(action:string,payload:any={}){const r=await admin.rpc('wlf_full_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  async function excelSql(action:string,payload:any={}){const r=await admin.rpc('wlf_excel_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  const clientId=Deno.env.get('WLF_GOOGLE_CLIENT_ID'),clientSecret=Deno.env.get('WLF_GOOGLE_CLIENT_SECRET'),refreshToken=Deno.env.get('WLF_GOOGLE_REFRESH_TOKEN');
  const configured=!!(clientId&&clientSecret&&refreshToken);
@@ -28,27 +30,36 @@ Deno.serve(async(req)=>{
  const target=await sql('reserveDeleteUser',{email:p.email});try{const {error}=await admin.auth.admin.deleteUser(target.id);if(error)throw error;}finally{await sql('releaseDeleteUser',{id:target.id});}
  return new Response(JSON.stringify({deleted:true}),{headers});
  }
+ if(action==='usageHistory')return new Response(JSON.stringify(await usageSql('history')),{headers});
+ if(action==='fullHistory')return new Response(JSON.stringify(await fullSql('history')),{headers});
+ if(action==='fullDeleteHistory')return new Response(JSON.stringify(await fullSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  if(action==='excelHistory')return new Response(JSON.stringify(await excelSql('history')),{headers});
  if(action==='deleteBackupHistory')return new Response(JSON.stringify(await sql('deleteBackupHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  if(action==='excelDeleteHistory')return new Response(JSON.stringify(await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  const excelAction=['excelBackup','excelDownload','excelClear','excelRestore'].includes(action);
+ const archiveAction=['usageArchive','fullBackup','fullDownload','fullRestore'].includes(action);
  if(action==='start')return new Response(JSON.stringify(await sql('start',p)),{headers});
  if(action==='restore'){
  if(JSON.stringify(p.archive||{}).length>10000000)throw Error('Archive part too large');
  return new Response(JSON.stringify(await sql('restore',{archive:p.archive,project})),{headers});}
  if(action==='files')return new Response(JSON.stringify(await sql('files',p)),{headers});
  if(action==='abandon')return new Response(JSON.stringify(await sql('abandon',p)),{headers});
- if(!excelAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
+ if(!excelAction&&!archiveAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
  if(!configured)throw Error('Google Drive setup required. Read GOOGLE_DRIVE_SETUP_BN.html in the update package.');
  const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId!,client_secret:clientSecret!,refresh_token:refreshToken!,grant_type:'refresh_token'})});
  const t=await tr.json();if(!tr.ok||!t.access_token)throw Error('Google Drive authorization expired or invalid. Reconnect using the setup guide.');
  async function drive(path:string,init:any={}){const r=await fetch('https://www.googleapis.com/'+path,{...init,headers:{Authorization:'Bearer '+t.access_token,...(init.headers||{})}});if(!r.ok)throw Error('Google Drive request failed ('+r.status+'). Nothing was cleared.');return r;}
- async function driveFolder(){
- const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='wlfProject' and value='"+project+"' }";
+ async function driveFolder(kind='backup'){
+ const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — ']}[kind];
+ const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='"+cfg[0]+"' and value='"+project+"' }";
  const folders=await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)&pageSize=1')).json();let folder=folders.files?.[0]?.id;
- if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'WLF Backups — '+project,mimeType:'application/vnd.google-apps.folder',appProperties:{wlfProject:project}})});folder=(await r.json()).id;}
+ if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+project,mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
   if(!/^[a-zA-Z0-9_-]+$/.test(folder||''))throw Error('Drive did not return a backup folder ID.');
   return folder;
+ }
+ if(archiveAction){
+  const result=await archiveMaintenance({action,payload:p,usageSql,fullSql,drive,folderFor:driveFolder,project,Zip:JSZip});
+  return new Response(JSON.stringify(result),{headers});
  }
  if(excelAction){
   const result=await excelMaintenance({action,payload:p,sql:excelSql,drive,folder:driveFolder,project,Zip:JSZip});

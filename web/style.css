@@ -230,6 +230,9 @@
     .sidebar,.topbar,.footer,.overlay,.no-print,#inputCard,#matchesCard,#globalMsg{display:none !important;}
     .tab-content{display:none !important;}
     #tab-selection{display:block !important;}
+    body.printing-calc #tab-selection{display:none !important;}
+    body.printing-calc #tab-calculation{display:block !important;}
+    body.printing-calc #tab-calculation .no-print{display:none !important;}
     .main{margin:0 !important;} .content{padding:0 !important;}
     .report{box-shadow:none !important;border:none !important;padding:0 !important;margin:0 !important;border-radius:0;}
     .tables{grid-template-columns:1fr !important;gap:12px;}

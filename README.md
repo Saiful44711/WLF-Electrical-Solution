@@ -1,4 +1,11 @@
-# WLF Electrical Solution v2.6.2
+# WLF Electrical Solution v2.6.3
+
+## v2.6.3 (22 Nov 2026)
+- **Activity log (wlf_usage):** rows older than 7 days are saved as Excel to the Drive folder `WLF Activity backup — <project>`, verified, then deleted (runs from the Super Admin session, checked every 6 hours). Safety net: rows older than 30 days are deleted even without an archive. Manual download and delete tools stay.
+- **Backup (new card):** users/access, settings, support forms, R&I categories, Troubleshooting, Components Data, Documents Links, Hardware Catalogue and announcements in one JSON file (`WLF-FULL-2.6.3`), saved and verified in `WLF Full Backup — <project>`; restore only adds missing rows, users are never restored. "Support data backup" is now "Technical Support backup (restorable parts)".
+- **Calculations:** saving, Records/Outbox and CSV removed; only Print / Save as PDF. `saveEngineeringRecord` is refused by the server. Existing `wlf_records` rows are kept.
+- **Removed:** My activity table (My Profile), R&I Team Activity / R&I Project Manager cards and Troubleshooting overview (Dashboard), five columns of the R&I Team Activity Excel.
+- Needs `UPDATE_V263.sql` (after V262) and a single-file redeploy of the Edge Function `wlf-maintenance`.
 
 ## v2.6.2 Excel backup for R&I Project, QMS, Damage Demand and Supplier Claim; backup history delete; QMS lifts in the Recycle bin; Documents Links permission (21 November 2026)
 

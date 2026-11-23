@@ -22,7 +22,16 @@ const WlfExcelBackup=(()=>{
       '<div id="wlfExcelStatus" role="status" aria-live="polite"></div></section>'+
       '<section class="card"><div class="wlf-tools-actions" style="justify-content:space-between"><h3>Excel backup history</h3><button type="button" class="btn ghost" id="wlfExcelDeleteAll">Delete all history</button></div>'+
       '<p class="note">Deleting history only removes the list entry here. The files already saved in Google Drive stay there. A deleted entry can no longer download, review Clear or restore from this page.</p>'+
-      '<div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>';
+      '<div id="wlfExcelHistory" aria-live="polite">Loading Excel history…</div></section>'+
+      '<section class="card wlf-module" id="wlfFullBackup"><div><h3>Backup</h3>'+
+      '<p class="note">Saves your other data as one file in its own Google Drive folder (WLF Full Backup) and downloads it to this computer: users and access, settings, support forms, R&amp;I categories, Troubleshooting, Components Data, Documents Links, Hardware Catalogue and announcements. '+
+      'Restore only adds what is missing and never deletes. Users are kept in the file for reference only; accounts belong to Supabase Auth and are not restored here. '+
+      'Technical Support, R&amp;I Team Activity, R&amp;I Project, QMS data, Damage Demand and Supplier Claim have their own backups above.</p></div>'+
+      '<div class="wlf-tools-actions"><button type="button" class="btn" id="wlfFullNow">Backup now</button>'+
+      '<label class="btn ghost" for="wlfFullFile" style="cursor:pointer;text-transform:none;letter-spacing:normal">Restore from a backup file</label><input type="file" id="wlfFullFile" accept=".json,application/json" hidden>'+
+      '<button type="button" class="btn ghost" id="wlfFullDeleteAll">Delete all history</button></div>'+
+      '<div id="wlfFullStatus" role="status" aria-live="polite"></div>'+
+      '<div id="wlfFullHistory" aria-live="polite">Loading backup history…</div></section>';
     const get=selector=>root.querySelector(selector);
     const period=get('#wlfExcelPeriod'),from=get('#wlfExcelFrom'),to=get('#wlfExcelTo');
     const current=()=>root.isConnected&&T()===account;
@@ -137,7 +146,91 @@ const WlfExcelBackup=(()=>{
       }catch(err){status(err.message,true);}
       finally{try{if(current())await history();}finally{api.lock(false);}}
     };
+    const fullStatus=(message,error=false)=>{
+      if(!current())return;
+      const node=get('#wlfFullStatus');node.textContent=message;node.classList.toggle('error',error);
+    };
+    const total=counts=>Object.values(counts||{}).reduce((sum,n)=>sum+Number(n||0),0);
+    const kb=bytes=>(Number(bytes)/1024<1024?(Number(bytes)/1024).toFixed(0)+' KB':(Number(bytes)/1048576).toFixed(1)+' MB');
+    function saveJson(result) {
+      const binary=atob(result.bytes), bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+      WlfExports.download(bytes,result.name);
+    }
+    async function fullHistory() {
+      try{
+        const runs=await api.edge('fullHistory');
+        if(!current())return;
+        const pane=get('#wlfFullHistory');
+        pane.innerHTML='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Saved (Dhaka)</th><th>Records</th><th>Size</th><th>Actions</th></tr></thead><tbody>'+
+          (runs.map(run=>'<tr><td>'+h(new Date(run.created_at).toLocaleString('en-GB',{timeZone:'Asia/Dhaka'}))+'</td><td>'+total(run.counts)+'</td><td>'+kb(run.bytes)+
+            '</td><td><div class="wlf-tools-actions"><button type="button" class="btn ghost" data-full-action="download" data-id="'+h(run.id)+'">Download</button>'+
+            '<button type="button" class="btn ghost" data-full-action="restore" data-id="'+h(run.id)+'">Restore missing data</button>'+
+            '<button type="button" class="btn ghost" data-full-action="delete" data-id="'+h(run.id)+'">Delete</button></div></td></tr>').join('')||
+            '<tr><td colspan="4">No backups yet.</td></tr>')+'</tbody></table></div>';
+        pane.querySelectorAll('[data-full-action]').forEach(b=>{b.onclick=()=>fullRun(b.dataset.fullAction,b.dataset.id);});
+      }catch(err){if(current())get('#wlfFullHistory').textContent=err.message;}
+    }
+    const restoredText=out=>Object.entries(out.restored||{}).filter(([,n])=>n>0).map(([k,n])=>n+' '+k).join(', ')||'nothing was missing';
+    async function fullRun(action,id) {
+      if(api.busy()||!current())return;
+      api.lock(true);
+      try{
+        if(action==='delete'){
+          if(!confirm('Delete this backup from the history list?\n\nThe file in Google Drive is not deleted.'))return;
+          await api.edge('fullDeleteHistory',{id});fullStatus('Backup history entry deleted.');
+        }else if(action==='restore'){
+          if(!confirm('Restore missing data from this backup? Existing data is kept. Nothing is deleted. Users are not restored.'))return;
+          fullStatus('Checking the file on Drive and restoring…');
+          fullStatus('Restored: '+restoredText(await api.edge('fullRestore',{id,confirmed:true}))+'.');
+          LiveWorkspace.refreshNotifications();
+        }else{
+          fullStatus('Downloading the verified backup…');
+          saveJson(await api.edge('fullDownload',{id}));fullStatus('Backup download started.');
+        }
+      }catch(err){fullStatus(err.message,true);}
+      finally{try{if(current())await fullHistory();}finally{api.lock(false);}}
+    }
+    get('#wlfFullNow').onclick=async()=>{
+      if(api.busy()||!current())return;
+      if(!api.configured){fullStatus('Configure Google Drive before starting a backup.',true);return;}
+      api.lock(true);
+      try{
+        fullStatus('Collecting data and verifying the file in Google Drive…');
+        const result=await api.edge('fullBackup');
+        saveJson(result);
+        fullStatus('Backup download started. A verified copy was saved to Google Drive ('+total(result.counts)+' records).');
+      }catch(err){fullStatus(err.message,true);}
+      finally{try{if(current())await fullHistory();}finally{api.lock(false);}}
+    };
+    get('#wlfFullDeleteAll').onclick=async()=>{
+      if(api.busy()||!current())return;
+      const typed=prompt('Delete ALL backup history entries?\nFiles in Google Drive are not deleted, but restoring from this page will no longer be possible.\n\nType DELETE to continue.');
+      if(typed===null)return;
+      api.lock(true);
+      try{
+        const result=await api.edge('fullDeleteHistory',{all:true,confirm:typed.trim()});
+        fullStatus(result.deleted+' history entr'+(result.deleted===1?'y':'ies')+' deleted.');
+      }catch(err){fullStatus(err.message,true);}
+      finally{try{if(current())await fullHistory();}finally{api.lock(false);}}
+    };
+    get('#wlfFullFile').onchange=async event=>{
+      const file=event.target.files[0];event.target.value='';
+      if(!file||api.busy()||!current())return;
+      api.lock(true);
+      try{
+        if(file.size>10000000)throw Error('Choose a backup file under 10 MB.');
+        const archive=JSON.parse(await file.text());
+        if(archive.format!=='WLF-FULL-2.6.3')throw Error('This is not a WLF Backup file.');
+        if(!confirm('Restore missing data from this file? Existing data is kept. Nothing is deleted. Users are not restored.'))return;
+        fullStatus('Restoring…');
+        fullStatus('Restored: '+restoredText(await api.edge('fullRestore',{archive,confirmed:true}))+'.');
+        LiveWorkspace.refreshNotifications();
+      }catch(err){fullStatus(err.message,true);}
+      finally{api.lock(false);}
+    };
     root.querySelectorAll('[data-excel-kind]').forEach(b=>{b.onclick=()=>start(b.dataset.excelKind);});
+    fullHistory();
     history();
   }
   return {mount};

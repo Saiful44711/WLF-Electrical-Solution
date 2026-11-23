@@ -86,40 +86,20 @@ function applySettings(){
   APK_SETTINGS={mode:'live',backend:DEFAULT_BACKEND,theme:document.getElementById('themeSetting').value,motion:document.getElementById('motionSetting').checked};
   writeStore('wlf-appearance',APK_SETTINGS);refreshShell();document.getElementById('settingsDialog').close();
 }
-function allRecords(){return readStore('lift-records',[]);}
-function scopedRecords(){return allRecords().filter(function(item){return SESSION&&item.scope===modeScope()&&item.owner===SESSION.email;});}
-async function saveLatestRecord(){
-  if(!SESSION||!LiftCore.can(SESSION.role,'saveEngineeringRecord')){showMsg('Your account cannot save calculations.','error');return;}
-  if(!LAST_CALC){showMsg('Calculate a result first. After changing inputs, calculate again before saving.','info');return;}
-  try{var record=LiftCore.record({version:1,id:crypto.randomUUID(),createdAt:new Date().toISOString(),action:LAST_CALC.action,inputs:LAST_CALC.inputs,note:document.getElementById('recordNote').value});
-    var items=allRecords();items.push({scope:modeScope(),owner:SESSION.email,record:record,synced:false,status:'Pending sync'});writeStore('lift-records',items);showMsg('Calculation saved on this device. Syncing when connected.','success');if(APK_SETTINGS.mode==='live')await syncOutbox(true);
-  }catch(err){showMsg(err.message,'error');}
-}
-async function syncOutbox(quiet){
-  if(SYNC_BUSY||APK_SETTINGS.mode!=='live'||!navigator.onLine||!SESSION)return;
-  var scope=modeScope(),owner=SESSION.email,token=T();
-  SYNC_BUSY=true;try{while(navigator.onLine&&SESSION&&SESSION.email===owner&&modeScope()===scope){
-    var pending=allRecords().find(function(item){return !item.synced&&item.scope===scope&&item.owner===owner;});if(!pending)break;
-    var error=null;try{await rpc('saveEngineeringRecord',[token,pending.record]);}catch(err){error=err.message;}
-    // Re-read after the request so entries saved while syncing cannot be overwritten.
-    var items=allRecords(),item=items.find(function(item){return item.scope===scope&&item.owner===owner&&item.record.id===pending.record.id;});
-    if(item){if(error){item.error=error;item.status='Pending: '+error;}else{item.synced=true;item.status='Synced';delete item.error;}writeStore('lift-records',items);}
-    if(error){if(!quiet)document.getElementById('recordStatus').textContent='Pending: '+error;break;}
-  }renderRecords();}finally{SYNC_BUSY=false;}
-}
-function renderRecords(){var items=scopedRecords();document.getElementById('recordStatus').textContent=items.length+' record(s); '+items.filter(function(x){return !x.synced;}).length+' pending. Records are scoped to the current account/backend.';document.getElementById('recordsList').innerHTML=items.slice().reverse().map(function(item){return '<article class="record-item"><b>'+esc(item.record.action.replace(/^calculate/,''))+'</b><p>'+esc(item.record.note||'No note')+'</p><small>'+esc(item.record.createdAt)+' · '+esc(item.status||'Synced')+'</small>'+(item.error?'<p class="msg error">'+esc(item.error)+'</p>':'')+'</article>';}).join('')||'<p>No records saved yet.</p>';}
-async function openRecords(){document.getElementById('recordsDialog').showModal();renderRecords();if(APK_SETTINGS.mode==='live'&&navigator.onLine&&SESSION){try{var remote=await rpc('listEngineeringRecords',[T()]),items=allRecords();for(var row of remote)if(!items.some(function(x){return x.scope===modeScope()&&x.owner===SESSION.email&&x.record.id===row.record.id;}))items.push({scope:modeScope(),owner:SESSION.email,record:row.record,synced:true,status:'Synced'});writeStore('lift-records',items);renderRecords();}catch(err){document.getElementById('recordStatus').textContent=err.message;}}}
+/* v2.6.3: calculations are no longer saved; the old on-device outbox is cleared. */
+function printCalculation(){document.body.classList.add('printing-calc');try{if(window.LiftNative&&LiftNative.isNative&&LiftNative.print)LiftNative.print.print();else window.print();}finally{setTimeout(function(){document.body.classList.remove('printing-calc');},500);}}
+function syncOutbox(){}
+function renderRecords(){}
+try{localStorage.removeItem('lift-records');}catch(_){}
 async function exportText(name,text){if(window.LiftNative&&LiftNative.isNative){await LiftNative.shareFile(name,text);return;}var url=URL.createObjectURL(new Blob([text],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);}
-async function exportLatest(){try{if(!LAST_CALC)throw new Error('Calculate a result first.');await exportText('lift-calculation.csv',LiftCore.csv([['Mode','Calculator','Inputs','Results'],['Live',LAST_CALC.action,JSON.stringify(LAST_CALC.inputs),JSON.stringify(LAST_CALC.result)]]));}catch(err){showMsg(err.message,'error');}}
-async function exportRecords(){try{var rows=[['Mode','ID','Date','Calculator','Note','Sync','Inputs','Results']];scopedRecords().forEach(function(item){var r=item.record;rows.push(['Live',r.id,r.createdAt,r.action,r.note,item.status,JSON.stringify(r.inputs),JSON.stringify(r.result)]);});await exportText('lift-records.csv',LiftCore.csv(rows));}catch(err){document.getElementById('recordStatus').textContent=err.message;}}
 document.addEventListener('DOMContentLoaded',function(){
   refreshShell();matchMedia('(prefers-color-scheme:dark)').addEventListener('change',applyTheme);
-  document.getElementById('tab-calculation').addEventListener('input',function(e){if(e.target.id!=='recordNote')LAST_CALC=null;});
+  document.getElementById('tab-calculation').addEventListener('input',function(e){LAST_CALC=null;});
   var originalLogout=forceLogout;forceLogout=function(message){if(WLF_CLIENT){WLF_CLIENT.removeAllChannels();if(!AUTH_UI_ONLY)SIGN_OUT_PROMISE=WLF_CLIENT.auth.signOut({scope:'local'});}window.dispatchEvent(new Event('wlf-logout'));var key=scopedKey('cache');localStorage.removeItem(key);LAST_CALC=null;originalLogout(message);
     ['report','matchesList','ttResult','pwResult','ssResult','mpResult','energyResult','solarResult','statsArea','globalMsg','recordsList'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
     ['reportWrap','matchesCard','editorCard'].forEach(function(id){document.getElementById(id).classList.add('hidden');});
     var tbody=document.querySelector('#usersTable tbody');if(tbody)tbody.innerHTML='';
-    document.getElementById('recordNote').value='';compData=null;editingRow=null;
+    compData=null;editingRow=null;
   };
   printReport=async function(){var area=document.getElementById('apkPrintArea');area.innerHTML='<h1>Lift component report</h1><p>'+esc('Live')+'</p>'+document.getElementById('report').innerHTML;document.body.classList.add('printing');try{if(window.LiftNative&&LiftNative.isNative)await LiftNative.print.print();else window.print();}finally{document.body.classList.remove('printing');}};
 });

@@ -101,8 +101,7 @@ function supportSheets(categories,tickets) {
 }
 function activitySheets(categories,entries) {
   return categories.map(c=>formSheet(c.name,c.schema,entries.filter(r=>r.category===c.id),
-    ['Entry ID','Recorded status','Submitted by','Submitted at (UTC)','Last updated (UTC)'],
-    r=>[r.id,r.status,r.author_name,r.created_at,r.updated_at],r=>r.form_schema));
+    [],r=>[],r=>r.form_schema));
 }
 const when=value=>value?String(value):'';
 const hwSections={control:'Control system',lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable',other:'Other components',avr:'AVR'};
@@ -248,6 +247,68 @@ async function excelMaintenance({action,payload,sql,drive,folder,project,Zip}) {
   throw Error('Unsupported Excel backup action');
 }
 
+// ---- v2.6.3: Activity log archive and Backup of all other data (own Google Drive folders)
+const fullFormat='WLF-FULL-2.6.3';
+const dhaka=value=>new Date(value).toLocaleString('en-GB',{timeZone:'Asia/Dhaka',hour12:false});
+async function driveRead(drive,fileId,expected) {
+  if(!/^[-a-zA-Z0-9_]{5,200}$/.test(fileId||''))throw Error('A verified backup file was not found.');
+  const response=await drive('drive/v3/files/'+encodeURIComponent(fileId)+'?alt=media');
+  const bytes=new Uint8Array(await response.arrayBuffer());
+  if(bytes.length>maxDownload||await excelDigest(bytes)!==expected)throw Error('Google Drive verification failed.');
+  return bytes;
+}
+async function driveSave(drive,bytes,name,mimeType,parent) {
+  const boundary='wlf_'+crypto.randomUUID();
+  const body=new Blob([
+    '--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify({name,mimeType,parents:[parent]})+'\r\n',
+    '--'+boundary+'\r\nContent-Type: '+mimeType+'\r\n\r\n',bytes,'\r\n--'+boundary+'--\r\n'
+  ]);
+  const response=await drive('upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+  const file=await response.json(),sha256=await excelDigest(bytes);
+  await driveRead(drive,file.id,sha256);
+  return {id:file.id,sha256};
+}
+async function archiveMaintenance({action,payload,usageSql,fullSql,drive,folderFor,project,Zip}) {
+  if(action==='usageArchive') {
+    const snapshot=await usageSql('prepare');
+    if(!snapshot.count)return {archived:0,remaining:0};
+    const sheet={name:'Activity log',headers:['When (Dhaka)','User','Activity','Details'],
+      rows:snapshot.rows.map(r=>[dhaka(r.at),r.who,r.action,r.details])};
+    const bytes=await buildWorkbook(Zip,[sheet]);
+    if(bytes.length>8000000)throw Error('The activity log file is too large. Nothing was deleted.');
+    const stamp=d=>String(d).slice(0,10);
+    const name='WLF-Activity-Log-'+stamp(snapshot.from)+'_to_'+stamp(snapshot.to)+'-'+crypto.randomUUID().slice(0,8)+'.xlsx';
+    const saved=await driveSave(drive,bytes,name,excelMime,await folderFor('activity'));
+    const done=await usageSql('finish',{maxId:snapshot.maxId,count:snapshot.count,cutoff:snapshot.cutoff,fileId:saved.id,sha256:saved.sha256});
+    return {archived:done.deleted,remaining:snapshot.remaining};
+  }
+  if(action==='fullBackup') {
+    const snapshot=await fullSql('export');
+    const archive={format:fullFormat,project,created_at:new Date().toISOString(),id:snapshot.id,counts:snapshot.counts,tables:snapshot.tables};
+    const bytes=encoder.encode(JSON.stringify(archive));
+    if(bytes.length>maxDownload)throw Error('The backup file is too large to send. Nothing was changed.');
+    const name='WLF-Backup-'+new Date().toISOString().slice(0,10)+'-'+snapshot.id.slice(0,8)+'.json';
+    const saved=await driveSave(drive,bytes,name,jsonMime,await folderFor('full'));
+    await fullSql('record',{id:snapshot.id,fileId:saved.id,sha256:saved.sha256,bytes:bytes.length,counts:snapshot.counts});
+    return {id:snapshot.id,name,bytes:base64(bytes),counts:snapshot.counts};
+  }
+  if(action==='fullDownload'||action==='fullRestore') {
+    if(action==='fullRestore'&&payload.confirmed!==true)throw Error('Confirm the restore first.');
+    let archiveBytes,name='WLF-Backup.json';
+    if(action==='fullRestore'&&payload.archive) {
+      if(payload.archive.project&&payload.archive.project!==project)throw Error('This backup belongs to another project.');
+      return fullSql('restore',{archive:payload.archive});
+    }
+    const run=await fullSql('read',{id:payload.id});
+    archiveBytes=await driveRead(drive,run.file_id,run.sha256);
+    if(action==='fullDownload')return {id:run.id,name:'WLF-Backup-'+String(run.created_at).slice(0,10)+'-'+run.id.slice(0,8)+'.json',bytes:base64(archiveBytes),counts:run.counts};
+    const archive=JSON.parse(new TextDecoder().decode(archiveBytes));
+    if(archive.project&&archive.project!==project)throw Error('This backup belongs to another project.');
+    return fullSql('restore',{archive});
+  }
+  throw Error('Unsupported backup action');
+}
+
 // ---- Request handler
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -267,6 +328,8 @@ Deno.serve(async(req)=>{
  const body=await req.json(),action=body.action,p=body.payload||{};
  const project=new URL(url).hostname.split('.')[0];
  async function sql(action:string,payload:any={}){const r=await admin.rpc('wlf_backup_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
+async function usageSql(action:string,payload:any={}){const r=await admin.rpc('wlf_usage_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
+ async function fullSql(action:string,payload:any={}){const r=await admin.rpc('wlf_full_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  async function excelSql(action:string,payload:any={}){const r=await admin.rpc('wlf_excel_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  const clientId=Deno.env.get('WLF_GOOGLE_CLIENT_ID'),clientSecret=Deno.env.get('WLF_GOOGLE_CLIENT_SECRET'),refreshToken=Deno.env.get('WLF_GOOGLE_REFRESH_TOKEN');
  const configured=!!(clientId&&clientSecret&&refreshToken);
@@ -275,27 +338,36 @@ Deno.serve(async(req)=>{
  const target=await sql('reserveDeleteUser',{email:p.email});try{const {error}=await admin.auth.admin.deleteUser(target.id);if(error)throw error;}finally{await sql('releaseDeleteUser',{id:target.id});}
  return new Response(JSON.stringify({deleted:true}),{headers});
  }
+ if(action==='usageHistory')return new Response(JSON.stringify(await usageSql('history')),{headers});
+ if(action==='fullHistory')return new Response(JSON.stringify(await fullSql('history')),{headers});
+ if(action==='fullDeleteHistory')return new Response(JSON.stringify(await fullSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  if(action==='excelHistory')return new Response(JSON.stringify(await excelSql('history')),{headers});
  if(action==='deleteBackupHistory')return new Response(JSON.stringify(await sql('deleteBackupHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  if(action==='excelDeleteHistory')return new Response(JSON.stringify(await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id})),{headers});
  const excelAction=['excelBackup','excelDownload','excelClear','excelRestore'].includes(action);
+ const archiveAction=['usageArchive','fullBackup','fullDownload','fullRestore'].includes(action);
  if(action==='start')return new Response(JSON.stringify(await sql('start',p)),{headers});
  if(action==='restore'){
  if(JSON.stringify(p.archive||{}).length>10000000)throw Error('Archive part too large');
  return new Response(JSON.stringify(await sql('restore',{archive:p.archive,project})),{headers});}
  if(action==='files')return new Response(JSON.stringify(await sql('files',p)),{headers});
  if(action==='abandon')return new Response(JSON.stringify(await sql('abandon',p)),{headers});
- if(!excelAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
+ if(!excelAction&&!archiveAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
  if(!configured)throw Error('Google Drive setup required. Read GOOGLE_DRIVE_SETUP_BN.html in the update package.');
  const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId!,client_secret:clientSecret!,refresh_token:refreshToken!,grant_type:'refresh_token'})});
  const t=await tr.json();if(!tr.ok||!t.access_token)throw Error('Google Drive authorization expired or invalid. Reconnect using the setup guide.');
  async function drive(path:string,init:any={}){const r=await fetch('https://www.googleapis.com/'+path,{...init,headers:{Authorization:'Bearer '+t.access_token,...(init.headers||{})}});if(!r.ok)throw Error('Google Drive request failed ('+r.status+'). Nothing was cleared.');return r;}
- async function driveFolder(){
- const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='wlfProject' and value='"+project+"' }";
+ async function driveFolder(kind='backup'){
+ const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — ']}[kind];
+ const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='"+cfg[0]+"' and value='"+project+"' }";
  const folders=await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)&pageSize=1')).json();let folder=folders.files?.[0]?.id;
- if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'WLF Backups — '+project,mimeType:'application/vnd.google-apps.folder',appProperties:{wlfProject:project}})});folder=(await r.json()).id;}
+ if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+project,mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
   if(!/^[a-zA-Z0-9_-]+$/.test(folder||''))throw Error('Drive did not return a backup folder ID.');
   return folder;
+ }
+ if(archiveAction){
+  const result=await archiveMaintenance({action,payload:p,usageSql,fullSql,drive,folderFor:driveFolder,project,Zip:JSZip});
+  return new Response(JSON.stringify(result),{headers});
  }
  if(excelAction){
   const result=await excelMaintenance({action,payload:p,sql:excelSql,drive,folder:driveFolder,project,Zip:JSZip});
