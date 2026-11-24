@@ -111,18 +111,20 @@ export function projectSheets(records) {
   ];
 }
 export function qmsSheets(records) {
-  const lifts=records.map(r=>r.lift);
-  return [
-    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components','Special note'],
-      rows:lifts.map(l=>[l.lift_id,l.project,l.address,l.delivery_date,l.motor_type,l.lift_type,l.system,l.controller_model,l.created_name,when(l.created_at),
-        l.updated_name,when(l.updated_at),(l.parts||[]).length,l.paid_note||''])},
+  const lifts=records.map(r=>qmsNormalize(r.lift||r));
+  const sheets=[
+    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','AVR model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components','Special note'],
+      rows:lifts.map(l=>[l.liftId,l.project,l.address,l.deliveryDate,l.motorType,l.liftType,l.system,l.controllerModel,(l.parts.find(p=>p.section==='avr')||{}).model||'',l.createdName,when(l.createdAt),
+        l.updatedName,when(l.updatedAt),l.parts.length,l.specialNote])},
     {name:'QMS Components',headers:['Lift ID','Project','Section','Group','Hardware','Spec','Item code','Item name','Brand','Supplier','Price (BDT)','Serial'],
-      rows:lifts.flatMap(l=>(l.parts||[]).map(p=>[l.lift_id,l.project,hwSections[p.section]||p.section||'',p.grp,p.hardware,p.spec,p.code,p.name,p.brand,p.supplier,
-        p.value===null||p.value===undefined||p.value===''?'':Number(p.value),p.serial]))},
-    {name:'QMS Serial numbers',headers:['Lift ID','Project','Part','Serial number'],
-      rows:lifts.flatMap(l=>Object.entries(l.serials||{}).filter(([,v])=>v).map(([k,v])=>[l.lift_id,l.project,k,v]))},
-    {name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))}
+      rows:lifts.flatMap(l=>l.parts.map(p=>[l.liftId,l.project,hwSections[p.section]||p.section||'',p.grp,p.hardware,p.spec,p.code,p.name,p.brand,p.supplier,
+        p.value===null||p.value===undefined||p.value===''?'':Number(p.value),p.serial]))}
   ];
+  /* serial numbers only for lifts whose serials were sent (accounts without the permission get none) */
+  if (lifts.some(l=>!l.serialsHidden)) sheets.push({name:'QMS Serial numbers',headers:['Lift ID','Project','Part','Serial number'],
+    rows:lifts.filter(l=>!l.serialsHidden).flatMap(l=>qmsSerials.filter(([k])=>l.serials[k]).map(([k,t])=>[l.liftId,l.project,t,l.serials[k]]))});
+  sheets.push({name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))});
+  return sheets;
 }
 export function demandSheets(records) {
   const d=records.map(r=>r.demand);
@@ -156,7 +158,7 @@ export function backupSheets(snapshot) {
 }
 
 /* ---------- v2.6.4: QMS output tables (one source for the lift Excel report and the backup flat sheet) ---------- */
-const qmsSerials=[['motor','Motor'],['encoder','Encoder'],['drive','Drive'],['ups','UPS'],['cartop','Cartop PCB'],['cop','COP PCB'],['copDisplay','COP Display']];
+const qmsSerials=[['motor','Motor'],['encoder','Encoder'],['drive','Drive'],['ups','UPS'],['cartop','Cartop PCB'],['cop','COP PCB'],['copDisplay','COP Display'],['avr','AVR'],['battery','Battery']];
 const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function qmsDate(value) {
   const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(value||''));
@@ -169,11 +171,11 @@ function qmsClock(value) {
   const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Dhaka',day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}).format(d);
   return p;
 }
-const pick=(a,b)=>a!==undefined&&a!==null?a:b;
+const pick=(...v)=>v.find(x=>x!==undefined&&x!==null);
 export function qmsNormalize(l) {
   return {liftId:pick(l.liftId,l.lift_id)||'',project:l.project||'',address:l.address||'',deliveryDate:pick(l.deliveryDate,l.delivery_date)||'',
     motorType:pick(l.motorType,l.motor_type)||'',liftType:pick(l.liftType,l.lift_type)||'',system:l.system||'',
-    controllerModel:pick(l.controllerModel,l.controller_model)||'',specialNote:pick(l.specialNote,l.paidNote,l.paid_note)||'',serials:l.serials||{},selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
+    controllerModel:pick(l.controllerModel,l.controller_model)||'',specialNote:pick(l.specialNote,l.paidNote,l.paid_note)||'',serials:l.serials||{},serialsHidden:!!pick(l.serialsHidden,false),createdAt:pick(l.createdAt,l.created_at)||'',selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
     createdName:pick(l.createdName,l.created_name)||'',updatedName:pick(l.updatedName,l.updated_name)||'',updatedAt:pick(l.updatedAt,l.updated_at)||''};
 }
 const qmsSdb=sel=>{
@@ -183,7 +185,7 @@ const qmsSdb=sel=>{
 };
 const priceOf=p=>p.value===null||p.value===undefined||p.value===''||!Number.isFinite(Number(p.value))?'':Number(p.value);
 const codeOf=p=>p.code||'no code';
-/* Tables 1-6 exactly as QMS Data shows them. Every block's spans add up to 10 grid units. */
+/* Tables 1-9 exactly as QMS Data shows them. Every block's spans add up to 10 grid units. */
 export function qmsTables(raw) {
   const rec=qmsNormalize(raw);
   const parts=sections=>rec.parts.filter(p=>sections.includes(p.section));
@@ -205,21 +207,26 @@ export function qmsTables(raw) {
     {head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:2},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
     rows:parts(['control']).map(p=>({a:p.grp||'',b:p.hardware||'',spec:p.spec||'',code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
   blocks.push({no:4,name:'Serial numbers',columns:[{head:'Part',key:'a',span:3},{head:'Serial number',key:'spec',span:7}],
-    rows:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'—'}))});
+    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'—'})),
+    hidden:rec.serialsHidden,empty0:'Serial numbers are not shown to this account.'});
   const names={lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable'};
   blocks.push({no:5,name:'COP · LOP · Transom · Travelling cable',short:'COP LOP Transom Cable',columns:[{head:'Part',key:'a',span:2},{head:'Model',key:'b',span:2},{head:'Item code',key:'code',span:1},
     {head:'Item name',key:'name',span:3},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
     rows:parts(['lop','cop','faceplate','transom','cable']).map(p=>({a:names[p.section]+(p.grp&&p.section==='cop'?' · '+p.grp.replace('COP ',''):''),b:p.hardware||'',
       code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
-  const other=parts(['avr','other']).map(p=>({a:(p.section==='avr'?p.model:p.hardware)||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',supplier:p.supplier||'',brand:p.brand||'',price:priceOf(p)}));
+  const avrModel=parts(['avr'])[0]?.model||'';
+  blocks.push({no:6,name:'AVR'+(avrModel?' — '+avrModel:''),short:'AVR',columns:[{head:'Category',key:'a',span:2},{head:'Hardware',key:'b',span:2},{head:'Spec',key:'spec',span:2},
+    {head:'Item code',key:'code',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
+    rows:parts(['avr']).map(p=>({a:p.grp||'',b:[p.hardware,p.name].filter(Boolean).join(' · ')||p.model||'',spec:p.spec||'',code:codeOf(p),brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),empty0:'No AVR was selected.'});
+  const other=parts(['other']).map(p=>({a:p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',supplier:p.supplier||'',brand:p.brand||'',price:priceOf(p)}));
   if (qmsSdb(sel)) other.push({a:'SDB main breaker rating',code:'—',name:'—',spec:qmsSdb(sel),supplier:'',brand:'',price:''});
-  blocks.push({no:6,name:'Other components (including AVR)',short:'Other components',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
+  blocks.push({no:7,name:'Other components',short:'Other components',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
     {head:'Spec',key:'spec',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],rows:other});
-  blocks.push({no:7,name:'Paid feature information',short:'Paid feature information',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
+  blocks.push({no:8,name:'Paid feature information',short:'Paid feature information',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
     {head:'Spec',key:'spec',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
     rows:parts(['paid']).map(p=>({a:p.grp||p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),
     empty0:'No paid feature was selected.'});
-  blocks.push({no:8,name:'Special note',short:'Special note',columns:[{head:'Special note',key:'a',span:10}],rows:rec.specialNote?[{a:rec.specialNote}]:[],empty0:'No special note.'});
+  blocks.push({no:9,name:'Special note',short:'Special note',columns:[{head:'Special note',key:'a',span:10}],rows:rec.specialNote?[{a:rec.specialNote}]:[],empty0:'No special note.'});
   return {rec,blocks};
 }
 /* One flat sheet for analysis: one row per table row, with the lift columns first. */
@@ -229,6 +236,7 @@ export function qmsFlatRows(raw) {
   const lead=[rec.liftId,rec.project,rec.address,rec.deliveryDate,rec.controllerModel];
   const blank=v=>v==='—'?'':v;
   for (const b of blocks) {
+    if (b.hidden) continue;
     const name=b.short||b.name.split(' — ')[0];
     const rows=b.flat?b.flat():[...b.rows];
     if (b.note) rows.push({a:'Special note',spec:b.note});

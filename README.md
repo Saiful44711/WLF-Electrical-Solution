@@ -1,5 +1,14 @@
 # WLF Electrical Solution v2.6.4
 
+## v2.6.7 AVR in QMS, AVR / Battery serial numbers, Serial numbers permission, QMS Data Excel in backup format (24 Nov 2026)
+- **AVR model** is now in "3 · Control system and serial numbers" (no AVR item dropdown). It is filled automatically from the selected motor and can be changed by hand. All items of the chosen AVR model are shown in their own table in the input, saved with the lift, and listed in the output as its own table **6 · AVR** before **7 · Other components**. Output tables are now numbered 1-9 (Paid feature = 8, Special note = 9).
+- **Serial numbers:** new AVR SL (required when an AVR model is chosen) and Battery SL (optional, large box, up to 200 characters for up to 5 batteries). Both are in output table 4 and in Excel.
+- **Address, Motor type and Lift type** are required (no default), checked on screen and on the server.
+- **Serial numbers permission:** new User Management option "QMS / See and download the Serial numbers table". Without it a user sees no serial numbers on screen or in any Excel, but can still edit a lift (blank serial fields keep the stored values). Super Admin always has it. After the update nobody except the Super Admin has it until it is given.
+- **QMS Data:** new Recorded from / to filter (day the lift record was created). "Download Excel (these results)" now gives the same workbook as the Excel backup (QMS Lifts with AVR model, QMS Components, QMS Serial numbers, QMS Output Tables). Download Excel on one lift is still the single print-ready sheet.
+- **Hardware Catalogue:** AVR 15, 20, 30, 40, 60 and 100 KVA filled from "AVR Specification" (15 rows each). Other AVR sizes (for example 80 KVA) stay blank.
+- Run UPDATE_V267.sql (needs V266), redeploy Edge Function `wlf-maintenance` (single index.ts), upload to GitHub.
+
 ## v2.6.6 Admin Panel redesign with curves on every dashboard; QMS Special note (23 Nov 2026)
 - **Admin Panel:** the filter card has a Dashboard dropdown (R&I team activity, R&I Project Manager, Technical Support, Damage Demand, Supplier claim, QMS, Performance curves) and an R&I user dropdown (All R&I users to compare, or one user), plus From / To, Apply, Download Excel and Full screen. One dashboard is shown at a time. Per-user view shows that user's table and curve with the team average as a dashed line.
 - **Curves** on every dashboard with a "Show" metric dropdown and a Range dropdown (1 / 3 / 6 / 12 months: daily / weekly / monthly / monthly; last point labelled "(to date)"), Together or One by one layout, hover / touch tooltip. Choosing 1 month switches to One by one.

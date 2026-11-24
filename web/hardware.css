@@ -89,7 +89,7 @@
 /* v2.6.1: grid column must not grow with a wide table (QMS Input and QMS Data on phones) */
 .hw-stack{grid-template-columns:minmax(0,1fr)}
 .hw-stack>*,#qmsPanel,#qmsPanel>*,#qmsResults{min-width:0;max-width:100%}
-#qmsResults .tbl-wrap,.hw-stack .tbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
+#qmsResults .tbl-wrap,#hwAvr .tbl-wrap,.hw-stack .tbl-wrap{overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch}
 /* wide data tables keep readable columns and scroll sideways inside their own box */
 .tbl-wrap .hw-table{min-width:640px;table-layout:auto;width:100%}
 .tbl-wrap .hw-table td,.tbl-wrap .hw-table th{white-space:nowrap;overflow-wrap:normal}
@@ -99,3 +99,17 @@
 .hw-paid-pick{display:block;margin-top:12px;max-width:360px}
 .hw-sec textarea[name=specialNote]{width:100%;margin-top:4px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);padding:8px 10px;resize:vertical}
 .hw-paid-note{margin:10px 0 0;font-size:13.5px;overflow-wrap:anywhere}
+
+/* v2.6.7 */
+.hw-serials .hw-battery{grid-column:1/-1}
+.hw-serials .hw-battery small{font-weight:400}
+.hw-sec textarea[name=sl-battery]{width:100%;min-height:84px;margin-top:4px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);padding:8px 10px;resize:vertical}
+.hw-battery-out{white-space:pre-wrap;overflow-wrap:anywhere}
+.hw-sec{min-width:0}
+#hwAvr{min-width:0;max-width:100%}
+#hwAvr{margin-top:12px}
+#hwOutAvr .tbl-wrap .hw-table,#hwAvr .tbl-wrap .hw-table{min-width:0;table-layout:auto}
+#hwOutAvr .tbl-wrap .hw-table td,#hwOutAvr .tbl-wrap .hw-table th,#hwAvr .tbl-wrap .hw-table td,#hwAvr .tbl-wrap .hw-table th{white-space:normal;overflow-wrap:anywhere}
+@media (max-width:700px){#hwOutAvr .tbl-wrap .hw-table,#hwAvr .tbl-wrap .hw-table{min-width:560px}}
+#hwOutAvr .tbl-wrap .hw-table td:nth-child(n+4),#hwAvr .tbl-wrap .hw-table td:nth-child(n+4){white-space:nowrap;overflow-wrap:normal}
+#hwOutAvr .tbl-wrap .hw-table th:nth-child(n+4),#hwAvr .tbl-wrap .hw-table th:nth-child(n+4){white-space:nowrap}

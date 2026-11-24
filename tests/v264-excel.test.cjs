@@ -20,23 +20,26 @@ test('QMS tables follow the six tables of QMS Data, with prices as numbers and "
   const {qmsTables} = await import('../supabase/functions/_shared/wlf-excel.mjs');
   const {blocks} = qmsTables(lift);
   const byNo = n => blocks.filter(b => b.no === n);
-  assert.deepEqual([...new Set(blocks.map(b => b.no))], [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.deepEqual([...new Set(blocks.map(b => b.no))], [1, 2, 3, 4, 5, 6, 7, 8, 9]);
   for (const b of blocks) if (b.columns.length) assert.equal(b.columns.reduce((a, c) => a + c.span, 0), 10, 'grid width of table ' + b.no);
   assert.deepEqual(byNo(1)[0].columns.map(c => c.head), ['Project', 'Lift ID', 'Address', 'Delivery', 'Motor type', 'Lift type']);
   assert.equal(byNo(1)[0].rows[0].delivery, '20 Nov 2026');
   assert.equal(byNo(2).length, 3, 'inputs, motor data and one recommended block');
   assert.deepEqual(byNo(3)[0].columns.map(c => c.head), ['Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Price (৳)']);
   assert.equal(byNo(3)[0].rows[0].price, 2294.5);
-  assert.equal(byNo(4)[0].rows.length, 7);
+  assert.equal(byNo(4)[0].rows.length, 9);
   assert.equal(byNo(4)[0].rows[2].spec, '—');
   const t5 = byNo(5)[0].rows;
   assert.equal(t5.find(r => r.b === 'A18-Blue').code, 'no code');
   assert.equal(t5.find(r => r.b === 'WM-LOP-208 Black').price, 1000);
   assert.equal(t5.find(r => r.a === 'COP · Button').b, 'A18-Blue');
-  const t6 = byNo(6)[0].rows;
-  assert.equal(t6[0].a, 'AVR 20 KVA');
-  assert.equal(t6.at(-1).a, 'SDB main breaker rating');
-  assert.equal(t6.at(-1).spec, '32 A');
+  const t6 = byNo(6)[0];
+  assert.equal(t6.name, 'AVR — AVR 20 KVA');
+  assert.equal(t6.rows[0].b, 'AVR Servo', 'hardware and item name are joined; the model name is the fallback');
+  assert.equal(t6.rows[0].code, '900001');
+  const t7 = byNo(7)[0].rows;
+  assert.equal(t7.at(-1).a, 'SDB main breaker rating');
+  assert.equal(t7.at(-1).spec, '32 A');
 });
 
 test('the lift Excel is one print-ready sheet with every table and opens as a valid workbook', async () => {
@@ -48,7 +51,7 @@ test('the lift Excel is one print-ready sheet with every table and opens as a va
   assert.equal(files.filter(f => /worksheets\/sheet\d+\.xml$/.test(f)).length, 1, 'exactly one sheet');
   const sheet = await zip.file('xl/worksheets/sheet1.xml').async('string');
   for (const text of ['QMS — Lift 12345 · Test 2', '1 · Project information', '2 · Selected motor', '3 · Control system — MOT · MOT 7.5 kW', '4 · Serial numbers',
-    '5 · COP · LOP · Transom · Travelling cable', '6 · Other components (including AVR)', 'Ziehl Abegg', 'no code', 'SL-10000'])
+    '5 · COP · LOP · Transom · Travelling cable', '7 · Other components', 'Ziehl Abegg', 'no code', 'SL-10000'])
     assert.ok(sheet.includes(text), 'missing ' + text);
   assert.match(sheet, /orientation="landscape"/);
   assert.match(sheet, /fitToWidth="1" fitToHeight="0"/);
@@ -73,7 +76,7 @@ test('the Excel backup gets one flat QMS Output Tables sheet that stays usable w
   assert.deepEqual(flat.headers, qmsFlatHeaders);
   assert.ok(flat.rows.every(r => r.length === flat.headers.length), 'every row matches the header width');
   assert.deepEqual([...new Set(flat.rows.map(r => r[0]))], ['12345', '777']);
-  assert.deepEqual([...new Set(flat.rows.filter(r => r[0] === '777').map(r => r[5]))], [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual([...new Set(flat.rows.filter(r => r[0] === '777').map(r => r[5]))], [1, 2, 3, 4, 5, 6, 7]);
   const price = flat.rows.find(r => r[11] === '379863');
   assert.equal(price[15], 2294.5);
   assert.equal(price[6], 'Control system');

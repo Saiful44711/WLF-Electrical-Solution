@@ -331,7 +331,8 @@ const WlfHardware = (() => {
 
   /* ---------------------------------------------------------------- QMS */
   const SECTION_NAMES = {control: 'Control system', lop: 'LOP', cop: 'COP', faceplate: 'COP faceplate', transom: 'Transom', cable: 'Travelling cable', other: 'Other components', avr: 'AVR', paid: 'Paid feature'};
-  const SERIALS = [['motor', 'Motor SL'], ['encoder', 'Encoder SL'], ['drive', 'Drive SL'], ['ups', 'UPS SL'], ['cartop', 'Cartop PCB SL'], ['cop', 'COP PCB SL'], ['copDisplay', 'COP Display SL']];
+  const SERIALS = [['motor', 'Motor SL'], ['encoder', 'Encoder SL'], ['drive', 'Drive SL'], ['ups', 'UPS SL'], ['cartop', 'Cartop PCB SL'], ['cop', 'COP PCB SL'], ['copDisplay', 'COP Display SL'], ['avr', 'AVR SL'], ['battery', 'Battery SL']];
+  const serialRequired = k => k === 'avr' ? !!(draft && draft.pick.avrModel) : k !== 'battery';   /* AVR SL only when an AVR model is chosen; Battery SL is optional (up to 5 batteries) */
   let draft = null;
 
   function pieces(system) {
@@ -354,13 +355,13 @@ const WlfHardware = (() => {
   }
   const savedPaidGroups = parts => [...new Set(parts.filter(p => p.section === 'paid').map(p => p.grp || p.hardware))];
 
-  function newDraft() { return {id: crypto.randomUUID(), revision: 0, liftId: '', project: '', address: '', deliveryDate: '', motorType: 'Gearless', liftType: 'Passenger',
+  function newDraft() { return {id: crypto.randomUUID(), revision: 0, liftId: '', project: '', address: '', deliveryDate: '', motorType: '', liftType: '',
     system: '', controllerModel: '', serials: {}, selection: null, parts: [], pick: {}, specialNote: ''}; }
 
   function draftFromRecord(rec) {
     const d = {...newDraft(), id: rec.id, revision: rec.revision, liftId: rec.liftId, project: rec.project, address: rec.address || '', deliveryDate: rec.deliveryDate || '',
-      motorType: rec.motorType || 'Gearless', liftType: rec.liftType || 'Passenger', system: rec.system, controllerModel: rec.controllerModel,
-      serials: rec.serials || {}, selection: rec.selection || null, parts: rec.parts || [], pick: {}, specialNote: rec.specialNote || ''};
+      motorType: rec.motorType || '', liftType: rec.liftType || '', system: rec.system, controllerModel: rec.controllerModel,
+      serials: rec.serials || {}, serialsHidden: !!rec.serialsHidden, selection: rec.selection || null, parts: rec.parts || [], pick: {}, specialNote: rec.specialNote || ''};
     return d;
   }
 
@@ -439,14 +440,41 @@ const WlfHardware = (() => {
   const motorTables = sel => (sel.categories || []).map(c => `<div class="hw-sub"><div class="overview-eyebrow">${h(c.title)}</div><table class="tbl hw-table"><tbody>${
     c.items.map(it => `<tr><td class="hw-k">${h(it.label)}</td><td>${h(it.value)}</td></tr>`).join('')}</tbody></table></div>`).join('');
 
+  /* v2.6.7: the AVR model sits in the control system section. Every item of the chosen model is shown in its own table and saved with the lift. */
+  const avrModelNow = () => draft.pick.avrModel ?? savedPart('avr')?.model ?? '';
+  function avrBlock() {
+    const model = avrModelNow();
+    const rows = model ? rowsOf('AVR', model).filter(usable) : [];
+    return `<div class="hw-grid"><label>AVR model<select name="avrModel">${optionList(modelsOf('AVR'), model, '— none —')}</select></label></div>
+      <p class="note">${draft.selection ? 'The AVR model follows the selected motor; you can change it by hand.' : 'Select a motor to get the suggested AVR model, or choose the AVR model by hand.'}</p>
+      ${!model ? '' : rows.length ? `<div class="hw-sub"><div class="overview-eyebrow">${h(model)} · ALL ITEMS</div>${
+        tbl(['Category', 'Hardware', 'Spec', 'Item code', 'Brand', 'Supplier', 'Price (৳)'], rows.map(r => [h(r.grp), h([r.hardware, r.itemName].filter(Boolean).join(' · ')), h(r.spec), r.itemCode ? h(r.itemCode) : '<span class="hw-nocode">no code</span>', h(r.brand), h(r.supplier), h(money(r.value))]))}</div>`
+        : `<p class="note">${h(model)} has no items in the Hardware Catalogue yet. The model name is recorded; the Super Admin fills in the items later.</p>`}`;
+  }
+  /* the AVR model follows the motor: suggested size from Component Selection, if that size is in the catalogue */
+  function autoAvr() {
+    const size = suggestions().avr;
+    const model = size ? 'AVR ' + size + ' KVA' : '';
+    if (model && modelsOf('AVR').includes(model)) draft.pick.avrModel = model;
+  }
+  function paintAvr(f) {
+    el('hwAvr').innerHTML = avrBlock();
+    f.elements.avrModel.onchange = () => { readDraft(); paintAvr(f); syncAvrSerial(f); };
+    syncAvrSerial(f);
+  }
+  function syncAvrSerial(f) {
+    const input = f.elements['sl-avr'];
+    if (!input) return;
+    const need = !!f.elements.avrModel.value && !draft.serialsHidden;
+    input.required = need;
+    const label = input.closest('label');
+    if (label) label.firstChild.textContent = 'AVR SL' + (need ? ' *' : '');
+  }
+
   function qmsForm(record) {
     const d = draft;
     const sys = controlSystems();
     const p = pieces(d.system);
-    const avrSizes = modelsOf('AVR');
-    const savedAvr = savedPart('avr');
-    const avrModel = d.pick.avrModel ?? savedAvr?.model ?? '';
-    const avrRows = avrModel ? rowsOf('AVR', avrModel).filter(usable) : [];
     const sec = (title, body) => `<fieldset class="hw-sec"><legend>${title}</legend>${body}</fieldset>`;
     const pickOf = (section, nth) => (d.parts.filter(x => x.section === section)[nth || 0] || {}).catalogueId || '';
     const field = (name, text, rows, section, nth) => `<label>${text}${selectHtml(name, rows, d.pick[name] ?? pickOf(section, nth), false)}</label>`;
@@ -457,23 +485,24 @@ const WlfHardware = (() => {
       ${sec('1 · Project information', `<div class="hw-grid">
         <label>Lift ID *<input name="liftId" required maxlength="80" value="${h(d.liftId)}" ${record && !record.canEdit ? 'readonly' : ''}></label>
         <label>Project name *<input name="project" required maxlength="180" value="${h(d.project)}"></label>
-        <label>Address<input name="address" maxlength="240" value="${h(d.address)}"></label>
+        <label>Address *<input name="address" required maxlength="240" value="${h(d.address)}"></label>
         <label>Delivery date *<input type="date" name="deliveryDate" required value="${h(d.deliveryDate)}"></label>
-        <label>Motor type<select name="motorType">${optionList(['Gearless', 'Gear'], d.motorType)}</select></label>
-        <label>Lift type<select name="liftType">${optionList(['Passenger', 'Cargo'], d.liftType)}</select></label></div>`)}
+        <label>Motor type *<select name="motorType" required>${optionList(['Gearless', 'Gear'], d.motorType, 'Select…')}</select></label>
+        <label>Lift type *<select name="liftType" required>${optionList(['Passenger', 'Cargo'], d.liftType, 'Select…')}</select></label></div>`)}
       ${sec('2 · Motor selection (same inputs as Component Selection)', motorBlock() + '<div id="hwSuggest">' + suggestHtml() + '</div>')}
       ${sec('3 · Control system and serial numbers', `<div class="hw-grid">
         <label>Control system *<select name="system" required>${optionList(sys, d.system, 'Select…')}</select></label>
         <label>Controller model *<select name="controllerModel" required>${optionList(d.system ? controlModels(d.system) : [], d.controllerModel, 'Select…')}</select></label></div>
         ${controlBlock()}
-        <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => `<label>${t} *<input name="sl-${k}" required maxlength="80" value="${h(d.serials[k])}"></label>`).join('')}</div>`)}
+        <div id="hwAvr">${avrBlock()}</div>
+        ${d.serialsHidden ? '<p class="note">Serial numbers are not shown to your account. Leave a field blank to keep the saved value, or type a new one to replace it.</p>' : ''}
+        <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => k === 'battery'
+          ? `<label class="hw-battery">${t} <small>(up to 5 batteries, separate them with commas)</small><textarea name="sl-${k}" rows="3" maxlength="200" placeholder="Battery serial numbers">${h(d.serials[k])}</textarea></label>`
+          : `<label>${t}${serialRequired(k) && !d.serialsHidden ? ' *' : ''}<input name="sl-${k}" ${serialRequired(k) && !d.serialsHidden ? 'required' : ''} maxlength="80" value="${h(d.serials[k])}" ${d.serialsHidden ? 'placeholder="Saved (hidden)"' : ''}></label>`).join('')}</div>`)}
       ${sec('4 · LOP · COP · Transom · Travelling cable', `<div class="hw-grid">
         ${field('lop', 'LOP model', p.lop, 'lop')}${field('cop0', 'COP display', copDisplays, 'cop', 0)}${field('cop1', 'COP button', copButtons, 'cop', 1)}
         ${field('faceplate', 'COP faceplate', p.faceplate, 'faceplate')}${field('transom', 'Transom display', p.transom, 'transom')}${field('cable', 'Travelling cable', p.cable, 'cable')}</div>`)}
-      ${sec('5 · Other components (including AVR)', `<div class="hw-grid">
-        <label>AVR size<select name="avrModel">${optionList(avrSizes, avrModel, '— none —')}</select></label>
-        <label>AVR item<select name="avr"><option value="">— none —</option>${avrRows.map(r => `<option value="${h(r.id)}" ${(d.pick.avr ?? savedAvr?.catalogueId) === r.id ? 'selected' : ''}>${h(optionLabel(r))}</option>`).join('')}</select></label></div>
-        ${avrModel && !avrRows.length ? '<p class="note">This AVR size has no items yet. The Super Admin fills them in the Hardware Catalogue.</p>' : ''}
+      ${sec('5 · Other components', `
         ${p.other.length ? '<div class="hw-toolbar hw-selectall"><button class="btn ghost" type="button" data-other-all>Select all</button><button class="btn ghost" type="button" data-other-none>Clear all</button></div>' : ''}
         <div class="hw-checks">${p.other.map(r => `<label class="hw-check"><input type="checkbox" name="other" value="${h(r.id)}" ${otherChecked.has(r.id) ? 'checked' : ''}> ${h(optionLabel(r))}${r.supplier ? ' <small>' + h(r.supplier) + '</small>' : ''}</label>`).join('') || '<p class="note">No other components for this control system.</p>'}</div>`)}
       ${sec('6 · Paid feature information', paidBlock(d))}
@@ -504,8 +533,8 @@ const WlfHardware = (() => {
       motorType: v('motorType'), liftType: v('liftType'), system: v('system'), controllerModel: v('controllerModel')});
     draft.serials = Object.fromEntries(SERIALS.map(([k]) => [k, v('sl-' + k)]).filter(x => x[1]));
     f.querySelectorAll('select[name^="control:"]').forEach(s => { draft.pick[s.name] = s.value; });
-    for (const k of ['lop', 'cop0', 'cop1', 'faceplate', 'transom', 'cable', 'avr']) if (f.elements[k]) draft.pick[k] = f.elements[k].value;
-    draft.pick.avrModel = v('avrModel');
+    for (const k of ['lop', 'cop0', 'cop1', 'faceplate', 'transom', 'cable']) if (f.elements[k]) draft.pick[k] = f.elements[k].value;
+    draft.pick.avrModel = f.elements.avrModel ? f.elements.avrModel.value : draft.pick.avrModel;
     draft.pickOther = [...f.querySelectorAll('input[name=other]:checked')].map(x => x.value);
     if (f.elements.specialNote) draft.specialNote = f.elements.specialNote.value.trim();
     if (f.querySelector('[data-paid-chip]')) draft.pickPaid ??= savedPaidGroups(draft.parts);
@@ -526,11 +555,11 @@ const WlfHardware = (() => {
     }
     const add = (key, section) => { if (draft.pick[key]) items.push({catalogueId: draft.pick[key], section}); };
     add('lop', 'lop'); add('cop0', 'cop'); add('cop1', 'cop'); add('faceplate', 'faceplate'); add('transom', 'transom'); add('cable', 'cable');
+    draft.pick.avrModel ??= savedPart('avr')?.model || '';
     if (draft.pick.avrModel) {
       const all = rowsOf('AVR', draft.pick.avrModel), use = all.filter(usable);
-      if (draft.pick.avr) items.push({catalogueId: draft.pick.avr, section: 'avr'});
-      else if (use.length) throw new Error('Select the AVR item for ' + draft.pick.avrModel + ', or set the AVR size to none.');
-      else if (all[0]) items.push({catalogueId: all[0].id, section: 'avr'});   /* size not filled in the catalogue yet: the size is recorded */
+      if (use.length) use.forEach(r => items.push({catalogueId: r.id, section: 'avr'}));   /* every item of the model */
+      else if (all[0]) items.push({catalogueId: all[0].id, section: 'avr'});   /* model not filled in the catalogue yet: the model is recorded */
     }
     for (const id of draft.pickOther || []) items.push({catalogueId: id, section: 'other'});
     const wanted = new Set(draft.pickPaid ?? savedPaidGroups(draft.parts));
@@ -547,9 +576,9 @@ const WlfHardware = (() => {
   function bindQmsForm(record, back) {
     const f = el('qmsLiftForm');
     const repaint = keep => { if (!keep) readDraft(); el('qmsPanel').innerHTML = qmsForm(record); bindQmsForm(record, back); };
-    f.elements.system.onchange = () => { readDraft(); draft.controllerModel = ''; draft.pick = {}; draft.pickOther = []; draft.pickPaid = []; draft.pickPaidKw = {}; draft.parts = []; repaint(); };
+    f.elements.system.onchange = () => { readDraft(); draft.controllerModel = ''; draft.pick = {avrModel: draft.pick.avrModel}; draft.pickOther = []; draft.pickPaid = []; draft.pickPaidKw = {}; draft.parts = []; repaint(); };
     f.elements.controllerModel.onchange = () => { readDraft(); for (const k of Object.keys(draft.pick)) if (k.startsWith('control:')) delete draft.pick[k]; draft.parts = draft.parts.filter(x => x.section !== 'control'); repaint(); };
-    f.elements.avrModel.onchange = () => { readDraft(); setAvr(draft.pick.avrModel); repaint(true); };
+    f.elements.avrModel.onchange = () => { readDraft(); paintAvr(f); };
     bindSuggest(f, repaint);
     f.querySelectorAll('[data-other-all]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = true; }));
     f.querySelectorAll('[data-other-none]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = false; }));
@@ -561,7 +590,7 @@ const WlfHardware = (() => {
       repaint(true);
     });
     f.querySelectorAll('[data-control-pick]').forEach(s => s.onchange = () => { readDraft(); repaint(); });
-    bindMotor(f, () => { el('hwSuggest').innerHTML = suggestHtml(); bindSuggest(f, repaint); });
+    bindMotor(f, () => { readDraft(); autoAvr(); el('hwSuggest').innerHTML = suggestHtml(); bindSuggest(f, repaint); paintAvr(f); });
     if (el('qmsLiftCancel')) el('qmsLiftCancel').onclick = back;
     f.onsubmit = async event => {
       event.preventDefault();
@@ -569,9 +598,9 @@ const WlfHardware = (() => {
       const status = el('qmsLiftStatus');
       const button = f.querySelector('[type=submit]');
       try {
-        for (const [k, t] of [['liftId', 'Lift ID'], ['project', 'Project name'], ['deliveryDate', 'Delivery date'], ['system', 'Control system'], ['controllerModel', 'Controller model']])
+        for (const [k, t] of [['liftId', 'Lift ID'], ['project', 'Project name'], ['address', 'Address'], ['motorType', 'Motor type'], ['liftType', 'Lift type'], ['deliveryDate', 'Delivery date'], ['system', 'Control system'], ['controllerModel', 'Controller model']])
           if (!draft[k]) throw new Error('Enter or select: ' + t + '.');
-        for (const [k, t] of SERIALS) if (!draft.serials[k]) throw new Error('Enter the ' + t + '. Every serial number is required.');
+        if (!draft.serialsHidden) for (const [k, t] of SERIALS) if (serialRequired(k) && !draft.serials[k]) throw new Error('Enter the ' + t + '.');
         const items = buildItems();
         button.disabled = true;
         status.textContent = 'Saving…';
@@ -592,12 +621,6 @@ const WlfHardware = (() => {
     f.onreset = () => setTimeout(() => { draft = newDraft(); el('qmsPanel').innerHTML = qmsForm(null); bindQmsForm(null); }, 0);
   }
 
-  /* AVR size chosen (by hand or from the suggestion): a single item is taken automatically; blank sizes record the size only */
-  function setAvr(model) {
-    draft.pick.avrModel = model || '';
-    const use = model ? rowsOf('AVR', model).filter(usable) : [];
-    draft.pick.avr = use.length === 1 ? use[0].id : '';
-  }
   function bindSuggest(f, repaint) {
     f.querySelectorAll('[data-suggest-ctrl]').forEach(b => b.onclick = () => {
       readDraft();
@@ -606,7 +629,7 @@ const WlfHardware = (() => {
       draft.parts = draft.parts.filter(x => x.section !== 'control');
       repaint(true);      /* the form still shows the old values, so the new choice must not be read back from it */
     });
-    f.querySelectorAll('[data-suggest-avr]').forEach(b => b.onclick = () => { readDraft(); setAvr(b.dataset.suggestAvr); repaint(true); });
+    f.querySelectorAll('[data-suggest-avr]').forEach(b => b.onclick = () => { readDraft(); draft.pick.avrModel = b.dataset.suggestAvr; repaint(true); });
   }
 
   function bindMotor(f, afterChange) {
@@ -661,17 +684,20 @@ const WlfHardware = (() => {
         ${rest.length ? `<details><summary>Recommended controller / power supply (from Component Selection)</summary>${motorTables({categories: rest})}</details>` : ''}</section>
       <section class="card hw-out"><div class="overview-eyebrow">3 · CONTROL SYSTEM — ${h(rec.system)} · ${h(rec.controllerModel)}</div>${
         tbl(['Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['control']).map(p => [h(p.grp), h(p.hardware), h(p.spec), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">4 · SERIAL NUMBERS</div>${
-        tbl(['Part', 'Serial number'], SERIALS.map(([k, t]) => [h(t.replace(/ SL$/, '')), h(rec.serials?.[k]) || '—']), 'No serial numbers were recorded.')}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">4 · SERIAL NUMBERS</div>${rec.serialsHidden
+        ? '<p class="note">Serial numbers are not shown to your account. The Super Admin gives access in User Management (QMS / See and download the Serial numbers table).</p>'
+        : tbl(['Part', 'Serial number'], SERIALS.map(([k, t]) => [h(t.replace(/ SL$/, '')), k === 'battery' ? '<span class="hw-battery-out">' + (h(rec.serials?.[k]) || '—') + '</span>' : h(rec.serials?.[k]) || '—']), 'No serial numbers were recorded.')}</section>
       <section class="card hw-out"><div class="overview-eyebrow">5 · COP · LOP · TRANSOM · TRAVELLING CABLE</div>${
         tbl(['Part', 'Model', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['lop', 'cop', 'faceplate', 'transom', 'cable']).map(p => [h(SECTION_NAMES[p.section] + (p.grp && p.section === 'cop' ? ' · ' + p.grp.replace('COP ', '') : '')), h(p.hardware), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">6 · OTHER COMPONENTS (INCLUDING AVR)</div>${
+      <section class="card hw-out" id="hwOutAvr"><div class="overview-eyebrow">6 · AVR${parts(['avr'])[0] ? ' — ' + h(parts(['avr'])[0].model) : ''}</div>${
+        tbl(['Category', 'Hardware', 'Spec', 'Item code', 'Brand', 'Supplier', 'Price (৳)'], parts(['avr']).map(p => [h(p.grp), h([p.hardware, p.name].filter(Boolean).join(' · ') || p.model), h(p.spec), codeCell(p), h(p.brand), h(p.supplier), h(money(p.value))]), 'No AVR was selected.')}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">7 · OTHER COMPONENTS</div>${
         tbl(['Category', 'Item code', 'Item name', 'Spec', 'Supplier', 'Brand', 'Price (৳)'], [
-          ...parts(['avr', 'other']).map(p => [h(p.section === 'avr' ? p.model : p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand), h(money(p.value))]),
+          ...parts(['other']).map(p => [h(p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand), h(money(p.value))]),
           ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">7 · PAID FEATURE INFORMATION</div>${
+      <section class="card hw-out"><div class="overview-eyebrow">8 · PAID FEATURE INFORMATION</div>${
         tbl(['Category', 'Item code', 'Item name', 'Spec', 'Brand', 'Supplier', 'Price (৳)'], parts(['paid']).map(p => [h(p.grp || p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.brand), h(p.supplier), h(money(p.value))]), 'No paid feature was selected.')}</section>
-      <section class="card hw-out"><div class="overview-eyebrow">8 · SPECIAL NOTE</div>${
+      <section class="card hw-out"><div class="overview-eyebrow">9 · SPECIAL NOTE</div>${
         rec.specialNote ? `<p class="hw-paid-note">${h(rec.specialNote)}</p>` : '<p class="note">No special note.</p>'}</section>`;
   }
 
@@ -742,16 +768,26 @@ const WlfHardware = (() => {
     el('qmsPanel').innerHTML = `<form id="qmsSearch" class="card hw-out"><div class="hw-head"><div><div class="overview-eyebrow">QMS DATA</div><h3>Search by Lift ID</h3></div>
         <div class="hw-toolbar"><button class="btn ghost" type="button" id="qmsAllExcel">Download Excel (these results)</button></div></div>
       <div class="hw-grid"><label>Lift ID<input name="liftId" maxlength="80" autocomplete="off"></label><label>Project<input name="project" maxlength="180" autocomplete="off"></label>
-        <label>Component item code or name<input name="itemCode" maxlength="120" autocomplete="off"></label><label>&nbsp;<button class="btn" type="submit">Search</button></label></div>
+        <label>Component item code or name<input name="itemCode" maxlength="120" autocomplete="off"></label>
+        <label>Recorded from<input type="date" name="from"></label><label>Recorded to<input type="date" name="to"></label><label>&nbsp;<button class="btn" type="submit">Search</button></label></div>
+      <p class="note">Download Excel (these results) gives the same workbook as the Excel backup: QMS Lifts, QMS Components, QMS Serial numbers (if your account may see them) and QMS Output Tables. “Recorded” is the day the lift record was created.</p>
       <p class="note overview-status" id="qmsDataStatus" role="status">${h(typeof message === 'string' ? message : '')}</p></form><div id="qmsResults"></div>`;
     const form = el('qmsSearch');
     const filters = () => Object.fromEntries([...new FormData(form)].map(([k, v]) => [k, String(v).trim()]));
     form.onsubmit = event => { event.preventDefault(); searchLifts(filters()); };
     el('qmsAllExcel').onclick = async () => {
       try {
-        const data = await rpc('getQmsLifts', [T(), {...filters(), full: true}]);
-        if (!data.rows.length) { el('qmsDataStatus').textContent = 'No lift record matches.'; return; }
-        await downloadLifts(data.rows, 'QMS-data', el('qmsDataStatus'));
+        const status = el('qmsDataStatus');
+        const all = [];
+        for (let offset = 0, more = true; more && all.length < 2000;) {       /* pages of 50 lifts so the answer stays small */
+          status.textContent = 'Collecting lifts… ' + all.length;
+          const data = await rpc('getQmsLifts', [T(), {...filters(), full: true, offset}]);
+          all.push(...data.rows); offset = data.next ?? all.length; more = !!data.more && data.rows.length > 0;
+        }
+        if (!all.length) { status.textContent = 'No lift record matches.'; return; }
+        status.textContent = 'Preparing Excel…';
+        await WlfExports.qmsBackupExcel(all, 'QMS-data-' + new Date().toISOString().slice(0, 10));
+        status.textContent = 'Excel downloaded (' + all.length + ' lift record' + (all.length === 1 ? '' : 's') + (all.length >= 2000 ? ', first 2000 — narrow the dates' : '') + ').';
       } catch (err) { el('qmsDataStatus').textContent = cleanError(err); }
     };
     searchLifts(filters(), typeof message === 'string' ? message : '');

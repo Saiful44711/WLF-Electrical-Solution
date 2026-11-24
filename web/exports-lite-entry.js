@@ -33,5 +33,6 @@ function ganttRange(project) {
 async function excel(groups,name) { return (await full()).excel(groups,name); }
 async function qmsExcel(lift,name) { return (await full()).qmsExcel(lift,name); }
 async function qmsFlatExcel(lifts,name) { return (await full()).qmsFlatExcel(lifts,name); }
+async function qmsBackupExcel(lifts,name) { return (await full()).qmsBackupExcel(lifts,name); }
 async function projectPpt(project,people) { return (await full()).projectPpt(project,people); }
-window.WlfExports={download,excel,qmsExcel,qmsFlatExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange,load:full};
+window.WlfExports={download,excel,qmsExcel,qmsFlatExcel,qmsBackupExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange,load:full};

@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import PptxGenJS from 'pptxgenjs';
-import {buildWorkbook,buildReportWorkbook,qmsReport,qmsFlatHeaders,qmsFlatRows,excelMime,supportSheets,activitySheets} from '../supabase/functions/_shared/wlf-excel.mjs';
+import {buildWorkbook,buildReportWorkbook,qmsReport,qmsSheets,qmsFlatHeaders,qmsFlatRows,excelMime,supportSheets,activitySheets} from '../supabase/functions/_shared/wlf-excel.mjs';
 
 function download(bytes,name) {
   const url=URL.createObjectURL(new Blob([bytes],{type:excelMime}));
@@ -16,6 +16,9 @@ async function qmsExcel(lift,name) {
 }
 async function qmsFlatExcel(lifts,name) {
   await excel([{name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))}],name);
+}
+async function qmsBackupExcel(lifts,name) {   /* same sheets as the Excel backup */
+  await excel(qmsSheets(lifts.map(l=>({lift:l}))),name);
 }
 function progress(tasks) {
   return tasks.length?Math.round(tasks.reduce((total,t)=>total+t.progress,0)/tasks.length):0;
@@ -73,5 +76,5 @@ async function projectPpt(project,people) {
   const stem=project.name.replace(/[<>:"/\\|?*\u0000-\u001f]+/g,'-').trim().slice(0,90)||'project';
   await deck.writeFile({fileName:'WLF-'+stem+'.pptx'});
 }
-window.WlfExportsFull={download,excel,qmsExcel,qmsFlatExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
+window.WlfExportsFull={download,excel,qmsExcel,qmsFlatExcel,qmsBackupExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
 if(!window.WlfExports)window.WlfExports=window.WlfExportsFull;

@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.6-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.7-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -478,6 +478,10 @@ await page.locator('#qmsLiftForm').waitFor();
 await page.locator('#qmsLiftForm [name=liftId]').fill('L-101');
 await page.locator('#qmsLiftForm [name=project]').fill('WLF North Tower');
 await page.locator('#qmsLiftForm [name=address]').fill('Gulshan-2, Dhaka');
+/* v2.6.7: Address, Motor type and Lift type are required and have no default */
+for(const n of ['address','motorType','liftType']) assert.equal(await page.locator('#qmsLiftForm [name='+n+']').getAttribute('required')!==null,true,n+' is required');
+assert.equal(await page.locator('#qmsLiftForm [name=motorType]').inputValue(),'');assert.equal(await page.locator('#qmsLiftForm [name=liftType]').inputValue(),'');
+await page.locator('#qmsLiftForm [name=motorType]').selectOption('Gearless');await page.locator('#qmsLiftForm [name=liftType]').selectOption('Passenger');
 await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-25');
 /* v2.6.0: motor first (section 2), then suggested controllers and AVR fill the rest */
 const order=await page.locator('#qmsLiftForm legend').allInnerTexts();
@@ -494,10 +498,17 @@ assert.match(await page.locator('#qmsLiftForm [name=system]').inputValue(),/MOT|
 const chosenModel=await page.locator('#qmsLiftForm [name=controllerModel]').inputValue();
 assert.equal(chosenModel,suggested[0],'the suggestion filled the controller model');
 assert.match(await page.locator('.hw-auto').innerText(),/items are added automatically/);
-assert.equal(await page.locator('#qmsLiftForm .hw-table thead').count(),0,'the long controller list is not opened');
+assert.equal(await page.locator('#qmsLiftForm .hw-table thead').evaluateAll(a=>a.filter(e=>!e.closest('#hwAvr')).length),0,'the long controller list is not opened');
 for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
-await page.locator('#hwSuggest [data-suggest-avr]').first().click();
-assert.match(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),/^AVR \d+ KVA$/,'AVR suggestion filled the AVR size');
+/* v2.6.7: the AVR model follows the motor by itself, sits in the control system section, and can be changed by hand */
+assert.match(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),/^AVR \d+ KVA$/,'the motor selection filled the AVR model');
+assert.equal(await page.locator('#qmsLiftForm [name=avr]').count(),0,'there is no AVR item dropdown any more');
+assert.equal(await page.locator('#hwAvr').locator('xpath=ancestor::fieldset[1]/legend').innerText().then(x=>/^3 · Control system/.test(x)),true,'AVR model is in the control system section');
+await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 30 KVA');
+assert.equal(await page.locator('#hwAvr tbody tr').count(),15,'all 15 items of AVR 30 KVA are listed in their own table');
+assert.ok((await page.locator('#hwAvr').innerText()).includes('Full AVR'));
+assert.equal(await page.locator('#qmsLiftForm [name=sl-avr]').getAttribute('required')!==null,true,'AVR SL is required once an AVR model is chosen');
+assert.equal(await page.locator('#qmsLiftForm [name=sl-battery]').evaluate(e=>e.tagName),'TEXTAREA');assert.equal(await page.locator('#qmsLiftForm [name=sl-battery]').getAttribute('required'),null,'Battery SL is optional');
 await page.locator('#qmsLiftForm [name=lop]').selectOption({index:1});
 await page.locator('#qmsLiftForm [name=cop0]').selectOption({index:1});
 await page.locator('#qmsLiftForm [name=transom]').selectOption({index:1});
@@ -511,14 +522,14 @@ const qmsSubmit=async()=>{const b=page.locator('#qmsLiftForm [type=submit]');awa
 /* every serial number is required */
 await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:/Enter the Motor SL/}).waitFor();
-const fillSerials=async()=>{for(const [k,v] of Object.entries({motor:'M-100',encoder:'E-200',drive:'D-88213',ups:'U-300',cartop:'CT-400',cop:'CP-500',copDisplay:'CD-600'})) await page.locator('#qmsLiftForm [name=sl-'+k+']').fill(v);};
+const fillSerials=async()=>{for(const [k,v] of Object.entries({motor:'M-100',encoder:'E-200',drive:'D-88213',ups:'U-300',cartop:'CT-400',cop:'CP-500',copDisplay:'CD-600',avr:'AV-700',battery:'BAT-1, BAT-2, BAT-3, BAT-4, BAT-5'})) await page.locator('#qmsLiftForm [name=sl-'+k+']').fill(v);};
 await page.locator('#qmsLiftForm [name=sl-motor]').fill('M-100');await page.locator('#qmsLiftForm [name=sl-encoder]').fill('E-200');
 await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:/Enter the Drive SL/}).waitFor();
 await fillSerials();
 await page.screenshot({path:'test-results/v260/03-qms-input-desktop.png',fullPage:true});
 {const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.waitForTimeout(300);
-const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,wide:[...document.querySelectorAll('#qmsLiftForm *')].filter(e=>e.getBoundingClientRect().right>document.documentElement.clientWidth+1).slice(0,3).map(e=>e.tagName+'.'+e.className)}));
+const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,wide:[...document.querySelectorAll('#qmsLiftForm *')].filter(e=>!e.closest('.tbl-wrap')&&e.getBoundingClientRect().right>document.documentElement.clientWidth+1).slice(0,3).map(e=>e.tagName+'.'+e.className)}));
 await page.screenshot({path:'test-results/v260/03-qms-motor-selected-360.png',fullPage:true});
 if(over.sw>over.cw+1||over.wide.length)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
 await page.setViewportSize(vp);}
@@ -526,7 +537,7 @@ await qmsSubmit();
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor().catch(async e=>{throw Error('QMS-DIAG status=['+(await page.locator('#qmsLiftStatus').innerText().catch(()=>'?'))+'] errors='+JSON.stringify(errors)+' console='+JSON.stringify((globalThis.consoleErrors||[]).slice(-5))+' disabled='+(await page.locator('#qmsLiftForm [type=submit]').isDisabled().catch(()=>'?')));});
 await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
 await page.locator('#qmsLiftForm [name=project]').fill('Other');
-await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-26');
+await page.locator('#qmsLiftForm [name=deliveryDate]').fill('2026-11-26');await page.locator('#qmsLiftForm [name=address]').fill('Banani');await page.locator('#qmsLiftForm [name=motorType]').selectOption('Gear');await page.locator('#qmsLiftForm [name=liftType]').selectOption('Cargo');
 await page.locator('#qmsLiftForm [name=system]').selectOption('MOT');
 await page.locator('#qmsLiftForm [name=controllerModel]').selectOption('MOT 5.5 kW');
 for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
@@ -537,9 +548,9 @@ await page.locator('#qmsTabData').click();
 await page.locator('#qmsSearch [name=liftId]').fill('L-101');
 await page.locator('#qmsSearch [type=submit]').click();
 await page.locator('.hw-out h3').filter({hasText:'L-101'}).waitFor();
-assert.equal(await page.locator('.hw-out .overview-eyebrow').count()>=6,true,'six output tables');
+assert.equal(await page.locator('.hw-out .overview-eyebrow').count()>=9,true,'nine output tables');
 const qmsText=await page.locator('#tab-qms').innerText();
-for(const word of ['PROJECT INFORMATION','SELECTED MOTOR','Capacity','CONTROL SYSTEM','SERIAL NUMBERS','COP · LOP','OTHER COMPONENTS','SDB main breaker','Price','WLF North Tower','D-88213','E-200','CP-500']) assert.ok(qmsText.toLowerCase().includes(word.toLowerCase()),word);
+for(const word of ['PROJECT INFORMATION','SELECTED MOTOR','Capacity','CONTROL SYSTEM','SERIAL NUMBERS','COP · LOP','6 · AVR — AVR 30 KVA','7 · OTHER COMPONENTS','SDB main breaker','Price','WLF North Tower','D-88213','E-200','CP-500','AV-700','BAT-1, BAT-2, BAT-3, BAT-4, BAT-5','Cooling Fan']) assert.ok(qmsText.toLowerCase().includes(word.toLowerCase()),word);
 await page.screenshot({path:'test-results/v260/04-qms-data-desktop.png',fullPage:true});
 const qmsDl=page.waitForEvent('download');
 await page.locator('#qmsExcel').click();
@@ -1161,13 +1172,13 @@ assert.equal(await page.locator('#nav [data-tab=catalogue]').isVisible(),false);
 // 2) Super Admin: Hardware Catalogue
 await logout();await login('sa');
 await tab('catalogue');await page.locator('.hw-layout').waitFor();
-await page.locator('[data-hw-system="AVR"]').click();await page.locator('[data-hw-model="AVR 20 KVA"]').click();
-assert.equal(await page.locator('#hwTable tbody tr').count(),10,'AVR 20 KVA has ten blank rows');
+await page.locator('[data-hw-system="AVR"]').click();await page.locator('[data-hw-model="AVR 80 KVA"]').click();
+assert.equal(await page.locator('#hwTable tbody tr').count(),10,'AVR 80 KVA has ten blank rows (not in the AVR sheet)');
 await page.locator('[data-hw-edit]').first().click();
-await page.locator('#hwRowForm [name=itemCode]').fill('900020');await page.locator('#hwRowForm [name=itemName]').fill('AVR Servo Stabilizer 20 KVA');
+await page.locator('#hwRowForm [name=itemCode]').fill('900080');await page.locator('#hwRowForm [name=itemName]').fill('AVR Servo Stabilizer 80 KVA');
 await page.locator('#hwRowForm [name=spec]').fill('3 Phase');await page.locator('#hwRowForm [name=brand]').fill('Demo brand');await page.locator('#hwRowForm [name=supplier]').fill('Demo supplier');await page.locator('#hwRowForm [name=value]').fill('1250.5');
 await page.locator('#hwRowForm [type=submit]').click();
-await page.locator('#hwTable').getByText('AVR Servo Stabilizer 20 KVA').waitFor();
+await page.locator('#hwTable').getByText('AVR Servo Stabilizer 80 KVA').waitFor();
 assert.match(await page.locator('#hwTable').innerText(),/1,250\.50/);
 await v259shot('05-catalogue-avr');
 await page.locator('#hwNewModel').click();await page.locator('#hwModelForm [name=system]').fill('AVR');await page.locator('#hwModelForm [name=model]').fill('AVR 150 KVA');await page.locator('#hwModelForm [type=submit]').click();
@@ -1175,13 +1186,13 @@ await page.locator('[data-hw-model="AVR 150 KVA"].on').waitFor();assert.equal(aw
 await page.locator('[data-hw-system="MOT"]').click();await page.locator('[data-hw-model="MOT 7.5 kW"]').click();assert.equal(await page.locator('#hwTable tbody tr').count(),31);
 await page.locator('#hwSearch').fill('UPS');assert.ok(await page.locator('#hwTable tbody tr').count()>=2);await page.locator('#hwSearch').fill('');
 const catDl=page.waitForEvent('download');await page.locator('#hwExport').click();await(await catDl).saveAs('test-results/v259/catalogue.xlsx');
-assert.match(await(await Zip.loadAsync(fs.readFileSync('test-results/v259/catalogue.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/AVR Servo Stabilizer 20 KVA/);
+assert.match(await(await Zip.loadAsync(fs.readFileSync('test-results/v259/catalogue.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/AVR Servo Stabilizer 80 KVA/);
 await page.locator('#hwMap').click();assert.ok((await page.locator('#hwMapRows tr').count())>=10);await page.locator('#hwCancel').click();
 await v259shot('06-catalogue-mot');
 // 3) the new AVR item shows up in the QMS form
 await tab('qms');await page.locator('#qmsLiftForm').waitFor();
-await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 20 KVA');
-assert.match(await page.locator('#qmsLiftForm [name=avr]').innerText(),/AVR Servo Stabilizer 20 KVA/);
+await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 80 KVA');
+assert.match(await page.locator('#hwAvr').innerText(),/AVR Servo Stabilizer 80 KVA/);
 // 4) Raise Damage Demand takes the part from the catalogue
 await logout();await login('user');await category();
 for(let i=0;i<4&&!(await page.locator('#supportRequestForm').isVisible());i++){await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor({timeout:4000}).catch(()=>{});}
@@ -1485,14 +1496,15 @@ await page.locator('#qmsLiftStatus').filter({hasText:'Excel downloaded.'}).waitF
 {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v264/QMS-X-264.xlsx'));
  const sheets=Object.keys(zip.files).filter(f=>/^xl\/worksheets\/sheet\d+\.xml$/.test(f));assert.equal(sheets.length,1,'one sheet');
  const xml=await zip.file(sheets[0]).async('string');
- for(const t of ['1 · Project information','2 · Selected motor','3 · Control system','4 · Serial numbers','5 · COP · LOP · Transom · Travelling cable','6 · Other components (including AVR)','X-264','Report Tower','Uttara, Dhaka','M-264','D-264','Ziehl Abegg'])assert.ok(xml.includes(t),'sheet has '+t);}
+ for(const t of ['1 · Project information','2 · Selected motor','3 · Control system','4 · Serial numbers','5 · COP · LOP · Transom · Travelling cable','6 · AVR','7 · Other components','X-264','Report Tower','Uttara, Dhaka','M-264','D-264','Ziehl Abegg'])assert.ok(xml.includes(t),'sheet has '+t);}
 // several lifts at once: one flat sheet
 await page.locator('#qmsBack').click();await page.locator('#qmsSearch [name=liftId]').fill('');await page.locator('#qmsSearch button[type=submit]').click();
 await page.locator('#qmsResults table').waitFor();
 const [dl2]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);
-assert.equal(dl2.suggestedFilename(),'QMS-data.xlsx');await dl2.saveAs('test-results/v264/QMS-data.xlsx');
-{const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v264/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
- const wb=await zip.file('xl/workbook.xml').async('string');assert.match(wb,/QMS Output Tables/);for(const t of ['Lift ID','Table name','X-264','Control system','Serial numbers'])assert.ok(xml.includes(t),'flat sheet has '+t);}
+assert.match(dl2.suggestedFilename(),/^QMS-data-\d{4}-\d{2}-\d{2}\.xlsx$/);await dl2.saveAs('test-results/v264/QMS-data.xlsx');
+{const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v264/QMS-data.xlsx'));const wb=await zip.file('xl/workbook.xml').async('string');for(const n of ['QMS Lifts','QMS Components','QMS Serial numbers','QMS Output Tables'])assert.ok(wb.includes(n),'v2.6.7: the download has the backup sheet '+n);
+ const xml=await zip.file('xl/worksheets/sheet4.xml').async('string');for(const t of ['Lift ID','Table name','X-264','Control system','Serial numbers'])assert.ok(xml.includes(t),'flat sheet has '+t);
+ assert.ok((await zip.file('xl/worksheets/sheet3.xml').async('string')).includes('M-264'),'serial numbers sheet has the serials');}
 await page.setViewportSize({width:1280,height:900});await page.screenshot({path:'test-results/v264/06-qms-data.png',fullPage:false});
 }
 // v2.6.5: Paid feature information (chips, kW choice, special note, table 7), Select all / Clear all
@@ -1500,7 +1512,7 @@ fs.mkdirSync('test-results/v265',{recursive:true});
 {const shot=async(name,full)=>{await page.screenshot({path:'test-results/v265/'+name+'.png',fullPage:!!full});};
  const form='#qmsLiftForm ';
  const basics=async(id,system)=>{await tab('qms');await page.locator('#qmsTabInput').click();await page.locator(form).waitFor();
-  await page.locator(form+'[name=liftId]').fill(id);await page.locator(form+'[name=project]').fill('Paid Tower');await page.locator(form+'[name=deliveryDate]').fill('2026-11-27');
+  await page.locator(form+'[name=liftId]').fill(id);await page.locator(form+'[name=project]').fill('Paid Tower');await page.locator(form+'[name=deliveryDate]').fill('2026-11-27');await page.locator(form+'[name=address]').fill('Mirpur');await page.locator(form+'[name=motorType]').selectOption('Gearless');await page.locator(form+'[name=liftType]').selectOption('Passenger');
   await page.locator(form+'[name=system]').selectOption(system);await page.locator(form+'[name=controllerModel]').selectOption({index:1});
   for(const sel of await page.locator('[data-control-pick]').all()) await sel.selectOption({index:1});
   for(const [k,v] of Object.entries({motor:'M-1',encoder:'E-1',drive:'D-1',ups:'U-1',cartop:'C-1',cop:'P-1',copDisplay:'CD-1'})) await page.locator(form+'[name=sl-'+k+']').fill(v);};
@@ -1533,25 +1545,25 @@ fs.mkdirSync('test-results/v265',{recursive:true});
  await kw.selectOption({label:'15 kW · 494757'});await shot('03-paid-input-nice-kw');
  await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Lift PF-NICE saved'}).waitFor();
  await page.locator('#qmsTabData').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-MOT');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
- const t7=page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'});
+ const t7=page.locator('.hw-out').filter({hasText:'8 · PAID FEATURE INFORMATION'});
  const t7text=await t7.innerText();
- for(const x of ['Voice Announcer','270428','G&Z-PLUS LIFT ANNOUNCER','Remote Alarm','Arline-M Center Module','Arline-S-Int Speaking Uni','Regenerative drive','321528'])assert.ok(t7text.includes(x),'table 7 has '+x);
+ for(const x of ['Voice Announcer','270428','G&Z-PLUS LIFT ANNOUNCER','Remote Alarm','Arline-M Center Module','Arline-S-Int Speaking Uni','Regenerative drive','321528'])assert.ok(t7text.includes(x),'table 8 has '+x);
  assert.ok(!t7text.includes('Install after handover'),'the note is not inside Paid feature');
- {const t8=await page.locator('.hw-out').filter({hasText:'8 · SPECIAL NOTE'}).innerText();assert.ok(t8.includes('Install after handover'),'table 8 holds the special note');}
+ {const t8=await page.locator('.hw-out').filter({hasText:'9 · SPECIAL NOTE'}).innerText();assert.ok(t8.includes('Install after handover'),'table 9 holds the special note');}
  assert.equal(await t7.locator('tbody tr').count(),1+4+1,'one Voice Announcer row, four Remote Alarm rows and one Regenerative drive row');
  await t7.scrollIntoViewIfNeeded();await shot('04-paid-output-desktop');
  const [dl]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsExcel').click()]);
  await dl.saveAs('test-results/v265/QMS-PF-MOT.xlsx');
  {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-PF-MOT.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
-  for(const t of ['7 · Paid feature information','Arline-M Center Module','8 · Special note','Install after handover','G&amp;Z-PLUS LIFT ANNOUNCER'])assert.ok(xml.includes(t),'Excel has '+t);}
+  for(const t of ['8 · Paid feature information','Arline-M Center Module','9 · Special note','Install after handover','G&amp;Z-PLUS LIFT ANNOUNCER'])assert.ok(xml.includes(t),'Excel has '+t);}
  await page.locator('#qmsEdit').click();await page.locator(form).waitFor();
  assert.equal(await page.locator('[data-paid-chip].on').count(),3,'saved paid features are ticked when editing');
  assert.equal(await page.locator(form+'[name=specialNote]').inputValue(),'Install after handover');
  await page.locator('[data-paid-chip="Remote Alarm"]').click();await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Changes saved.'}).waitFor();
- assert.equal(await page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'}).locator('tbody tr').count(),2,'Remote Alarm switched off');
+ assert.equal(await page.locator('.hw-out').filter({hasText:'8 · PAID FEATURE INFORMATION'}).locator('tbody tr').count(),2,'Remote Alarm switched off');
  await page.locator('#qmsBack').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsResults table').waitFor();
  const [dl3]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);await dl3.saveAs('test-results/v265/QMS-data.xlsx');
- {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
+ {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet4.xml').async('string');
   for(const t of ['Paid feature information','Regenerative Device - MCTC-AFE-4015N'])assert.ok(xml.includes(t),'flat sheet has '+t);}
 }
 // v2.6.6: Admin Panel (one dashboard at a time, user filter, curves with 1/3/6/12 month range)
@@ -1601,6 +1613,71 @@ fs.mkdirSync('test-results/v266',{recursive:true});
  const apFile=page.waitForEvent('download');await page.locator('#workspaceExport').click();await (await apFile).saveAs('test-results/v266/admin-panel.xlsx');
  const apZip=await Zip.loadAsync(fs.readFileSync('test-results/v266/admin-panel.xlsx'));
  assert.match(await apZip.file('xl/workbook.xml').async('string'),/R&amp;I user curves/);
+}
+// v2.6.7: AVR model with its own tables, AVR/Battery serials, serial-number permission, QMS Data Excel in the backup format with a Recorded from/to filter
+fs.mkdirSync('test-results/v267',{recursive:true});
+{const shot=async(name,full)=>{await page.screenshot({path:'test-results/v267/'+name+'.png',fullPage:!!full});};
+ const JSZip=require('jszip');
+{const ctrl=(await sequential(()=>h.db.query("select id,hardware from wlf_private.hw_catalogue where system='MOT' and model='MOT 7.5 kW' and deleted_at is null order by hardware,id"))).rows;
+  const avr=(await sequential(()=>h.db.query("select id from wlf_private.hw_catalogue where system='AVR' and model='AVR 30 KVA' and deleted_at is null order by sort"))).rows;
+  const seen=new Set(),items=[];for(const r of ctrl){if(!seen.has(r.hardware)){seen.add(r.hardware);items.push({catalogueId:r.id,section:'control'});}}
+  for(const r of avr)items.push({catalogueId:r.id,section:'avr'});
+  await tab('qms');
+  await page.evaluate(([items,id])=>rpc('saveQmsLift',[T(),{id,liftId:'V7-1',project:'AVR Tower',address:'Uttara, Dhaka',deliveryDate:'2026-11-24',motorType:'Gearless',liftType:'Passenger',system:'MOT',controllerModel:'MOT 7.5 kW',
+   serials:{motor:'M-267',encoder:'E-267',drive:'D-267',ups:'U-267',cartop:'C-267',cop:'P-267',copDisplay:'CD-267',avr:'AV-700',battery:'BAT-1, BAT-2, BAT-3, BAT-4, BAT-5'},selection:null,items}]),[items,crypto.randomUUID()]);}
+ await tab('qms');await page.locator('#qmsTabData').click();await page.locator('#qmsSearch [name=liftId]').fill('V7-1');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
+ const t6=page.locator('.hw-out').filter({hasText:'6 · AVR'});assert.equal(await t6.locator('tbody tr').count(),15,'AVR table lists all 15 items of AVR 30 KVA');
+ assert.ok((await t6.innerText()).includes('Full AVR'));
+ const order=await page.locator('.hw-out .overview-eyebrow').allInnerTexts();assert.ok(order.findIndex(x=>/^6 · AVR/.test(x))>=0&&order.findIndex(x=>/^6 · AVR/.test(x))+1===order.findIndex(x=>/^7 · OTHER/.test(x)),'AVR table comes right before Other components: '+order);
+ const t4=await page.locator('.hw-out').filter({hasText:'4 · SERIAL NUMBERS'}).innerText();for(const x of ['AVR','AV-700','Battery','BAT-1, BAT-2, BAT-3, BAT-4, BAT-5'])assert.ok(t4.includes(x),'serial table has '+x);
+ await t6.scrollIntoViewIfNeeded();await shot('01-qms-output-avr-desktop');
+ {const [d]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsExcel').click()]);await d.saveAs('test-results/v267/QMS-L-101.xlsx');
+  const xml=await (await JSZip.loadAsync(fs.readFileSync('test-results/v267/QMS-L-101.xlsx'))).file('xl/worksheets/sheet1.xml').async('string');
+  for(const t of ['6 · AVR','7 · Other components','AV-700','BAT-1, BAT-2','Cooling Fan'])assert.ok(xml.includes(t),'report has '+t);}
+ await page.locator('#qmsBack').click();
+ assert.equal(await page.locator('#qmsSearch [name=from]').count(),1);assert.equal(await page.locator('#qmsSearch [name=to]').count(),1);
+ await page.locator('#qmsSearch [name=from]').fill('2999-01-01');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsDataStatus').filter({hasText:/^0 record|No lift record/}).waitFor();
+ await page.locator('#qmsAllExcel').click();await page.locator('#qmsDataStatus').filter({hasText:'No lift record matches'}).waitFor();
+ await page.locator('#qmsSearch [name=from]').fill('2000-01-01');await page.locator('#qmsSearch [name=to]').fill('2999-12-31');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsResults table').waitFor();
+ {const [d]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);await d.saveAs('test-results/v267/QMS-data.xlsx');
+  const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v267/QMS-data.xlsx'));const wb=await zip.file('xl/workbook.xml').async('string');
+  for(const n of ['QMS Lifts','QMS Components','QMS Serial numbers','QMS Output Tables'])assert.ok(wb.includes(n),n);
+  const serials=await zip.file('xl/worksheets/sheet3.xml').async('string');for(const t of ['AV-700','BAT-1, BAT-2','D-267'])assert.ok(serials.includes(t),'serials sheet has '+t);
+  const lifts=await zip.file('xl/worksheets/sheet1.xml').async('string');for(const t of ['AVR model','AVR 30 KVA','Gearless'])assert.ok(lifts.includes(t),'lifts sheet has '+t);}
+ await shot('02-qms-data-filter-desktop');
+ await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array(select distinct unnest(permissions||array['qms:components','qms:edit'])) where id=$1",[IDS.admin]));
+ await logout();await login('admin');await tab('qms');await page.locator('#qmsTabData').click();
+ await page.locator('#qmsSearch [name=liftId]').fill('V7-1');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
+ const hiddenText=await page.locator('#tab-qms').innerText();
+ assert.ok(!hiddenText.includes('D-267')&&!hiddenText.includes('AV-700')&&!hiddenText.includes('BAT-1'),'no serial number reaches this account');
+ assert.ok(hiddenText.includes('Serial numbers are not shown to your account'));
+ await shot('03-qms-serials-hidden-desktop');
+ {const [d]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsExcel').click()]);await d.saveAs('test-results/v267/QMS-L-101-hidden.xlsx');
+  const xml=await (await JSZip.loadAsync(fs.readFileSync('test-results/v267/QMS-L-101-hidden.xlsx'))).file('xl/worksheets/sheet1.xml').async('string');
+  assert.ok(!xml.includes('D-267')&&!xml.includes('AV-700'),'the lift Excel has no serial numbers');assert.ok(xml.includes('Serial numbers are not shown to this account'));}
+ await page.locator('#qmsBack').click();await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsResults table').waitFor();
+ {const [d]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);await d.saveAs('test-results/v267/QMS-data-hidden.xlsx');
+  const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v267/QMS-data-hidden.xlsx'));const wb=await zip.file('xl/workbook.xml').async('string');
+  assert.ok(!wb.includes('QMS Serial numbers'),'no serial sheet for this account');
+  for(const name of Object.keys(zip.files).filter(n=>/worksheets\/sheet\d+\.xml/.test(n)))assert.ok(!(await zip.file(name).async('string')).includes('D-267'),'no serial value in '+name);}
+ await page.locator('#qmsSearch [name=liftId]').fill('V7-1');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsEdit').waitFor({timeout:30000});
+ await page.locator('#qmsEdit').click();await page.locator('#qmsLiftForm').waitFor();
+ assert.equal(await page.locator('#qmsLiftForm [name=sl-drive]').inputValue(),'','stored serials are not sent to the form');
+ assert.equal(await page.locator('#qmsLiftForm [name=sl-drive]').getAttribute('required'),null);
+ await page.locator('#qmsLiftForm [name=project]').fill('AVR Tower 3');
+ {const b=page.locator('#qmsLiftForm [type=submit]');await b.scrollIntoViewIfNeeded();await b.focus();await page.waitForTimeout(200);await b.click();}
+ await page.locator('.hw-out h3').filter({hasText:'AVR Tower 3'}).waitFor();
+ const kept=await h.db.query("select serials from wlf_private.qms_lifts where lift_id='V7-1'");assert.equal(kept.rows[0].serials.drive,'D-267');assert.equal(kept.rows[0].serials.avr,'AV-700');
+ await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'qms:serials') where id=$1",[IDS.admin]));
+ await logout();await login('admin');await tab('qms');await page.locator('#qmsTabData').click();
+ await page.locator('#qmsSearch [name=liftId]').fill('V7-1');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
+ assert.ok((await page.locator('#tab-qms').innerText()).includes('D-267'),'with the permission the serial numbers show');
+ await logout();await login('sa');await tab('qms');await page.locator('#qmsTabInput').click();await page.locator('#qmsLiftForm').waitFor();
+ {const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
+  await page.locator('#qmsLiftForm [name=sl-battery]').scrollIntoViewIfNeeded();await shot('04-qms-input-battery-360-dark');
+  const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
+  await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
+ await page.locator('#qmsLiftForm [name=avrModel]').scrollIntoViewIfNeeded();await shot('05-qms-input-desktop');
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
