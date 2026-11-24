@@ -97,5 +97,5 @@
 .hw-selectall{margin-top:10px}
 .hw-selectall .btn{padding:6px 12px;font-size:13px}
 .hw-paid-pick{display:block;margin-top:12px;max-width:360px}
-.hw-sec textarea[name=paidNote]{width:100%;margin-top:4px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);padding:8px 10px;resize:vertical}
+.hw-sec textarea[name=specialNote]{width:100%;margin-top:4px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);padding:8px 10px;resize:vertical}
 .hw-paid-note{margin:10px 0 0;font-size:13.5px;overflow-wrap:anywhere}

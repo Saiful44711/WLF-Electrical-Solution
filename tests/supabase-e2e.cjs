@@ -32,14 +32,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.5-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.6-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -553,10 +553,12 @@ await page.locator('.hw-out h3').filter({hasText:'WLF North Tower 2'}).waitFor()
 assert.match(await page.locator('.hw-history').textContent(),/edited \(Project\)/);
 await tab('workspace-dashboard');
 await page.locator('#workspaceFilters h3',{hasText:'Admin Panel'}).waitFor();
-await page.locator('.mgmt-card').nth(5).waitFor();
-assert.deepEqual((await page.locator('.mgmt-card h3').allInnerTexts()).map(t=>t.replace(/\s+/g,'')),['1R&ITeamActivity','2R&IProjectManager','3TechnicalSupport','4DamageDemand','5QMS','6Supplierclaim']);
-assert.equal(await page.locator('.mgmt-card').nth(4).locator('.overview-metric').filter({hasText:'Lifts recorded'}).locator('strong').innerText(),'1');
-assert.equal(await page.locator('.mgmt-card').nth(2).locator('svg.mgmt-chart').count(),1);
+await page.locator('#apBody .mgmt-card').first().waitFor();
+assert.deepEqual(await page.locator('#apDash option').allInnerTexts(),['R&I team activity','R&I Project Manager','Technical Support','Damage Demand','Supplier claim','QMS','Performance curves']);
+await page.selectOption('#apDash','qms');
+assert.equal(await page.locator('#apBody .overview-metric').filter({hasText:'Lifts recorded'}).locator('strong').innerText(),'1');
+await page.selectOption('#apDash','support');
+assert.equal(await page.locator('#apBody svg.ap-chart').count()>=1,true,'Technical Support has a curve');
 assert.equal(await page.locator('#workspaceFilters [name=from]').inputValue(),(await page.evaluate(()=>AccessCore.dateKey(new Date()))).slice(0,8)+'01','this month by default');
 const kpiFile=page.waitForEvent('download');
 await page.locator('#workspaceExport').click();
@@ -823,7 +825,7 @@ await page.locator('#usageOldDelete:not([disabled])').click();await page.locator
 await page.locator('#globalMsg').filter({hasText:'2 old activity log rows deleted'}).waitFor();
 assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where at<now()-interval '7 days'"))).rows[0].n,0);
 // Management Dashboard screenshots
-await tab('workspace-dashboard');await page.locator('.mgmt-card').nth(5).waitFor();await v253shot('06-management-dashboard');
+await tab('workspace-dashboard');await page.locator('#apBody .mgmt-card').first().waitFor();await v253shot('06-management-dashboard');
 // the Commissioning user: red count, announcement card, Read, my work breakdown
 await logout();await login('user');await tab('account');
 await page.locator('#announceCard .announce-item').filter({hasText:'Site safety week'}).waitFor();
@@ -1040,10 +1042,10 @@ await page.locator('#usageRangeDelete').click();await page.locator('#wlfAdminTyp
 await page.locator('#globalMsg').filter({hasText:'2 activity log rows deleted'}).waitFor();
 assert.equal((await sequential(()=>h.db.query("select count(*)::int n from public.wlf_usage where details='range-test'"))).rows[0].n,0);
 // 3) Management Dashboard lists every team
-await tab('workspace-dashboard');await page.locator('.mgmt-card').nth(2).waitFor();
+await tab('workspace-dashboard');await page.locator('#apBody .mgmt-card').first().waitFor();await page.selectOption('#apDash','support');await page.locator('#apBody .mgmt-card').nth(2).waitFor();
 const mg=await page.locator('#tab-workspace-dashboard').innerText();
 for(const team of ['Commissioning','After Sales','Production','Factory Maintenance','QC','Installation'])assert.match(mg,new RegExp(team),team+' listed');
-await v256shot('05-dashboard-all-teams',{at:'.mgmt-card >> nth=2'});
+await v256shot('05-dashboard-all-teams',{at:'#apBody .mgmt-card >> nth=2'});
 // 4) Usage Dashboard tick: a User with the tick sees it (no delete box, no change log without that tick)
 await logout();await login('user');assert.equal(await page.locator('#nav [data-tab=dashboard]').isVisible(),false,'no tick: no Usage Dashboard');
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'usage:dashboard') where id=$1",[IDS.user]));
@@ -1432,9 +1434,11 @@ await logout();await login('sa');fs.mkdirSync('test-results/v264',{recursive:tru
 const v264shot=async name=>{await page.screenshot({path:'test-results/v264/'+name+'.png',fullPage:false});};
 // Admin Panel
 assert.equal((await page.locator('#nav [data-tab=workspace-dashboard]').innerText()).trim(),'Admin Panel','menu is renamed');
-await tab('workspace-dashboard');await page.locator('#workspaceFilters h3',{hasText:'Admin Panel'}).waitFor();await page.locator('.mgmt-user').first().waitFor();
+await tab('workspace-dashboard');await page.locator('#workspaceFilters h3',{hasText:'Admin Panel'}).waitFor();await page.locator('#apBody .mgmt-card').first().waitFor();
+await page.selectOption('#apDash','team');
 const panelText=await page.locator('#tab-workspace-dashboard').innerText();
-assert.match(panelText,/Performance curve/);assert.match(panelText,/Time invested/i);assert.match(panelText,/Team Activity/);assert.match(panelText,/SCM & Supplier communication/);
+assert.match(panelText,/Curve/);assert.match(panelText,/Time invested/i);
+await page.selectOption('#apUser',{index:1});const oneText=await page.locator('#apBody').innerText();assert.match(oneText,/Team Activity/);assert.match(oneText,/SCM & Supplier communication/);await page.selectOption('#apUser','all');
 assert.doesNotMatch(panelText,/Who handled them/,'the who-handled table is gone from Technical Support');
 assert.ok(await page.locator('#workspaceFull').isVisible(),'Full screen button');
 const wide=await page.evaluate(()=>{const a=document.querySelector('#tab-workspace-dashboard .admin-panel');return a.getBoundingClientRect().width;});assert.ok(wide>900,'the panel uses the width: '+wide);
@@ -1448,12 +1452,12 @@ assert.deepEqual([sum('received'),sum('solved'),sum('forwarded')],[Number(dbTota
 assert.ok(panel.users.length>=1&&panel.users.every(u=>u.sectors.length===4&&u.curve['Activity entries'].length===12));
 console.log('Admin Panel users',panel.users.map(u=>u.name+' support '+JSON.stringify(u.support)+' sectors '+u.sectors.map(x=>x.entries+'/'+x.minutes).join(',')).join(' | '));
 await v264shot('01-admin-panel-desktop');
-await page.locator('.mgmt-user').first().scrollIntoViewIfNeeded();await v264shot('02-admin-panel-user');
-await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);await page.locator('.mgmt-user').first().scrollIntoViewIfNeeded();await v264shot('03-admin-panel-user-dark');
+await page.locator('#apBody').scrollIntoViewIfNeeded();await v264shot('02-admin-panel-user');
+await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);await page.locator('#apBody').scrollIntoViewIfNeeded();await v264shot('03-admin-panel-user-dark');
 await page.setViewportSize({width:360,height:800});await page.waitForTimeout(300);
 const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));
 if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW-ADMIN-PANEL '+JSON.stringify(over));
-await page.locator('.mgmt-user').first().scrollIntoViewIfNeeded();await v264shot('04-admin-panel-360-dark');
+await page.locator('#apBody').scrollIntoViewIfNeeded();await v264shot('04-admin-panel-360-dark');
 await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>setAppearance('light'));
 // who sees it is chosen per user: a user without the tick has no Admin Panel
 await logout();await login('user');assert.equal(await page.locator('#nav [data-tab=workspace-dashboard]').isVisible(),false);
@@ -1508,12 +1512,12 @@ fs.mkdirSync('test-results/v265',{recursive:true});
  await page.locator('[data-other-all]').click();
  const motChips=await page.locator('[data-paid-chip]').allInnerTexts();
  assert.deepEqual(motChips,['Voice Announcer','Access Controller Card+Finger','Access Controller Card+Finger+Password','Access Controller AI Face','RFID Card','Cloud Monitoring','Remote Alarm','BMS','Regenerative drive']);
- assert.match(await page.locator(form+'legend').last().innerText(),/^6 · Paid feature information/);
+ assert.deepEqual(await page.locator(form+'legend').allInnerTexts().then(a=>a.slice(-2)),['6 · Paid feature information','7 · Special note']);
  await page.locator('[data-paid-chip="Voice Announcer"]').click();await page.locator('[data-paid-chip="Remote Alarm"]').click();await page.locator('[data-paid-chip="Regenerative drive"]').click();
  assert.equal(await page.locator('[data-paid-chip].on').count(),3);
  assert.equal(await page.locator('select[name^="paidkw:"]').count(),0,'MOT has one Regenerative drive, so no kW choice');
  assert.equal(await page.locator(form+'input[name=other]:checked').count(),total,'chip clicks keep the other components ticked');
- await page.locator(form+'[name=paidNote]').fill('Install after handover');
+ await page.locator(form+'[name=specialNote]').fill('Install after handover');
  await page.locator('[data-paid-chip="BMS"]').scrollIntoViewIfNeeded();await shot('01-paid-input-desktop');
  {const vp=page.viewportSize();await page.setViewportSize({width:360,height:800});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
   await page.locator('[data-paid-chip="BMS"]').scrollIntoViewIfNeeded();await shot('02-paid-input-360-dark');
@@ -1531,22 +1535,72 @@ fs.mkdirSync('test-results/v265',{recursive:true});
  await page.locator('#qmsTabData').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-MOT');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsExcel').waitFor({timeout:30000});
  const t7=page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'});
  const t7text=await t7.innerText();
- for(const x of ['Voice Announcer','270428','G&Z-PLUS LIFT ANNOUNCER','Remote Alarm','Arline-M Center Module','Arline-S-Int Speaking Uni','Regenerative drive','321528','Special note: Install after handover'])assert.ok(t7text.includes(x),'table 7 has '+x);
+ for(const x of ['Voice Announcer','270428','G&Z-PLUS LIFT ANNOUNCER','Remote Alarm','Arline-M Center Module','Arline-S-Int Speaking Uni','Regenerative drive','321528'])assert.ok(t7text.includes(x),'table 7 has '+x);
+ assert.ok(!t7text.includes('Install after handover'),'the note is not inside Paid feature');
+ {const t8=await page.locator('.hw-out').filter({hasText:'8 · SPECIAL NOTE'}).innerText();assert.ok(t8.includes('Install after handover'),'table 8 holds the special note');}
  assert.equal(await t7.locator('tbody tr').count(),1+4+1,'one Voice Announcer row, four Remote Alarm rows and one Regenerative drive row');
  await t7.scrollIntoViewIfNeeded();await shot('04-paid-output-desktop');
  const [dl]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsExcel').click()]);
  await dl.saveAs('test-results/v265/QMS-PF-MOT.xlsx');
  {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-PF-MOT.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
-  for(const t of ['7 · Paid feature information','Arline-M Center Module','Special note: Install after handover','G&amp;Z-PLUS LIFT ANNOUNCER'])assert.ok(xml.includes(t),'Excel has '+t);}
+  for(const t of ['7 · Paid feature information','Arline-M Center Module','8 · Special note','Install after handover','G&amp;Z-PLUS LIFT ANNOUNCER'])assert.ok(xml.includes(t),'Excel has '+t);}
  await page.locator('#qmsEdit').click();await page.locator(form).waitFor();
  assert.equal(await page.locator('[data-paid-chip].on').count(),3,'saved paid features are ticked when editing');
- assert.equal(await page.locator(form+'[name=paidNote]').inputValue(),'Install after handover');
+ assert.equal(await page.locator(form+'[name=specialNote]').inputValue(),'Install after handover');
  await page.locator('[data-paid-chip="Remote Alarm"]').click();await submit();await page.locator('#qmsLiftStatus').filter({hasText:'Changes saved.'}).waitFor();
  assert.equal(await page.locator('.hw-out').filter({hasText:'7 · PAID FEATURE INFORMATION'}).locator('tbody tr').count(),2,'Remote Alarm switched off');
  await page.locator('#qmsBack').click();await page.locator('#qmsSearch [name=liftId]').fill('PF-');await page.locator('#qmsSearch button[type=submit]').click();await page.locator('#qmsResults table').waitFor();
  const [dl3]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qmsAllExcel').click()]);await dl3.saveAs('test-results/v265/QMS-data.xlsx');
  {const JSZip=require('jszip');const zip=await JSZip.loadAsync(fs.readFileSync('test-results/v265/QMS-data.xlsx'));const xml=await zip.file('xl/worksheets/sheet1.xml').async('string');
   for(const t of ['Paid feature information','Regenerative Device - MCTC-AFE-4015N'])assert.ok(xml.includes(t),'flat sheet has '+t);}
+}
+// v2.6.6: Admin Panel (one dashboard at a time, user filter, curves with 1/3/6/12 month range)
+fs.mkdirSync('test-results/v266',{recursive:true});
+{const shot=async(name)=>{await page.screenshot({path:'test-results/v266/'+name+'.png',fullPage:false});};
+ await tab('workspace-dashboard');await page.locator('#apBody .mgmt-card').first().waitFor();
+ const body='#apBody ';
+ // every dashboard has its own curve and the range changes it
+ const series=await page.evaluate(()=>rpc('getAdminSeries',[T()]));
+ assert.equal(series.days,365);assert.ok(series.users.length>=2,'two or more R&I users: '+series.users.length);
+ assert.ok(series.users.every(u=>Object.values(u.s).every(a=>a.length===365)));
+ const dbEntries=Number((await sequential(()=>h.db.query(`select count(*) n from public.wlf_ri_entries e join public.wlf_profiles p on p.id=e.owner and p.role='R&I' and p.status='Approved' where e.deleted_at is null and e.created_at>=now()-interval '364 days'`))).rows[0].n);
+ assert.ok(series.users.reduce((t,u)=>t+u.s.entries.reduce((a,b)=>a+Number(b),0),0)<=dbEntries+0&&dbEntries>=0,'the curve never counts more than the database');
+ for(const dash of ['team','support','damage','claims','curves']){
+  await page.selectOption('#apDash',dash);await page.locator(body+'svg.ap-chart').first().waitFor();
+  for(const r of ['1','3','6','12']){await page.selectOption('#apRange',r);assert.ok(await page.locator(body+'svg.ap-chart').count()>=1,dash+' range '+r);}
+  assert.equal(await page.locator('#apRange').inputValue(),'12');
+ }
+ // team dashboard: compare everyone, then one user
+ await page.selectOption('#apDash','team');await page.selectOption('#apRange','12');await page.locator('[data-ap-mode=together]').click();
+ assert.match(await page.locator(body).innerText(),/Share of time/i);
+ assert.ok(await page.locator(body+'.ap-chip').count()>=2,'a name chip per R&I user');
+ await page.locator(body+'.ap-chip').first().click();assert.ok(await page.locator(body+'.ap-chip.off').count()===1,'a line can be hidden');await page.locator(body+'.ap-chip.off').click();
+ await page.locator(body+'.ap-chartbox').first().scrollIntoViewIfNeeded();const box=await page.locator(body+'.ap-chartbox').first().boundingBox();await page.mouse.move(box.x+box.width*.4,box.y+100);await page.mouse.move(box.x+box.width*.6,box.y+110);
+ await page.locator(body+'.ap-tip:not([hidden])').waitFor();assert.match(await page.locator(body+'.ap-tip').first().innerText(),/'\d\d/,'the hover box names the month');
+ await shot('01-admin-panel-team-curves');
+ await page.selectOption('#apRange','1');assert.ok(await page.locator(body+'.ap-mini').count()>=2,'1 month opens one chart per user');
+ assert.equal(await page.locator('.ap-seg button.on').innerText(),'One by one');
+ await shot('02-admin-panel-1-month');
+ await page.selectOption('#apRange','3');await page.locator('[data-ap-mode=together]').click();
+ const first=await page.locator('#apUser option').nth(1).getAttribute('value');
+ await page.selectOption('#apUser',first);assert.equal(await page.locator(body+'.ap-chip').count(),0,'one user: no name chips');assert.equal(await page.locator('.ap-seg').count(),0);
+ assert.ok(await page.locator(body+'svg.ap-chart path.avg').count()===1,'team average line for one user');
+ // support, damage and claims show the user table plus their own metrics
+ await page.selectOption('#apUser','all');
+ await page.selectOption('#apDash','support');assert.deepEqual(await page.locator('#apMetric option').allInnerTexts(),['Support received','Support solved','Not solved','Forwarded']);
+ await page.selectOption('#apDash','damage');assert.deepEqual(await page.locator('#apMetric option').allInnerTexts(),['Damage demands raised']);
+ await page.selectOption('#apDash','curves');assert.ok(await page.locator('#apMetric optgroup').count()===4,'every measure in one list');
+ await page.selectOption('#apMetric','solved');await shot('03-admin-panel-performance-curves');
+ // phone, dark: no sideways page scroll
+ await page.evaluate(()=>setAppearance('dark'));await page.setViewportSize({width:360,height:800});await page.selectOption('#apDash','support');await page.waitForTimeout(300);
+ const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW-ADMIN-PANEL-266 '+JSON.stringify(over));
+ await page.locator('#apBody').scrollIntoViewIfNeeded();await shot('04-admin-panel-360-dark');
+ await page.setViewportSize({width:1280,height:900});await page.evaluate(()=>setAppearance('light'));
+ // Excel carries the curves
+ await page.selectOption('#apDash','team');
+ const apFile=page.waitForEvent('download');await page.locator('#workspaceExport').click();await (await apFile).saveAs('test-results/v266/admin-panel.xlsx');
+ const apZip=await Zip.loadAsync(fs.readFileSync('test-results/v266/admin-panel.xlsx'));
+ assert.match(await apZip.file('xl/workbook.xml').async('string'),/R&amp;I user curves/);
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');

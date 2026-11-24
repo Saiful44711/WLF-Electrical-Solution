@@ -355,12 +355,12 @@ const WlfHardware = (() => {
   const savedPaidGroups = parts => [...new Set(parts.filter(p => p.section === 'paid').map(p => p.grp || p.hardware))];
 
   function newDraft() { return {id: crypto.randomUUID(), revision: 0, liftId: '', project: '', address: '', deliveryDate: '', motorType: 'Gearless', liftType: 'Passenger',
-    system: '', controllerModel: '', serials: {}, selection: null, parts: [], pick: {}, paidNote: ''}; }
+    system: '', controllerModel: '', serials: {}, selection: null, parts: [], pick: {}, specialNote: ''}; }
 
   function draftFromRecord(rec) {
     const d = {...newDraft(), id: rec.id, revision: rec.revision, liftId: rec.liftId, project: rec.project, address: rec.address || '', deliveryDate: rec.deliveryDate || '',
       motorType: rec.motorType || 'Gearless', liftType: rec.liftType || 'Passenger', system: rec.system, controllerModel: rec.controllerModel,
-      serials: rec.serials || {}, selection: rec.selection || null, parts: rec.parts || [], pick: {}, paidNote: rec.paidNote || ''};
+      serials: rec.serials || {}, selection: rec.selection || null, parts: rec.parts || [], pick: {}, specialNote: rec.specialNote || ''};
     return d;
   }
 
@@ -477,6 +477,8 @@ const WlfHardware = (() => {
         ${p.other.length ? '<div class="hw-toolbar hw-selectall"><button class="btn ghost" type="button" data-other-all>Select all</button><button class="btn ghost" type="button" data-other-none>Clear all</button></div>' : ''}
         <div class="hw-checks">${p.other.map(r => `<label class="hw-check"><input type="checkbox" name="other" value="${h(r.id)}" ${otherChecked.has(r.id) ? 'checked' : ''}> ${h(optionLabel(r))}${r.supplier ? ' <small>' + h(r.supplier) + '</small>' : ''}</label>`).join('') || '<p class="note">No other components for this control system.</p>'}</div>`)}
       ${sec('6 · Paid feature information', paidBlock(d))}
+      ${sec('7 · Special note', `<p class="note">Optional. Anything else to record about this lift. It is saved with the lift and shown as its own table in the output.</p>
+        <label>Special note (optional)<textarea name="specialNote" maxlength="500" rows="3" placeholder="Special note about this lift">${h(d.specialNote)}</textarea></label>`)}
       <p class="note overview-status" id="qmsLiftStatus" role="status"></p>
       <div class="overview-actions"><button class="btn" type="submit">${record ? 'Save changes' : 'Save lift record'}</button>
         ${record ? '<button class="btn ghost" type="button" id="qmsLiftCancel">Cancel</button>' : '<button class="btn ghost" type="reset" id="qmsLiftReset">Clear form</button>'}</div></form>`;
@@ -491,8 +493,7 @@ const WlfHardware = (() => {
     return `<p class="note">Select the paid features of this lift. Every selected feature is listed in the output table with all its items.</p>
       <div class="hw-chips" role="group" aria-label="Paid features">${groups.map(g => `<button type="button" class="chip hw-chip ${on.has(g.name) ? 'on' : ''}" aria-pressed="${on.has(g.name)}" data-paid-chip="${h(g.name)}">${h(g.name)}</button>`).join('')}</div>
       ${groups.filter(g => on.has(g.name) && g.choose).map(g => `<label class="hw-paid-pick">${h(g.name)} · choose one<select name="paidkw:${h(g.name)}" required>
-        <option value="">Select…</option>${g.rows.map(r => `<option value="${h(r.id)}" ${r.id === chosen(g) ? 'selected' : ''}>${h([r.spec, r.itemCode ? '· ' + r.itemCode : '· no code'].join(' '))}</option>`).join('')}</select></label>`).join('')}
-      <label>Special note (optional)<textarea name="paidNote" maxlength="500" rows="3" placeholder="Anything to record about the paid features of this lift">${h(d.paidNote)}</textarea></label>`;
+        <option value="">Select…</option>${g.rows.map(r => `<option value="${h(r.id)}" ${r.id === chosen(g) ? 'selected' : ''}>${h([r.spec, r.itemCode ? '· ' + r.itemCode : '· no code'].join(' '))}</option>`).join('')}</select></label>`).join('')}`;
   }
 
   function readDraft() {
@@ -506,7 +507,8 @@ const WlfHardware = (() => {
     for (const k of ['lop', 'cop0', 'cop1', 'faceplate', 'transom', 'cable', 'avr']) if (f.elements[k]) draft.pick[k] = f.elements[k].value;
     draft.pick.avrModel = v('avrModel');
     draft.pickOther = [...f.querySelectorAll('input[name=other]:checked')].map(x => x.value);
-    if (f.elements.paidNote) { draft.paidNote = f.elements.paidNote.value.trim(); draft.pickPaid ??= savedPaidGroups(draft.parts); }
+    if (f.elements.specialNote) draft.specialNote = f.elements.specialNote.value.trim();
+    if (f.querySelector('[data-paid-chip]')) draft.pickPaid ??= savedPaidGroups(draft.parts);
     f.querySelectorAll('select[name^="paidkw:"]').forEach(s => { (draft.pickPaidKw ??= {})[s.name.slice(7)] = s.value; });
   }
 
@@ -575,7 +577,7 @@ const WlfHardware = (() => {
         status.textContent = 'Saving…';
         const saved = await rpc('saveQmsLift', [T(), {id: draft.id, revision: draft.revision, liftId: draft.liftId, project: draft.project, address: draft.address,
           deliveryDate: draft.deliveryDate, motorType: draft.motorType, liftType: draft.liftType, system: draft.system, controllerModel: draft.controllerModel,
-          serials: draft.serials, selection: draft.selection, paidNote: draft.paidNote, items}]);
+          serials: draft.serials, selection: draft.selection, specialNote: draft.specialNote, items}]);
         if (record) { showLift(saved, 'Changes saved.'); return; }
         draft = newDraft();
         el('qmsPanel').innerHTML = qmsForm(null);
@@ -668,8 +670,9 @@ const WlfHardware = (() => {
           ...parts(['avr', 'other']).map(p => [h(p.section === 'avr' ? p.model : p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.supplier), h(p.brand), h(money(p.value))]),
           ...(sdbOf(rec.selection) ? [['SDB main breaker rating', '—', '—', h(sdbOf(rec.selection)), '', '', '']] : [])])}</section>
       <section class="card hw-out"><div class="overview-eyebrow">7 · PAID FEATURE INFORMATION</div>${
-        tbl(['Category', 'Item code', 'Item name', 'Spec', 'Brand', 'Supplier', 'Price (৳)'], parts(['paid']).map(p => [h(p.grp || p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.brand), h(p.supplier), h(money(p.value))]), 'No paid feature was selected.')}
-        ${rec.paidNote ? `<p class="hw-paid-note"><b>Special note:</b> ${h(rec.paidNote)}</p>` : ''}</section>`;
+        tbl(['Category', 'Item code', 'Item name', 'Spec', 'Brand', 'Supplier', 'Price (৳)'], parts(['paid']).map(p => [h(p.grp || p.hardware), codeCell(p), h(p.name), h(p.spec), h(p.brand), h(p.supplier), h(money(p.value))]), 'No paid feature was selected.')}</section>
+      <section class="card hw-out"><div class="overview-eyebrow">8 · SPECIAL NOTE</div>${
+        rec.specialNote ? `<p class="hw-paid-note">${h(rec.specialNote)}</p>` : '<p class="note">No special note.</p>'}</section>`;
   }
 
   async function downloadLifts(records, name, status) {

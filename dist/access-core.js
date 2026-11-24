@@ -77,7 +77,7 @@ function performance(tickets,users){return users.filter(function(u){return u.rol
 function supplierAccess(u,option){if(!approved(u))return false;if(superUser(u))return true;var perms=u.permissions||[];if(option==='view')return perms.indexOf('supplier:view')>=0||perms.indexOf('supplier:receive')>=0;return perms.indexOf('supplier:'+option)>=0;}
 var liveActions=['adminDataUsage','adminExportData','adminImportData','adminImportComponents','getDocuments','saveDocumentCategory','deleteDocumentCategory','saveDocument','deleteDocument','saveDocumentFolder','deleteDocumentFolder','getDashboardSupport','getAppContext','listAppUsers','saveAppUserAccess','resetAppUserPassword','getSupportWorkspace','getSupportRequest','getSupportSummary','getSupportReport','createSupportRequest','transitionSupportRequest','editSupportRequest','deleteSupportRequest','saveSupportSchema','getTroubleshootingSummary','getRiCategories','getRiEntries','saveRiCategory','setRiCategoryActive','saveRiEntry','deleteRiEntry','getRiProjects','saveRiProject','deleteRiProject','getRiDashboard',
  'createDamageDemand','getDamageDemands','getDamageDemand','getDamageDashboard','getDamageReport','receiveDamageDemand',
- 'getMyWorkspaceProfile','getWorkspaceDashboard','getWorkspaceReport','getAdminPanel','getQmsComponents','saveQmsComponent','getCatalogue','saveCatalogueRow','deleteCatalogueRow','newCatalogueModel','renameCatalogueModel','deleteCatalogueModel','importCatalogue','saveCatalogueMap','getQmsLifts','getQmsLift','saveQmsLift','deleteQmsLift',
+ 'getMyWorkspaceProfile','getWorkspaceDashboard','getWorkspaceReport','getAdminPanel','getAdminSeries','getQmsComponents','saveQmsComponent','getCatalogue','saveCatalogueRow','deleteCatalogueRow','newCatalogueModel','renameCatalogueModel','deleteCatalogueModel','importCatalogue','saveCatalogueMap','getQmsLifts','getQmsLift','saveQmsLift','deleteQmsLift',
  'savePushSubscription','deletePushSubscription','getPushStatus','getUserAccessLog','saveSupportAging','getMyForwarded',
  'getNavBadges','getAnnouncements','markAnnouncementRead','getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement','getRecycleBin','restoreRecycleItem','purgeRecycleItems','getUsageLog','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange','getComponentLog','getManagementDashboard','getSupplierClaims','markSupplierClaim','confirmSupplierClaim','cancelSupplierClaim','receiveSupplierClaim','saveSupplierReference','undoSupplierReceive'];
 function apiAllowed(a){return liveActions.indexOf(a)>=0;}
@@ -86,7 +86,7 @@ function apiCan(u,a){if(!approved(u))return false;
  if(a==='receiveDamageDemand')return damageAccess(u,'receive');
  if(a==='getDamageDemands'||a==='getDamageDemand')return damageAccess(u,'demand');
  if(a==='getDamageDashboard'||a==='getDamageReport')return damageAccess(u,'dashboard');
- if(a==='getWorkspaceDashboard'||a==='getWorkspaceReport'||a==='getManagementDashboard'||a==='getAdminPanel')return workspaceAccess(u,'workspace:dashboard');
+ if(a==='getWorkspaceDashboard'||a==='getWorkspaceReport'||a==='getManagementDashboard'||a==='getAdminPanel'||a==='getAdminSeries')return workspaceAccess(u,'workspace:dashboard');
  if(['getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement','getRecycleBin','restoreRecycleItem','purgeRecycleItems','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange'].indexOf(a)>=0)return superUser(u);
  if(a==='getUsageLog'||a==='adminStats')return usageAccess(u);
  if(a==='getComponentLog')return componentLogAccess(u);

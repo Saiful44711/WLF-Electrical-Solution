@@ -149,27 +149,6 @@ const WlfOverview = (() => {
     .replace(/ Team Support Request$/,'').replace(/ Support Request$/,'');
   const riSection = {team:'Team Activity',scm:'SCM & Supplier',sales:'Sales Support',reports:'Reports'};
 
-  function lineChart(months, series, label) {
-    const keys = Object.keys(series);
-    if (!keys.length) return '<p class="note">No records in the last 12 months.</p>';
-    const W = 640, H = 220, L = 34, R = 10, T = 12, B = 30;
-    const max = Math.max(1, ...keys.flatMap(k => series[k].map(Number)));
-    const step = max <= 5 ? 1 : Math.ceil(max / 4);
-    const top = Math.ceil(max / step) * step;
-    const x = i => L + i * (W - L - R) / (months.length - 1);
-    const y = v => T + (H - T - B) * (1 - v / top);
-    let grid = '';
-    for (let v = 0; v <= top; v += step) grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-    const ticks = months.map((m, i) => i % 2 === (months.length - 1) % 2 ? `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${h(m)}</text>` : '').join('');
-    const lines = keys.map((k, s) => {
-      const c = palette[s % palette.length], pts = series[k].map((v, i) => `${x(i).toFixed(1)},${y(Number(v)).toFixed(1)}`);
-      return `<polyline fill="none" stroke="${c}" stroke-width="2.25" stroke-linejoin="round" points="${pts.join(' ')}"/>` +
-        series[k].map((v, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(Number(v)).toFixed(1)}" r="3" fill="${c}"><title>${h(teamName(k))} · ${h(months[i])}: ${count(v)}</title></circle>`).join('');
-    }).join('');
-    return `<svg class="mgmt-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(label)}">${grid}${ticks}${lines}</svg>
-      <ul class="mgmt-legend">${keys.map((k, s) => `<li><i style="background:${palette[s % palette.length]}"></i>${h(teamName(k))}</li>`).join('')}</ul>`;
-  }
-
   function hbars(rows) {
     const max = Math.max(1, ...rows.map(r => Number(r.value)));
     return `<div class="mgmt-hbar">${rows.map(r => `<div><span>${h(r.label)}</span><i style="width:${Math.max(1, Number(r.value) * 100 / max)}%"></i><b>${count(r.value)}</b></div>`).join('')}</div>`;
@@ -179,11 +158,201 @@ const WlfOverview = (() => {
     return list.length ? `<ul class="mgmt-people">${list.map(p => `<li>${h(p.name)}<b>${count(p.n)}</b></li>`).join('')}</ul>` : '';
   }
 
+  /* v2.6.6 Admin Panel: one dashboard at a time, a user filter and curves (1, 3, 6, 12 months) on every dashboard. */
+  const AP_DASH = [['team','R&I team activity'],['projects','R&I Project Manager'],['support','Technical Support'],['damage','Damage Demand'],['claims','Supplier claim'],['qms','QMS'],['curves','Performance curves']];
+  const AP_METRICS = {
+    team:[['entries','Activity entries'],['completed','Completed entries'],['hours','Time recorded (h)']],
+    support:[['received','Support received'],['solved','Support solved'],['notSolved','Not solved'],['forwarded','Forwarded']],
+    damage:[['damage','Damage demands raised']],
+    claims:[['claims','Supplier claims raised']]};
+  const AP_GROUP = {team:'R&I team activity', support:'Technical Support', damage:'Damage Demand', claims:'Supplier claim'};
+  const AP = {dash:'team', user:'all', range:12, mode:'together', metric:{team:'entries', support:'received', damage:'damage', claims:'claims', curves:'entries'}, hidden:new Set()};
+  let apData = null, apFilters = null, chartSeq = 0;
+  const apCharts = {};
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function apDate(end, i, days) {
+    const [y, m, d] = String(end).slice(0, 10).split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d - (days - 1 - i)));
+  }
+  const round1 = v => Math.round(v * 10) / 10;
+  /* Adds the 365 daily values up: 1 month = daily, 3 months = weekly, 6 and 12 months = calendar months. */
+  function apSeries(arr, range, end) {
+    const days = arr.length, labels = [], vals = [];
+    const sum = list => round1(list.reduce((a, b) => a + Number(b), 0));
+    if (range === 1) {
+      for (let i = days - 30; i < days; i++) { const d = apDate(end, i, days); labels.push(d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]); vals.push(Number(arr[i])); }
+    } else if (range === 3) {
+      for (let b = 12; b >= 0; b--) { const e = days - b * 7, d = apDate(end, e - 1, days); labels.push('Week to ' + d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()]); vals.push(sum(arr.slice(Math.max(0, e - 7), e))); }
+    } else {
+      const buckets = new Map();
+      for (let i = 0; i < days; i++) {
+        const d = apDate(end, i, days), key = d.getUTCFullYear() * 12 + d.getUTCMonth();
+        if (!buckets.has(key)) buckets.set(key, {l:MONTHS[d.getUTCMonth()] + " '" + String(d.getUTCFullYear()).slice(2), a:[]});
+        buckets.get(key).a.push(arr[i]);
+      }
+      const list = [...buckets.values()].slice(-range);
+      list.forEach((b, i) => { labels.push(i === list.length - 1 ? b.l + ' (to date)' : b.l); vals.push(sum(b.a)); });
+    }
+    return {labels, vals};
+  }
+  function smooth(pts) {
+    if (pts.length < 3) return 'M' + pts.map(p => p.join(',')).join('L');
+    const n = pts.length, dx = [], m = [], t = [];
+    for (let i = 0; i < n - 1; i++) { dx.push(pts[i + 1][0] - pts[i][0]); m.push((pts[i + 1][1] - pts[i][1]) / dx[i]); }
+    t.push(m[0]); for (let i = 1; i < n - 1; i++) t.push(m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2); t.push(m[n - 2]);
+    let d = 'M' + pts[0].map(v => v.toFixed(1)).join(',');
+    for (let i = 0; i < n - 1; i++) { const k = dx[i] / 3; d += `C${(pts[i][0] + k).toFixed(1)},${(pts[i][1] + t[i] * k).toFixed(1)} ${(pts[i + 1][0] - k).toFixed(1)},${(pts[i + 1][1] - t[i + 1] * k).toFixed(1)} ${pts[i + 1][0].toFixed(1)},${pts[i + 1][1].toFixed(1)}`; }
+    return d;
+  }
+  function apChart(users, o) {
+    const id = 'apc' + (++chartSeq), n = o.labels.length, W = o.small ? 360 : 760, H = o.small ? 170 : 300, L = o.small ? 34 : 44, R = o.small ? 10 : 60, T = 14, B = 26;
+    const all = users.flatMap(u => u.curve).concat(o.avg || []);
+    let lo = Math.min(0, ...all), hi = Math.max(...all, 1);
+    const raw = (hi - lo) / 3, mag = Math.pow(10, Math.floor(Math.log10(raw || 1))), step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(v => v >= raw) || mag;
+    hi = Math.ceil(hi / step - 1e-9) * step;
+    const x = i => L + (n > 1 ? i * (W - L - R) / (n - 1) : 0), y = v => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    let grid = '';
+    for (let v = lo; v <= hi + 1e-9; v += step) { const r = Math.round(v * 100) / 100; grid += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(r)}" y2="${y(r)}"/><text x="${L - 6}" y="${y(r) + 4}" text-anchor="end">${r}</text>`; }
+    const every = Math.max(1, Math.ceil(n / (o.small ? 4 : 8)));
+    const ticks = o.labels.map((m, i) => (i % every === 0 || i === n - 1) && !(i !== n - 1 && n - 1 - i < every)
+      ? `<text x="${x(i)}" y="${H - 7}" text-anchor="${i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}">${h(m.replace('Week to ', ''))}</text>` : '').join('');
+    let defs = '', body = '';
+    if (o.avg) body += `<path class="avg" d="${smooth(o.avg.map((v, i) => [x(i), y(v)]))}" fill="none"/>`;
+    users.forEach((u, k) => {
+      const pts = u.curve.map((v, i) => [x(i), y(v)]), d = smooth(pts);
+      if (o.area) {
+        defs += `<linearGradient id="${id}g${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${u.col}" stop-opacity=".32"/><stop offset="1" stop-color="${u.col}" stop-opacity="0"/></linearGradient>`;
+        body += `<path d="${d}L${x(n - 1).toFixed(1)},${y(lo)}L${x(0).toFixed(1)},${y(lo)}Z" fill="url(#${id}g${k})"/>`;
+      }
+      body += `<path class="ln" data-u="${h(u.name)}" d="${d}" fill="none" stroke="${u.col}" stroke-width="${o.small ? 2.4 : 2.8}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      body += `<circle cx="${pts[n - 1][0].toFixed(1)}" cy="${pts[n - 1][1].toFixed(1)}" r="4.5" fill="${u.col}" class="endpoint"/>`;
+    });
+    if (!o.small) {
+      const ends = users.map(u => ({u, y:y(u.curve[n - 1])})).sort((a, b) => a.y - b.y);
+      for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
+      ends.forEach(e => { body += `<text x="${x(n - 1) + 9}" y="${e.y + 4}" style="fill:${e.u.col};font-weight:700">${count(e.u.curve[n - 1])}</text>`; });
+    }
+    apCharts[id] = {labels:o.labels, list:users, avg:o.avg, L, R, n};
+    return `<div class="ap-chartwrap"><div class="ap-chartbox" data-chart="${id}"><svg class="ap-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${h(o.label)}"><defs>${defs}</defs>${grid}${ticks}${body}<line class="cursor" x1="0" x2="0" y1="${T}" y2="${H - B}" opacity="0"/></svg><div class="ap-tip" hidden></div></div></div>`;
+  }
+  function wireCharts(root) {
+    root.querySelectorAll('.ap-chartbox').forEach(box => {
+      const c = apCharts[box.dataset.chart], svg = box.querySelector('svg'), tip = box.querySelector('.ap-tip'), cur = svg.querySelector('.cursor'), vb = svg.viewBox.baseVal;
+      const move = e => {
+        const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * vb.width;
+        let i = c.n > 1 ? Math.round((px - c.L) / ((vb.width - c.L - c.R) / (c.n - 1))) : 0; i = Math.max(0, Math.min(c.n - 1, i));
+        const xx = c.L + (c.n > 1 ? i * (vb.width - c.L - c.R) / (c.n - 1) : 0);
+        cur.setAttribute('x1', xx); cur.setAttribute('x2', xx); cur.setAttribute('opacity', '.6');
+        const rows = c.list.slice().sort((a, b) => b.curve[i] - a.curve[i]);
+        tip.innerHTML = `<b>${h(c.labels[i])}</b>` + rows.map(u => `<div><i style="background:${u.col}"></i>${h(u.name)}<em>${count(u.curve[i])}</em></div>`).join('') +
+          (c.avg ? `<div class="avg">Team average<em>${count(c.avg[i])}</em></div>` : '');
+        tip.hidden = false;
+        tip.style.left = Math.max(0, Math.min(xx / vb.width * r.width + 12, r.width - tip.offsetWidth)) + 'px';
+        svg.querySelectorAll('.ln').forEach(l => { l.style.opacity = c.list.length > 1 && rows[0].name !== l.dataset.u ? '.35' : '1'; });
+      };
+      const leave = () => { tip.hidden = true; cur.setAttribute('opacity', '0'); svg.querySelectorAll('.ln').forEach(l => { l.style.opacity = '1'; }); };
+      box.addEventListener('pointermove', move); box.addEventListener('pointerleave', leave); box.addEventListener('pointerdown', move);
+    });
+    root.querySelectorAll('.ap-chartwrap').forEach(w => { w.scrollLeft = w.scrollWidth; });
+  }
+
+  const apUsers = () => (apData?.series?.users || []).map((u, i) => ({...u, col:palette[i % palette.length]}));
+  const apSelected = () => AP.user === 'all' ? apUsers() : apUsers().filter(u => u.id === AP.user);
+  const metricName = key => Object.values(AP_METRICS).flat().find(m => m[0] === key)?.[1] || key;
+
+  function curveCard(dash) {
+    const group = dash === 'curves' ? null : dash, key = AP.metric[dash];
+    const everyone = apUsers(), mine = apSelected(), multi = mine.length > 1;
+    if (!everyone.length) return apCard('Curve', '', '<p class="note">No approved R&amp;I users.</p>');
+    const end = apData.series.end, name = metricName(key);
+    const view = list => list.map(u => { const sr = apSeries(u.s[key] || [], AP.range, end); return {name:u.name, col:u.col, curve:sr.vals, labels:sr.labels}; });
+    const base = view(everyone), labels = base[0].labels, nn = labels.length;
+    const avg = labels.map((_, i) => round1(base.reduce((a, u) => a + u.curve[i], 0) / base.length));
+    const shown = view(mine), visible = multi ? shown.filter(u => !AP.hidden.has(u.name)) : shown;
+    let body;
+    if (!multi) body = apChart(shown, {labels, avg, area:true, label:name + ' of ' + (shown[0]?.name || '')});
+    else if (AP.mode === 'together') body = `<div class="ap-chips">${shown.map(u => `<button type="button" class="ap-chip ${AP.hidden.has(u.name) ? 'off' : ''}" data-ap-user="${h(u.name)}"><i style="background:${u.col}"></i>${h(u.name)}</button>`).join('')}</div>` +
+      (visible.length ? apChart(visible, {labels, label:name + ' of all R&I users'}) : '<p class="note">Every line is hidden. Tap a name to show it.</p>');
+    else body = `<div class="ap-minis">${shown.map(u => `<div class="ap-mini"><div class="ap-mini-head"><i style="background:${u.col}"></i>${h(u.name)}<b>${count(u.curve[nn - 1])}</b></div>${apChart([u], {labels, avg, area:true, small:true, label:name + ' of ' + u.name})}</div>`).join('')}</div>`;
+    const unit = AP.range === 1 ? 'daily, last 30 days' : AP.range === 3 ? 'weekly, last 3 months' : 'monthly, last ' + AP.range + ' months';
+    const options = group ? AP_METRICS[group].map(m => `<option value="${m[0]}" ${m[0] === key ? 'selected' : ''}>${h(m[1])}</option>`).join('')
+      : Object.entries(AP_METRICS).map(([g, list]) => `<optgroup label="${h(AP_GROUP[g])}">${list.map(m => `<option value="${m[0]}" ${m[0] === key ? 'selected' : ''}>${h(m[1])}</option>`).join('')}</optgroup>`).join('');
+    const title = (dash === 'curves' ? 'Performance curves' : 'Curve') + ' · ' + (multi ? 'all R&I users' : shown[0].name);
+    return `<section class="card overview-panel mgmt-card ap-curve"><div class="ap-curve-head"><div><h3>${h(title)}</h3>
+      <p class="note">${h(name)} · ${unit}.${multi && AP.mode === 'together' ? ' Hover or touch the chart to compare. Tap a name to hide a line.' : ' The dashed line is the team average.'}</p></div>
+      <div class="ap-ctl"><label>Show<select id="apMetric">${options}</select></label>
+        <label>Range<select id="apRange">${[[1,'1 month'],[3,'3 months'],[6,'6 months'],[12,'12 months']].map(([v, l]) => `<option value="${v}" ${v === AP.range ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+        ${multi ? `<div class="ap-seg" role="group" aria-label="Curve layout"><button type="button" class="${AP.mode === 'together' ? 'on' : ''}" data-ap-mode="together">Together</button><button type="button" class="${AP.mode === 'separate' ? 'on' : ''}" data-ap-mode="separate">One by one</button></div>` : ''}</div></div>${body}</section>`;
+  }
+
+  const apCard = (title, note, body) => `<section class="card overview-panel mgmt-card"><h3>${h(title)}</h3>${note ? `<p class="note">${h(note)}</p>` : ''}${body}</section>`;
+  const sumOf = (list, f) => list.reduce((t, u) => t + Number(f(u) || 0), 0);
+
+  function apBody() {
+    const data = apData, period = date(data.from) + ' – ' + date(data.to);
+    const panelAll = data.panel?.users || [], panel = AP.user === 'all' ? panelAll : panelAll.filter(u => u.id === AP.user);
+    const one = AP.user === 'all' ? null : panel[0];
+    const who = one ? one.name : 'all R&I users';
+    switch (AP.dash) {
+    case 'team': {
+      const tot = k => sumOf(panel, u => sumOf(u.sectors, x => x[k]));
+      const kpi = `<div class="overview-metrics">${metric('Activity entries', count(tot('entries')), 'blue')}${metric('Time recorded', minutesText(tot('minutes')), 'teal')}${metric('Completed', count(tot('completed')), 'teal')}${metric('Ongoing', count(tot('ongoing')), 'amber')}${metric('Incomplete', count(tot('incomplete')), 'violet')}</div>`;
+      const share = tot('minutes');
+      const grid = one
+        ? table(['Sector','Completed','Ongoing','Incomplete','Time invested'], one.sectors.map(x => [h(sectorName[x.section] || x.section), count(x.completed), count(x.ongoing), count(x.incomplete), h(minutesText(x.minutes))]), 'Activity by sector for ' + one.name)
+        : table(['R&I user','Completed','Ongoing','Incomplete','Entries','Time invested','Share of time'], panel.map(u => {
+          const m = sumOf(u.sectors, x => x.minutes);
+          return [h(u.name), count(sumOf(u.sectors, x => x.completed)), count(sumOf(u.sectors, x => x.ongoing)), count(sumOf(u.sectors, x => x.incomplete)), count(sumOf(u.sectors, x => x.entries)), h(minutesText(m)), share ? Math.round(m * 100 / share) + '%' : '—'];
+        }), 'Activity of every R&I user');
+      const riRows = data.ri.filter(r => Number(r.total));
+      const forms = one ? '' : apCard('Entries by form', period, riRows.length ? riRows.map(r => `<div class="mgmt-ri-form"><div class="mgmt-ri-head"><b>${h(r.form)}</b><span>${h(riSection[r.section] || r.section)} · <b>${count(r.total)}</b></span></div>${people(r.people)}</div>`).join('') : '<p class="note">No R&amp;I entries in this period.</p>');
+      return apCard('R&I team activity · ' + who, period, kpi + grid) + curveCard('team') + forms;
+    }
+    case 'projects': {
+      const pr = data.projects, st = ['In Progress','On Hold','Done','Cancelled'];
+      return apCard('R&I Project Manager', 'All current projects · ' + count(pr.startedInPeriod) + ' started in this period',
+        `<div class="overview-metrics">${st.map((s, i) => metric(s, count(pr.statuses[s]), ['blue','amber','teal','violet'][i])).join('')}</div>
+        ${pr.leads.length ? table(['Project lead','Projects',...st], pr.leads.map(l => [h(l.name || '—'), count(l.total), ...st.map(s => count(l.statuses[s]))]), 'Projects by lead') : '<p class="note">No projects.</p>'}
+        ${Object.keys(pr.tasks).length ? `<p class="note">Tasks: ${Object.entries(pr.tasks).map(([s, n]) => h(s) + ' ' + count(n)).join(' · ')}</p>` : ''}`);
+    }
+    case 'support': {
+      const k = f => sumOf(panel, u => u.support?.[f]);
+      const kpi = `<div class="overview-metrics">${metric('Support received', count(k('received')), 'blue')}${metric('Support solved', count(k('solved')), 'teal')}${metric('Not solved', count(k('notSolved')), 'amber')}${metric('Forwarded', count(k('forwarded')), 'violet')}</div>`;
+      const byUser = table(['R&I user','Received','Solved','Not solved','Forwarded'], panel.map(u => [h(u.name), count(u.support?.received), count(u.support?.solved), count(u.support?.notSolved), count(u.support?.forwarded)]), 'Support by R&I user');
+      const sp = data.support;
+      const teams = one ? '' : apCard('Requests by team', period, sp.teams.length ? table(['Team','Requests','Solved','Not solved','Open'], sp.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.solved), count(t.notSolved), count(t.open)]), 'Support by team') : '<p class="note">No support requests in this period.</p>');
+      return apCard('Technical Support · ' + who, period, kpi + byUser) + curveCard('support') + teams;
+    }
+    case 'damage': {
+      const kpi = `<div class="overview-metrics">${metric('Demands raised', count(sumOf(panel, u => u.damage)), 'amber')}</div>`;
+      const byUser = table(['R&I user','Damage demands raised'], panel.map(u => [h(u.name), count(u.damage)]), 'Damage demands by R&I user');
+      const dm = data.damage;
+      const teams = one ? '' : apCard('Demands by team', period, (dm.teams.length ? table(['Team','Demands','Pending','Received','Units'], dm.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.pending), count(t.received), count(t.quantity)]), 'Damage demands by team') : '<p class="note">No damage demands in this period.</p>') +
+        (dm.top.length ? `<h4 class="mgmt-sub">Top ${dm.top.length} damaged components (units)</h4>` + hbars(dm.top.map(t => ({label:t.item, value:t.quantity}))) : ''));
+      return apCard('Damage Demand · ' + who, period, kpi + byUser) + curveCard('damage') + teams;
+    }
+    case 'claims': {
+      const kpi = `<div class="overview-metrics">${metric('Supplier claims raised', count(sumOf(panel, u => u.claims)), 'blue')}</div>`;
+      const byUser = table(['R&I user','Supplier claims raised'], panel.map(u => [h(u.name), count(u.claims)]), 'Supplier claims by R&I user');
+      return apCard('Supplier claim · ' + who, period, kpi + byUser) + curveCard('claims');
+    }
+    case 'qms': {
+      const q = data.qms;
+      return apCard('QMS', period + ' · ' + count(q.total) + ' lift records in total', `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('All lift records', count(q.total), 'teal')}</div>${people(q.people)}`);
+    }
+    default: return curveCard('curves');
+    }
+  }
+
   function dashboardFilters(filters, data) {
+    const users = apUsers();
     return `<form id="workspaceFilters" class="card overview-panel">
       <div class="overview-heading"><div><h3>Admin Panel</h3>
-        <p class="note">Team performance. Dates use Dhaka time; this month by default. Curves always show the last 12 months.</p></div></div>
-      <div class="overview-filters">
+        <p class="note">Team performance. Dates use Dhaka time; this month by default. Curves have their own range.</p></div></div>
+      <div class="overview-filters ap-filters">
+        <label>Dashboard<select id="apDash">${AP_DASH.map(([v, l]) => `<option value="${v}" ${v === AP.dash ? 'selected' : ''}>${h(l)}</option>`).join('')}</select></label>
+        <label>R&amp;I user<select id="apUser"><option value="all">All R&amp;I users (compare)</option>${users.map(u => `<option value="${h(u.id)}" ${u.id === AP.user ? 'selected' : ''}>${h(u.name)}</option>`).join('')}</select></label>
         <label>From<input type="date" name="from" value="${h(filters.from)}" required></label>
         <label>To<input type="date" name="to" value="${h(filters.to)}" required></label>
         <div class="overview-actions">
@@ -198,56 +367,26 @@ const WlfOverview = (() => {
 
   const minutesText = m => { m = Math.round(Number(m || 0)); return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') + ' min' : m + ' min'; };
   const sectorName = {team:'Team Activity', scm:'SCM & Supplier communication', sales:'Sales Support', reports:'Reports'};
-  function userPanel(u) {
-    const total = u.sectors.reduce((t, x) => t + Number(x.entries), 0), minutes = u.sectors.reduce((t, x) => t + Number(x.minutes), 0);
-    const su = u.support || {};
-    return `<section class="card overview-panel mgmt-user"><div class="mgmt-user-head"><h3>${h(u.name)}</h3>
-        <span class="note">${count(total)} activity entries · ${h(minutesText(minutes))} recorded</span></div>
-      ${table(['Sector','Completed','Ongoing','Incomplete','Time invested'], [
-        ...u.sectors.map(x => [h(sectorName[x.section] || x.section), count(x.completed), count(x.ongoing), count(x.incomplete), h(minutesText(x.minutes))])], 'Activity by sector for ' + u.name)}
-      <div class="overview-metrics">${metric('Support received', count(su.received), 'blue')}${metric('Support solved', count(su.solved), 'teal')}${metric('Not solved', count(su.notSolved), 'amber')}${metric('Forwarded', count(su.forwarded), 'violet')}
-        ${metric('Damage demands raised', count(u.damage), 'amber')}${metric('Supplier claims raised', count(u.claims), 'blue')}</div>
-      <h4 class="mgmt-sub">Performance curve · last 12 months</h4>${lineChart(panelMonths, u.curve, 'Monthly performance of ' + u.name)}</section>`;
-  }
-  let panelMonths = [];
 
-  function card(num, title, note, body) {
-    return `<section class="card overview-panel mgmt-card"><h3><span class="mgmt-num">${num}</span>${h(title)}</h3>
-      ${note ? `<p class="note">${h(note)}</p>` : ''}${body}</section>`;
+  function paintBody() {
+    const root = el('apBody');
+    if (!root) return;
+    Object.keys(apCharts).forEach(k => delete apCharts[k]);
+    root.innerHTML = apData ? apBody() : '<p class="note">Loading…</p>';
+    wireCharts(root);
+    const metricSelect = el('apMetric'), rangeSelect = el('apRange');
+    if (metricSelect) metricSelect.onchange = () => { AP.metric[AP.dash] = metricSelect.value; paintBody(); };
+    if (rangeSelect) rangeSelect.onchange = () => { AP.range = Number(rangeSelect.value); if (AP.range === 1) AP.mode = 'separate'; paintBody(); };
+    root.querySelectorAll('[data-ap-mode]').forEach(b => { b.onclick = () => { AP.mode = b.dataset.apMode; paintBody(); }; });
+    root.querySelectorAll('[data-ap-user]').forEach(b => { b.onclick = () => { const n = b.dataset.apUser; AP.hidden.has(n) ? AP.hidden.delete(n) : AP.hidden.add(n); paintBody(); }; });
   }
 
   function renderDashboard(data, filters) {
-    const root = el('tab-workspace-dashboard');
-    const period = date(data.from) + ' – ' + date(data.to);
-    const riRows = data.ri.filter(r => Number(r.total));
-    const ri = card(1, 'R&I Team Activity', period + ' · ' + count(data.ri.reduce((t, r) => t + Number(r.total), 0)) + ' entries',
-      riRows.length ? riRows.map(r => `<div class="mgmt-ri-form"><div class="mgmt-ri-head"><b>${h(r.form)}</b><span>${h(riSection[r.section] || r.section)} · <b>${count(r.total)}</b></span></div>${people(r.people)}</div>`).join('')
-        : '<p class="note">No R&amp;I entries in this period.</p>');
-    const pr = data.projects, st = ['In Progress','On Hold','Done','Cancelled'];
-    const projects = card(2, 'R&I Project Manager', 'All current projects · ' + count(pr.startedInPeriod) + ' started in this period',
-      `<div class="overview-metrics">${st.map((s, i) => metric(s, count(pr.statuses[s]), ['blue','amber','teal','violet'][i])).join('')}</div>
-      ${pr.leads.length ? table(['Project lead','Projects',...st], pr.leads.map(l => [h(l.name || '—'), count(l.total), ...st.map(s => count(l.statuses[s]))]), 'Projects by lead') : '<p class="note">No projects.</p>'}
-      ${Object.keys(pr.tasks).length ? `<p class="note">Tasks: ${Object.entries(pr.tasks).map(([s, n]) => h(s) + ' ' + count(n)).join(' · ')}</p>` : ''}`);
-    const sp = data.support;
-    const support = card(3, 'Technical Support', period,
-      (sp.teams.length ? table(['Team','Requests','Solved','Not solved','Open'], sp.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.solved), count(t.notSolved), count(t.open)]), 'Support by team') : '<p class="note">No support requests in this period.</p>') +
-      `<h4 class="mgmt-sub">Requests per month · last 12 months</h4>` + lineChart(data.months, sp.curve, 'Support requests per month by team'));
-    const dm = data.damage;
-    const damage = card(4, 'Damage Demand', period,
-      (dm.teams.length ? table(['Team','Demands','Pending','Received','Units'], dm.teams.map(t => [h(teamName(t.team)), count(t.total), count(t.pending), count(t.received), count(t.quantity)]), 'Damage demands by team') : '<p class="note">No damage demands in this period.</p>') +
-      (dm.top.length ? `<h4 class="mgmt-sub">Top ${dm.top.length} damaged components (units)</h4>` + hbars(dm.top.map(t => ({label:t.item, value:t.quantity}))) : '') +
-      `<h4 class="mgmt-sub">Demands per month · last 12 months</h4>` + lineChart(data.months, dm.curve, 'Damage demands per month by team'));
-    const q = data.qms;
-    const qms = card(5, 'QMS', period + ' · ' + count(q.total) + ' lift records in total',
-      `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('All lift records', count(q.total), 'teal')}</div>${people(q.people)}`);
-    const supplier = card(6, 'Supplier claim', '', '<div class="mgmt-soon">Coming soon</div>');
-    panelMonths = data.months;
-    const users = (data.panel?.users || []);
-    const team = `<h3 class="mgmt-section">R&amp;I team members</h3><div class="mgmt-grid mgmt-users">${users.length ? users.map(userPanel).join('') : '<p class="note">No approved R&amp;I users.</p>'}</div>
-      <h3 class="mgmt-section">Menu-wise performance</h3>`;
-    root.innerHTML = `<div class="overview-stack admin-panel">${dashboardFilters(filters, data)}${team}
-      <div class="mgmt-grid">${ri}${projects}${support}${damage}${qms}${supplier}</div></div>`;
+    apData = data; apFilters = filters;
+    if (AP.user !== 'all' && !apUsers().some(u => u.id === AP.user)) AP.user = 'all';
+    el('tab-workspace-dashboard').innerHTML = `<div class="overview-stack admin-panel">${dashboardFilters(filters, data)}<div id="apBody"></div></div>`;
     bindDashboard(filters, data);
+    paintBody();
   }
 
   function bindDashboard(filters, data) {
@@ -256,6 +395,8 @@ const WlfOverview = (() => {
       event.preventDefault();
       loadDashboard(Object.fromEntries(new FormData(form)));
     };
+    el('apDash').onchange = event => { AP.dash = event.target.value; paintBody(); };
+    el('apUser').onchange = event => { AP.user = event.target.value; paintBody(); };
     el('workspaceFull').onclick = () => {
       const node = el('tab-workspace-dashboard');
       if (document.fullscreenElement) document.exitFullscreen();
@@ -278,8 +419,8 @@ const WlfOverview = (() => {
     const status = el('workspaceStatus');
     status.textContent = 'Loading Admin Panel…';
     try {
-      const [data, panel] = await Promise.all([rpc('getManagementDashboard',[T(),filters]), rpc('getAdminPanel',[T(),filters])]);
-      data.panel = panel;
+      const [data, panel, series] = await Promise.all([rpc('getManagementDashboard',[T(),filters]), rpc('getAdminPanel',[T(),filters]), rpc('getAdminSeries',[T()])]);
+      data.panel = panel; data.series = series;
       if (SESSION === session && run === dashboardRun) renderDashboard(data,filters);
     } catch (err) {
       if (SESSION === session && run === dashboardRun && el('workspaceStatus')) el('workspaceStatus').textContent = cleanError(err);
@@ -304,7 +445,8 @@ const WlfOverview = (() => {
         {name:'R&I user activity',headers:['R&I user','Sector','Entries','Completed','Ongoing','Incomplete','Time invested (min)','Support received','Support solved','Support not solved','Support forwarded','Damage demands raised','Supplier claims raised'],
           rows:(data.panel?.users || []).flatMap(u => u.sectors.map((x, i) => [u.name, sectorName[x.section] || x.section, x.entries, x.completed, x.ongoing, x.incomplete, x.minutes,
             ...(i ? ['','','','','',''] : [u.support?.received ?? 0, u.support?.solved ?? 0, u.support?.notSolved ?? 0, u.support?.forwarded ?? 0, u.damage ?? 0, u.claims ?? 0])]))},
-        {name:'R&I user curves',headers:['R&I user','Measure',...data.months],rows:(data.panel?.users || []).flatMap(u => Object.entries(u.curve).map(([k, v]) => [u.name, k, ...v]))},
+        {name:'R&I user curves',headers:['R&I user','Measure',...(data.series?.users?.length ? apSeries(data.series.users[0].s.entries, 12, data.series.end).labels : data.months)],
+          rows:(data.series?.users || []).flatMap(u => Object.entries(AP_METRICS).flatMap(([g, list]) => list.map(m => [u.name, metricName(m[0]), ...apSeries(u.s[m[0]] || [], 12, data.series.end).vals])))},
         {name:'Support per month',headers:['Team',...data.months],rows:curve(data.support.curve)},
         {name:'Damage Demand',headers:['Team','Demands','Pending','Received','Units'],
           rows:data.damage.teams.map(t => [teamName(t.team), t.total, t.pending, t.received, t.quantity])},

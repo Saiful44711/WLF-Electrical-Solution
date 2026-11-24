@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.6 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.5 → 2.6.6 · ২৩ নভেম্বর ২০২৬</p>
+  <h1>Admin Panel নতুন ডিজাইন, সব dashboard-এ curve, QMS Special note: deployment নির্দেশিকা</h1>
+  <p>আপনি laptop থেকে দেখবেন, তাই Admin Panel বড় স্ক্রিনের জন্য সাজানো; মোবাইলেও overflow ছাড়া চলে (চার্ট ভেতরে স্ক্রল হয়)।</p>
+</header>
+
+<section id="what"><h2>কী বদলেছে (v2.6.6)</h2><ul>
+<li><b>Admin Panel ফিল্টার:</b> <b>Dashboard</b> ড্রপডাউন (R&amp;I team activity, R&amp;I Project Manager, Technical Support, Damage Demand, Supplier claim, QMS, Performance curves), <b>R&amp;I user</b> ড্রপডাউন (All R&amp;I users (compare) বা একজন), From/To, Apply, Download Excel, Full screen। একবারে একটাই dashboard দেখায়, তাই নিচে স্ক্রল করতে হয় না।</li>
+<li><b>R&amp;I team dashboard:</b> সব user পাশাপাশি + curve। একজন user বাছলে তার টেবিল ও curve, সঙ্গে team average ড্যাশ-লাইন।</li>
+<li><b>সব dashboard-এ curve:</b> "Show" ড্রপডাউনে metric, "Range" ড্রপডাউনে <b>1 / 3 / 6 / 12 month</b> (1 মাস = দৈনিক শেষ ৩০ দিন, 3 মাস = সাপ্তাহিক, 6/12 = মাসিক; শেষ বিন্দুর লেবেল "(to date)")। <b>Together</b> (এক চার্টে সব user) বা <b>One by one</b> (আলাদা ছোট চার্ট)। Hover/touch করলে tooltip; নাম চাপলে লাইন লুকায়।</li>
+<li><b>QMS Special note:</b> এখন আলাদা input <b>"7 · Special note"</b> ও আলাদা output <b>"8 · SPECIAL NOTE"</b> টেবিল। ঐচ্ছিক, সর্বোচ্চ ৫০০ অক্ষর। Excel রিপোর্ট, flat শিট, QMS Lifts শিটের "Special note" কলাম ও সব backup-এ আছে।</li>
+</ul></section>
+
+<section id="assume"><h2>আমি যা ধরে নিয়েছি</h2><div class="scroll"><table><tr><th>বিষয়</th><th>অনুমান</th></tr>
+<tr><td>Dashboard তালিকা</td><td>উপরের ৭টা। আপনি ক্রম দেননি, তাই যেভাবে লিখেছি সেভাবেই।</td></tr>
+<tr><td>Curve-এর metric</td><td>শুধু আসল ডেটা: Team = Activity entries / Completed entries / Time recorded (h); Support = received / solved / not solved / forwarded; Damage = demands raised; Claims = claims raised। বানানো "performance score" নেই।</td></tr>
+<tr><td>1 month</td><td>নিজে থেকে "One by one" হয় (৩০ বিন্দু একসঙ্গে ঠাসা লাগে)। চাইলে Together-এ ফেরানো যায়।</td></tr>
+<tr><td>Special note</td><td>আলাদা section 7 / table 8। DB-তে পুরোনো কলাম <code>paid_note</code>-ই ব্যবহার হয় (backup ঠিক থাকে)। v2.6.5-এ লেখা note এখন Special note হয়ে যাবে।</td></tr>
+<tr><td>Date range</td><td>From/To টেবিল/কার্ডের জন্য; curve-এর নিজস্ব Range আছে।</td></tr></table></div></section>
+
+<section id="s2"><h2>১. Supabase SQL (একটাই)</h2><ol>
+<li>Supabase → <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>UPDATE_V266.sql</code> খুলে Ctrl+A, Ctrl+C; Editor-এ পেস্ট; <b>Run</b>। RLS বার্তা এলে <b>Run without RLS</b>।</li>
+<li>ফলাফলে <code>admin_series_ready</code>, <code>note_column_ready</code>, <code>v266_ready</code> সব <code>true</code> থাকা উচিত।</li></ol>
+<div class="attention">V265 না চালিয়ে V266 চালালে "Run UPDATE_V265.sql first" আসবে। V264/V265 এখনও না চালালে ক্রমে চালান: V264 → V265 → V266।</div></section>
+
+<section id="s3"><h2>২. Edge Function <code>wlf-maintenance</code> আবার deploy</h2>
+<ol>
+<li>Supabase → <b>Edge Functions</b> → <b>wlf-maintenance</b> → <b>Code</b>; <code>index.ts</code> নির্বাচিত।</li>
+<li>কোড বক্সে ক্লিক করে <b>Ctrl+A</b>, <b>Delete</b>।</li>
+<li>প্যাকেজের <code>edge-function/wlf-maintenance/index.ts</code> Notepad-এ খুলে <b>Ctrl+A</b>, <b>Ctrl+C</b>; বক্সে <b>Ctrl+V</b>।</li>
+<li><b>Deploy updates</b>; "Successfully deployed" পর্যন্ত অপেক্ষা। <b>Verify JWT</b> OFF থাকতে হবে।</li></ol>
+<div class="attention"><b>ক্রম:</b> SQL আগে, Edge Function পরে, সবশেষে GitHub।</div></section>
+
+<section id="s4"><h2>৩. GitHub-এ আপলোড</h2><ol>
+<li><code>WLF-GitHub-v2.6.6-UPLOAD.zip</code> extract করে ভেতরের ফোল্ডারে ঢুকুন।</li>
+<li>GitHub রিপো → <b>Add file → Upload files</b> → ভেতরের সব (Ctrl+A) টেনে দিন।</li>
+<li>Commit message: <code>v2.6.6 Admin Panel redesign, curves, QMS special note</code> → <b>Commit changes</b>।</li>
+<li><b>Actions</b>-এ সবুজ ✓ পর্যন্ত অপেক্ষা। লাল হলে "FAILURE SUMMARY"-র নিচের লেখার স্ক্রিনশট দিন।</li></ol></section>
+
+<section id="s5"><h2>৪. যাচাই (laptop-এ)</h2><ol>
+<li>Ctrl+Shift+R; ⋮ মেনুর নিচে <b>WLF v2.6.6</b>।</li>
+<li><b>Admin Panel</b>: Dashboard ড্রপডাউন বদলে প্রতিটা দেখুন; R&amp;I user বদলান; Range 1/3/6/12 ও Together/One by one চেপে দেখুন; চার্টের উপর মাউস নিন।</li>
+<li><b>Download Excel</b> চেপে "R&amp;I user curves" শিট দেখুন।</li>
+<li><b>QMS Input</b>: "7 · Special note"; Save করে <b>QMS Data</b>-য় "8 · SPECIAL NOTE" টেবিল; Excel-এও।</li></ol></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2><div class="scroll"><table><tr><th>যা দেখছেন</th><th>কারণ</th><th>যা করবেন</th></tr>
+<tr><td>Run UPDATE_V265.sql first</td><td>V265 চালানো হয়নি</td><td>ক্রমে V264, V265, V266</td></tr>
+<tr><td>Admin Panel-এ curve ফাঁকা / "Unsupported action"</td><td>SQL বা GitHub আপলোড বাকি</td><td>V266 চালান; আপলোড; Ctrl+Shift+R</td></tr>
+<tr><td>Curve সব শূন্য</td><td>ওই সময়ে ডেটা নেই</td><td>Range বাড়িয়ে 12 month দেখুন</td></tr>
+<tr><td>Excel backup-এ Special note নেই</td><td>Edge Function পুরোনো</td><td>ধাপ ২ আবার করুন</td></tr>
+<tr><td>Actions লাল ✗</td><td>CI ব্যর্থ</td><td>"FAILURE SUMMARY"-র নিচের লেখা/স্ক্রিনশট দিন</td></tr></table></div></section>
+
+<section><h2>যেভাবে পরীক্ষা করা হয়েছে ও যা পারিনি</h2><ul>
+<li>Unit test ১৬৫টি পাস (নতুন v266 test: migration, series, permission, Special note)।</li>
+<li>Playwright e2e ঢাকা ও UTC দুই টাইমজোনে পাস: Dashboard/user ড্রপডাউন, Range, Together/One by one, tooltip, Excel, Special note। ডেস্কটপ ও 360px dark screenshot নিজে দেখেছি, overflow নেই; চার্টের ডান প্রান্তের লেবেল ওভারল্যাপ ঠিক করেছি (সংশোধনের পর UTC রান আবার চালাইনি, ঢাকা রান চালিয়েছি)।</li>
+<li><div class="attention"><b>যাচাই করতে পারিনি:</b> আসল Supabase-এ SQL; আসল Google Drive; Edge Function deploy; GitHub CI; আসল ফোন/touch; আসল Microsoft Excel প্রিন্ট। <b>আসল R&amp;I ডেটা দিয়ে Admin Panel</b> দেখিনি — টেস্টে প্রায় সব মান শূন্য ছিল, তাই চার্টের লেআউট যাচাই হয়েছে, বাস্তব আকার নয়। v2.6.4/v2.6.5 আপনি চালিয়েছেন কি না জানি না।</div></li></ul></section>
+<footer>WLF Electrical Solution · v2.6.6 · Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

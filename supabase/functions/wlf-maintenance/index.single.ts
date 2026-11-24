@@ -119,7 +119,7 @@ function projectSheets(records) {
 function qmsSheets(records) {
   const lifts=records.map(r=>r.lift);
   return [
-    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components','Paid feature note'],
+    {name:'QMS Lifts',headers:['Lift ID','Project','Address','Delivery date','Motor type','Lift type','Control system','Controller model','Created by','Created at (UTC)','Updated by','Updated at (UTC)','Components','Special note'],
       rows:lifts.map(l=>[l.lift_id,l.project,l.address,l.delivery_date,l.motor_type,l.lift_type,l.system,l.controller_model,l.created_name,when(l.created_at),
         l.updated_name,when(l.updated_at),(l.parts||[]).length,l.paid_note||''])},
     {name:'QMS Components',headers:['Lift ID','Project','Section','Group','Hardware','Spec','Item code','Item name','Brand','Supplier','Price (BDT)','Serial'],
@@ -179,7 +179,7 @@ const pick=(a,b)=>a!==undefined&&a!==null?a:b;
 function qmsNormalize(l) {
   return {liftId:pick(l.liftId,l.lift_id)||'',project:l.project||'',address:l.address||'',deliveryDate:pick(l.deliveryDate,l.delivery_date)||'',
     motorType:pick(l.motorType,l.motor_type)||'',liftType:pick(l.liftType,l.lift_type)||'',system:l.system||'',
-    controllerModel:pick(l.controllerModel,l.controller_model)||'',paidNote:pick(l.paidNote,l.paid_note)||'',serials:l.serials||{},selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
+    controllerModel:pick(l.controllerModel,l.controller_model)||'',specialNote:pick(l.specialNote,l.paidNote,l.paid_note)||'',serials:l.serials||{},selection:l.selection||null,parts:Array.isArray(l.parts)?l.parts:[],
     createdName:pick(l.createdName,l.created_name)||'',updatedName:pick(l.updatedName,l.updated_name)||'',updatedAt:pick(l.updatedAt,l.updated_at)||''};
 }
 const qmsSdb=sel=>{
@@ -224,7 +224,8 @@ function qmsTables(raw) {
   blocks.push({no:7,name:'Paid feature information',short:'Paid feature information',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
     {head:'Spec',key:'spec',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
     rows:parts(['paid']).map(p=>({a:p.grp||p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),
-    note:rec.paidNote,empty0:'No paid feature was selected.'});
+    empty0:'No paid feature was selected.'});
+  blocks.push({no:8,name:'Special note',short:'Special note',columns:[{head:'Special note',key:'a',span:10}],rows:rec.specialNote?[{a:rec.specialNote}]:[],empty0:'No special note.'});
   return {rec,blocks};
 }
 /* One flat sheet for analysis: one row per table row, with the lift columns first. */

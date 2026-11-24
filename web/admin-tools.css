@@ -136,3 +136,32 @@ html[data-theme=dark] .clog-deleted{background:#3f1717;color:#fca5a5}
 .mgmt-user .overview-metrics{margin-top:12px}
 @media(min-width:1100px){#tab-workspace-dashboard .admin-panel .mgmt-card h3{font-size:18px}#tab-workspace-dashboard .admin-panel .tbl{font-size:14px}}
 .mgmt-user .tbl th{white-space:nowrap}
+/* v2.6.6 Admin Panel: filters, one dashboard at a time, curves */
+#workspaceFilters .ap-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end}
+#workspaceFilters .ap-filters select{width:100%}
+#workspaceFilters .ap-filters .overview-actions{grid-column:1/-1}
+#apBody{display:grid;gap:14px;margin-top:14px;min-width:0}#apBody>.card{margin:0;min-width:0}
+.ap-curve-head{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.ap-ctl{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ap-ctl label{display:block;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.ap-ctl select{width:auto;min-width:140px;margin-top:4px;padding:7px 9px}
+.ap-seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.ap-seg button{border:0;background:var(--card);color:var(--text);padding:8px 12px;font:inherit;font-weight:600;cursor:pointer}
+.ap-seg button.on{background:#6366f1;color:#fff}
+.ap-chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 4px}
+.ap-chip{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);border-radius:999px;background:var(--card);color:var(--text);padding:4px 11px;font:inherit;font-size:13px;cursor:pointer}
+.ap-chip.off{opacity:.45}.ap-chip i,.ap-mini-head i,.ap-tip i{display:inline-block;width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.ap-chartwrap{overflow-x:auto}.ap-chartbox{position:relative;touch-action:pan-y;min-width:460px}
+.ap-chart{width:100%;height:auto;display:block;overflow:visible}
+.ap-chart text{fill:var(--muted);font-size:11px;font-family:inherit}
+.ap-chart .grid{stroke:var(--line);stroke-dasharray:3 4}
+.ap-chart .avg{stroke:var(--muted);stroke-width:1.6;stroke-dasharray:5 4;opacity:.8}
+.ap-chart .cursor{stroke:var(--muted)}.ap-chart .endpoint{stroke:var(--card);stroke-width:2}
+.ap-tip{position:absolute;top:6px;pointer-events:none;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);min-width:170px;z-index:3}
+.ap-tip b{display:block;margin-bottom:4px}.ap-tip div{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.ap-tip em{font-style:normal;font-weight:700;margin-left:auto;padding-left:14px}.ap-tip .avg{color:var(--muted);border-top:1px solid var(--line);margin-top:4px;padding-top:4px}
+.ap-minis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px;margin-top:10px}
+.ap-mini{border:1px solid var(--line);border-radius:14px;padding:10px;background:var(--bg);min-width:0}
+.ap-mini-head{display:flex;align-items:center;gap:6px;font-weight:700}.ap-mini-head b{margin-left:auto;font-size:20px}
+.ap-mini .ap-chartbox{min-width:0}
+#tab-workspace-dashboard:fullscreen #apBody{max-width:none}

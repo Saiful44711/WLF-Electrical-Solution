@@ -1,5 +1,11 @@
 # WLF Electrical Solution v2.6.4
 
+## v2.6.6 Admin Panel redesign with curves on every dashboard; QMS Special note (23 Nov 2026)
+- **Admin Panel:** the filter card has a Dashboard dropdown (R&I team activity, R&I Project Manager, Technical Support, Damage Demand, Supplier claim, QMS, Performance curves) and an R&I user dropdown (All R&I users to compare, or one user), plus From / To, Apply, Download Excel and Full screen. One dashboard is shown at a time. Per-user view shows that user's table and curve with the team average as a dashed line.
+- **Curves** on every dashboard with a "Show" metric dropdown and a Range dropdown (1 / 3 / 6 / 12 months: daily / weekly / monthly / monthly; last point labelled "(to date)"), Together or One by one layout, hover / touch tooltip. Choosing 1 month switches to One by one.
+- **QMS Special note** is now its own input "7 · Special note" and its own output "8 · SPECIAL NOTE" (optional, max 500 characters), no longer part of Paid feature. It is in the Excel report, flat sheet, QMS Lifts sheet and all backups. Existing notes entered in v2.6.5 become the Special note.
+- Run UPDATE_V266.sql (needs V265), redeploy Edge Function `wlf-maintenance` (single index.ts), upload to GitHub.
+
 ## v2.6.5 QMS Paid feature information (23 Nov 2026)
 - QMS Input has a new section "6 · Paid feature information". The chips follow the lift's control system (MOT or NICE3000+); data comes from the Hardware Catalogue model "Paid feature" (seeded from QMS_Paid_feature_information_input_output.xlsx, editable by the Super Admin).
 - Choosing a chip outputs all rows of that category in new table "7 · Paid feature information". A category with several kW options (NICE3000+ Regenerative drive) asks for one kW.
