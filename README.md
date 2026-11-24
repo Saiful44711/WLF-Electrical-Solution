@@ -1,4 +1,9 @@
-# WLF Electrical Solution v2.6.4
+# WLF Electrical Solution v2.6.8
+
+## v2.6.8 Technical Support Excel table, Catalogue model import, QMS QR code (24 Nov 2026)
+- **Technical Support Excel:** the Excel downloaded from the Technical Support menu (all six forms) is an Excel Table without the Request ID, Submitted by, Submitted at, Last updated, Assigned to and Solved by columns. The CSV download button is removed. Storage & Backup Excel files keep every column.
+- **Hardware Catalogue import** ("Import model data"): every Control system + Model found in the Excel (.xlsx) or CSV file is **replaced completely**; other models are not touched; new models are added. A summary (rows now / rows in the file) is shown first and nothing changes until "Replace these models" is pressed. New action `replaceCatalogueTables` (UPDATE_V268.sql).
+- **QMS QR code:** the QMS Data lift page shows a QR code (Lift ID, Project, Controller, Motor, COP display, LOP display, Transom display, AVR capacity and a link). Save QR (PNG) and Print label buttons. Serial numbers are never in the QR code. Scanning the link and signing in opens the lift. The encoder is `web/qr.js` (no outside library).
 
 ## v2.6.7 AVR in QMS, AVR / Battery serial numbers, Serial numbers permission, QMS Data Excel in backup format (24 Nov 2026)
 - **AVR model** is now in "3 · Control system and serial numbers" (no AVR item dropdown). It is filled automatically from the selected motor and can be changed by hand. All items of the chosen AVR model are shown in their own table in the input, saved with the lift, and listed in the output as its own table **6 · AVR** before **7 · Other components**. Output tables are now numbered 1-9 (Paid feature = 8, Special note = 9).

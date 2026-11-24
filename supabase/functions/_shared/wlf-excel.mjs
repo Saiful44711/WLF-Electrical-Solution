@@ -87,11 +87,15 @@ function formSheet(name,schema,records,baseHeaders,baseRow,getForm) {
     })
   };
 }
-export function supportSheets(categories,tickets) {
-  return categories.map(c=>formSheet(supportNames[c.id]||c.name,c.schema,tickets.filter(r=>r.category===c.id),
+export function supportSheets(categories,tickets,options={}) {
+  /* options.lean: Technical Support menu download — leaves out the bookkeeping columns (request id, people, timestamps) */
+  const sheets=categories.map(c=>formSheet(supportNames[c.id]||c.name,c.schema,tickets.filter(r=>r.category===c.id),
     ['Request ID','Workflow status','Submitted by','Submitted at (UTC)','Last updated (UTC)','Assigned to','Solved by','Solved at (UTC)','Solution'],
     r=>[r.reference,r.status,r.authorName||r.createdBy,r.createdAt,r.updatedAt,r.assigneeName||r.assignedTo,
       r.solverName||r.solvedBy,r.solvedAt,r.solution],r=>r.formSchema));
+  if (!options.lean) return sheets;
+  const drop=new Set([0,2,3,4,5,6]);
+  return sheets.map(sheet=>({...sheet,headers:sheet.headers.filter((_,i)=>!drop.has(i)),rows:sheet.rows.map(row=>row.filter((_,i)=>!drop.has(i)))}));
 }
 export function activitySheets(categories,entries) {
   return categories.map(c=>formSheet(c.name,c.schema,entries.filter(r=>r.category===c.id),

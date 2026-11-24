@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.8 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.7 → 2.6.8 · ২৪ নভেম্বর ২০২৬</p>
+  <h1>Technical Support Excel, Catalogue import (model replace) ও QMS QR কোড: deployment নির্দেশিকা</h1>
+  <p>Technical Support-এর Excel এখন পরিষ্কার Excel Table, CSV বোতাম নেই। Hardware Catalogue import এখন model-এর পুরো table replace করে। প্রতিটি lift-এর QR কোড সেভ ও প্রিন্ট করা যায়।</p>
+</header>
+
+<section id="what"><h2>কী বদলেছে (v2.6.8)</h2><ul>
+<li><b>Technical Support Excel:</b> ছয়টি ফর্মেই Excel Table থেকে হলুদ-চিহ্নিত কলামগুলো বাদ: Request ID, Submitted by, Submitted at, Last updated, Assigned to, Solved by (ও আগের CSV-র Activity history)। থাকে: Workflow status, Solved at, Solution ও ফর্মের সব প্রশ্ন (Date, Name, ID, Project, Lift ID, Address, Controller, Problem…)। এটা <b>শুধু Technical Support মেনুর Excel</b>-এ প্রযোজ্য; Storage &amp; Backup-এর Excel আগের মতো সব কলামসহ।</li>
+<li><b>CSV বোতাম:</b> Technical Support-এর "Download filtered CSV" সরানো হয়েছে। (Performance dashboard-এর আলাদা CSV বোতাম রাখা হয়েছে, কারণ ওটার Excel বিকল্প নেই।)</li>
+<li><b>Hardware Catalogue → "Import model data":</b> আগের "Import CSV" শুধু সারি যোগ করত। এখন ফাইলে যে <b>Control system + Model</b> আছে, তার <b>পুরো table replace</b> হয়: পুরোনো সব সারি যায়, ফাইলের সারি বসে। ফাইলে যে model নেই সেটা অক্ষত থাকে। ফাইলে নতুন model থাকলে যোগ হয়। Excel (.xlsx) ও CSV দুটোই নেয়।</li>
+<li><b>আগে preview:</b> "Check file" চাপলে প্রতি model-এর "এখন কত সারি / ফাইলে কত সারি / কী হবে" দেখায়। কিছুই বদলায় না। তারপর "Replace these models" চাপলে তবেই বদলায়।</li>
+<li><b>QMS QR কোড:</b> QMS Data-তে lift খুললে নতুন "QR code · control panel label" অংশ। QR-এ থাকে: Lift ID, Project, Controller model, Motor, COP display, LOP display, Transom display, AVR capacity ও WLF-এর লিংক। <b>Serial number QR-এ নেই।</b> বোতাম: <b>Save QR (PNG)</b> (পিসি ও মোবাইলে, নিচে Lift ID লেখাসহ) ও <b>Print label</b>।</li>
+<li><b>QR স্ক্যান:</b> যেকোনো মোবাইল ক্যামেরা/স্ক্যানারে লগইন ছাড়া লেখাগুলো পড়া যায়। শেষ লাইনের লিংক খুললে WLF-এ সাইন-ইন করার পর ওই lift সরাসরি খোলে (QMS permission লাগে)। পুরো output table ও serial দেখতে এই লিংক লাগে।</li>
+</ul></section>
+
+<section id="order"><h2>কী কী করতে হবে (ক্রম)</h2>
+<div class="attention"><b>আগে</b> v2.6.4 → v2.6.5 → v2.6.6 → v2.6.7 এর SQL বসানো না থাকলে সেগুলো ক্রমানুসারে বসান। v2.6.8 শুধু v2.6.7-এর ওপর চলে।</div>
+<div class="scroll"><table>
+<tr><th>#</th><th>কাজ</th><th>ফল</th></tr>
+<tr><td>১</td><td>Supabase → SQL Editor-এ <code>UPDATE_V268.sql</code> খুলে পুরোটা Run করুন। (আগে backup-kit-এর backup নিন।)</td><td>নিচে ফল-টেবিলে <code>v268_ready = true</code></td></tr>
+<tr><td>২</td><td>Edge Function: <b>কিছু করতে হবে না</b> (wlf-maintenance-এর আচরণ বদলায়নি)।</td><td>—</td></tr>
+<tr><td>৩</td><td>GitHub: <code>WLF-GitHub-v2.6.8-UPLOAD.zip</code> আনজিপ করে ভেতরের ফাইল ও ফোল্ডার repo-তে Upload করুন (আগের ফাইলের ওপর replace)। Commit করুন।</td><td>Actions-এ সবুজ টিক, তারপর সাইট নিজে আপডেট হয়</td></tr>
+<tr><td>৪</td><td>সাইটে Ctrl+F5 (ফোনে অ্যাপ বন্ধ করে আবার খুলুন)। Account পাতায় build <b>2.6.8</b> দেখুন।</td><td>—</td></tr>
+</table></div>
+<p class="small">GitHub web-এ: repo পাতায় <b>Add file → Upload files</b> → আনজিপ করা ফাইল/ফোল্ডার টেনে ছাড়ুন → নিচে <b>Commit changes</b>।</p>
+</section>
+
+<section id="check"><h2>ঠিক হয়েছে কিনা দেখার উপায়</h2>
+<div class="scroll"><table>
+<tr><th>কী দেখবেন</th><th>কীভাবে</th><th>সঠিক ফল</th></tr>
+<tr><td>Technical Support Excel</td><td>যেকোনো ফর্মে "Download filtered Excel"</td><td>ফাইলটি Excel Table (filter তীরসহ); Request ID, Assigned to ইত্যাদি কলাম নেই; CSV বোতাম নেই</td></tr>
+<tr><td>Catalogue import</td><td>Hardware Catalogue → <b>Import model data</b> → একটি model-এর Excel দিন → Check file</td><td>Preview টেবিল; "Replace" চাপার আগে কিছু বদলায়নি</td></tr>
+<tr><td>Replace</td><td>"Replace these models" চাপুন</td><td>ওই model-এর সারি ফাইলের সারির সমান; অন্য model অক্ষত</td></tr>
+<tr><td>QR</td><td>QMS → QMS Data → lift খুলুন → নিচে "QR code"</td><td>ফোন ক্যামেরায় স্ক্যান করলে Lift ID, Project, models দেখায়</td></tr>
+<tr><td>QR লিংক</td><td>QR-এর লিংক খুলুন</td><td>সাইন-ইন করলে ওই lift খোলে</td></tr>
+</table></div></section>
+
+<section id="format"><h2>Import ফাইলের নিয়ম</h2><ul>
+<li>প্রথম সারি হেডার: <code>Control system, Model, Group, Hardware, Spec, Item code, Item name, Brand, Supplier, Price</code>। Control system ও Model কলাম থাকতেই হবে।</li>
+<li>Control system ও Model খালি সারি বাদ যায়। এক ফাইলে সর্বোচ্চ ২০০০ সারি।</li>
+<li>Excel ফাইলের <b>প্রথম sheet</b> পড়া হয়। Catalogue-এর "Export" করা ফাইলের গঠনই এই import-এর গঠন, তাই export করে বদলে আবার import করা যায়।</li>
+<li>Control system ও Model মেলানো হয় বড়-ছোট হাতের অক্ষর উপেক্ষা করে।</li>
+<li><b>সাবধান:</b> কোনো model-এর ফাইল দিলে ওই model-এর সব সারি বদলে যায়। ফাইলে সব সারি না থাকলে বাদ পড়া সারি মুছে যায়। তাই আগে preview-র "Rows now" ও "Rows from file" মিলিয়ে নিন। মুছে যাওয়া সারি Hardware Catalogue থেকে সরে যায়; আগে সেভ করা QMS record নিজের কপি রাখে, তাই বদলায় না।</li>
+</ul></section>
+
+<section id="qr"><h2>QR সম্পর্কে জানার বিষয়</h2><ul>
+<li>QR-এর লেখা lift সেভ করার সময়ের তথ্য থেকে বানানো। lift edit করলে QR বদলাতে পারে। তাই পরিবর্তনের পর আবার সেভ করে নতুন QR ছাপুন।</li>
+<li>QR-এ থাকা লেখা সবাই পড়তে পারে (লগইন লাগে না)। ফলে Lift ID ও Project name সবাই দেখবে। Address, customer, price, serial QR-এ নেই।</li>
+<li>QR-এ <b>সব output table</b> ঢোকানো সম্ভব নয় (QR-এর ধারণক্ষমতা সীমিত)। সম্পূর্ণ table লিংক খুলে WLF-এ দেখতে হয়।</li>
+<li>COP display = COP-এর "COP Display" group-এর hardware নাম। Motor model = নির্বাচিত motor-এর "Motor Model" মান; motor না বাছা থাকলে "—" দেখায়।</li>
+<li>ছাপার সময় QR অন্তত ২.৫ সেমি বর্গ রাখুন। প্রিন্টে স্পষ্ট না হলে বড় করে ছাপুন।</li>
+</ul></section>
+
+<section id="limits"><h2>যা এখানে যাচাই করা যায়নি</h2><ul>
+<li>আসল Supabase-এ SQL চালানো (এখানে একই Postgres ভার্সনের পরীক্ষা-ডাটাবেসে চালিয়ে দেখা হয়েছে)।</li>
+<li>আসল ফোনের ক্যামেরায় স্ক্যান ও কাগজে ছাপা QR। কম্পিউটারে QR ছবি decode করে লেখা মিলিয়ে দেখা হয়েছে।</li>
+<li>Android APK-তে PNG সেভ ও প্রিন্ট। ব্রাউজারে (PC ও মোবাইল আকারে) পরীক্ষিত।</li>
+<li>আপনার আসল Catalogue-এর আসল Excel দিয়ে import। পরীক্ষার ফাইল দিয়ে হয়েছে।</li>
+</ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>লক্ষণ</th><th>কারণ</th><th>সমাধান</th></tr>
+<tr><td>Import-এ "Unsupported action"</td><td>UPDATE_V268.sql বসানো হয়নি, বা সাইট পুরোনো</td><td>SQL বসান, তারপর Ctrl+F5</td></tr>
+<tr><td>Import-এ "Run UPDATE_V267.sql first"</td><td>আগের আপডেট বাকি</td><td>V264→V267 ক্রমে বসান</td></tr>
+<tr><td>"The first row must contain Control system and Model"</td><td>হেডার সারি ভুল বা প্রথম sheet ভুল</td><td>Catalogue-এর Export ফাইলের হেডার ব্যবহার করুন</td></tr>
+<tr><td>QR-এর লিংক খুললে lift খোলে না</td><td>ওই অ্যাকাউন্টের QMS permission নেই বা lift মুছে গেছে</td><td>User Management-এ QMS access দিন</td></tr>
+<tr><td>Print label কিছু দেখায় না</td><td>ব্রাউজার pop-up আটকেছে</td><td>Pop-up allow করুন বা Save QR (PNG) ছাপুন</td></tr>
+</table></div></section>
+
+<footer>Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

@@ -1,4 +1,4 @@
-WLF Electrical Solution v2.6.4 - SQL run order
+WLF Electrical Solution v2.6.8 - SQL run order
 
 A) EXISTING live project (v2.6.2 needs UPDATE_V261.sql, which needs UPDATE_V260.sql):
    1. backup-kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql (download both CSVs)
@@ -6,6 +6,7 @@ A) EXISTING live project (v2.6.2 needs UPDATE_V261.sql, which needs UPDATE_V260.
    2b. UPDATE_V263.sql (needs UPDATE_V262.sql) -> usage_archive_ready = true, full_backup_ready = true, v263_ready = true
    2c. UPDATE_V264.sql (needs UPDATE_V263.sql) -> admin_panel_ready = true, permission_label starts with "Admin Panel /", v264_ready = true
    2d. UPDATE_V265.sql (needs UPDATE_V264.sql) -> mot_paid_rows = 12, nice_paid_rows = 18, paid_note_ready = true, v265_ready = true
+   2g. UPDATE_V268.sql (needs UPDATE_V267.sql) -> v268_ready = true  (Catalogue model import: replaceCatalogueTables)
        (Excel backup modules, history delete, QMS lifts in Recycle bin, Documents Links permission)
    2. UPDATE_V261.sql FIRST (needs UPDATE_V260.sql, which needs UPDATE_V259.sql)
       -> unconverted_parts = 0, v261_ready = true  (QMS shared snapshot rows, Storage & Backup actions)

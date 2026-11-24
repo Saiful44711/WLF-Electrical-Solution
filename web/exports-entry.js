@@ -14,6 +14,31 @@ async function excel(groups,name) {
 async function qmsExcel(lift,name) {
   download(await buildReportWorkbook(JSZip,qmsReport(lift)),name+'.xlsx');
 }
+/* v2.6.8: reads the first sheet of an .xlsx file into rows of text (used by the Hardware Catalogue import) */
+async function readXlsx(buffer) {
+  const zip=await JSZip.loadAsync(buffer);
+  const parse=text=>new DOMParser().parseFromString(text,'application/xml');
+  const kids=(node,name)=>Array.from(node.getElementsByTagName(name));
+  const textOf=node=>kids(node,'t').map(t=>t.textContent).join('');
+  const shared=zip.file('xl/sharedStrings.xml')?kids(parse(await zip.file('xl/sharedStrings.xml').async('string')),'si').map(textOf):[];
+  let path=Object.keys(zip.files).filter(n=>/^xl\/worksheets\/sheet\d+\.xml$/.test(n)).sort((a,b)=>parseInt(a.match(/(\d+)\.xml/)[1])-parseInt(b.match(/(\d+)\.xml/)[1]))[0];
+  if (!path) throw Error('This Excel file has no sheet.');
+  const column=ref=>{let n=0;for(const ch of ref.replace(/[^A-Z]/gi,'').toUpperCase())n=n*26+ch.charCodeAt(0)-64;return n-1;};
+  const rows=[];
+  for (const row of kids(parse(await zip.file(path).async('string')),'row')) {
+    const out=[];
+    for (const c of Array.from(row.children).filter(x=>x.tagName==='c')) {
+      const type=c.getAttribute('t'),v=c.getElementsByTagName('v')[0];
+      let value='';
+      if (type==='s') value=shared[parseInt(v?.textContent,10)]??'';
+      else if (type==='inlineStr') value=textOf(c);
+      else if (v) value=v.textContent;
+      out[c.getAttribute('r')?column(c.getAttribute('r')):out.length]=value;
+    }
+    rows.push(Array.from(out,x=>x??''));
+  }
+  return rows.filter(r=>r.some(x=>String(x).trim()));
+}
 async function qmsFlatExcel(lifts,name) {
   await excel([{name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))}],name);
 }
@@ -76,5 +101,5 @@ async function projectPpt(project,people) {
   const stem=project.name.replace(/[<>:"/\\|?*\u0000-\u001f]+/g,'-').trim().slice(0,90)||'project';
   await deck.writeFile({fileName:'WLF-'+stem+'.pptx'});
 }
-window.WlfExportsFull={download,excel,qmsExcel,qmsFlatExcel,qmsBackupExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
+window.WlfExportsFull={download,excel,readXlsx,qmsExcel,qmsFlatExcel,qmsBackupExcel,supportSheets,activitySheets,projectPpt,progress,ganttRange};
 if(!window.WlfExports)window.WlfExports=window.WlfExportsFull;

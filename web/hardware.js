@@ -95,7 +95,7 @@ const WlfHardware = (() => {
       <div class="hw-head"><div><div class="overview-eyebrow">ONE DATABASE FOR QMS + DAMAGE DEMAND</div><h3>Hardware Catalogue</h3></div>
         <div class="hw-toolbar">
           <button class="btn ghost" type="button" id="hwExport">Export Excel</button>
-          ${edit ? '<button class="btn ghost" type="button" id="hwImport">Import CSV</button><button class="btn ghost" type="button" id="hwMap">Problem suggestions</button><button class="btn" type="button" id="hwNewModel">+ New component model</button>' : ''}
+          ${edit ? '<button class="btn ghost" type="button" id="hwImport">Import model data</button><button class="btn ghost" type="button" id="hwMap">Problem suggestions</button><button class="btn" type="button" id="hwNewModel">+ New component model</button>' : ''}
         </div></div>
       <div class="hw-layout"><nav class="hw-side" aria-label="Control systems and models">${groupHtml()}</nav>
         <div class="hw-main">
@@ -261,29 +261,47 @@ const WlfHardware = (() => {
 
   const CSV_HEAD = ['Control system', 'Model', 'Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Supplier', 'Price'];
   function importCsv() {
-    openDialog('Import rows from CSV', `<form id="hwImportForm" class="hw-form">
-      <p class="note hw-wide">Excel: File › Save as › CSV. First row must be the headers: ${h(CSV_HEAD.join(', '))}. Rows are added to the catalogue (existing rows are not changed).</p>
-      <label class="hw-wide">CSV file<input type="file" name="file" accept=".csv,.tsv,.txt" required></label>
+    openDialog('Import model data', `<form id="hwImportForm" class="hw-form">
+      <p class="note hw-wide">Choose an Excel (.xlsx) or CSV file. The first row must be the headers: ${h(CSV_HEAD.join(', '))}. Every <b>Control system + Model</b> found in the file is <b>replaced completely</b>: its old rows are removed and the rows of the file are put in. Models that are not in the file are not touched. You see a summary before anything changes.</p>
+      <label class="hw-wide">Excel or CSV file<input type="file" name="file" accept=".xlsx,.csv,.tsv,.txt" required></label>
+      <div class="hw-wide" id="hwImportPreview"></div>
       <p class="note overview-status hw-wide" id="hwDialogStatus" role="status"></p>
-      <div class="overview-actions hw-wide"><button class="btn" type="submit">Import</button><button class="btn ghost" type="button" id="hwCancel">Cancel</button></div></form>`);
+      <div class="overview-actions hw-wide"><button class="btn" type="submit" id="hwImportCheck">Check file</button><button class="btn danger" type="button" id="hwImportGo" hidden>Replace these models</button><button class="btn ghost" type="button" id="hwCancel">Cancel</button></div></form>`);
     el('hwCancel').onclick = closeDialog;
+    let payload = null;
+    el('hwImportForm').elements.file.onchange = () => { payload = null; el('hwImportGo').hidden = true; el('hwImportPreview').innerHTML = ''; };
+    async function readRows(file) {
+      if (/\.xlsx$/i.test(file.name)) return WlfExports.readXlsx(await file.arrayBuffer());
+      return csvParse((await file.text()).replace(/^\uFEFF/, ''));
+    }
     el('hwImportForm').onsubmit = async event => {
       event.preventDefault();
       const file = event.currentTarget.file.files[0];
       const status = el('hwDialogStatus');
+      payload = null; el('hwImportGo').hidden = true;
       try {
-        const rows = csvParse((await file.text()).replace(/^﻿/, ''));
+        status.textContent = 'Reading the file…';
+        const rows = await readRows(file);
+        if (!rows.length) throw new Error('The file is empty.');
         const head = rows.shift().map(x => String(x).trim().toLowerCase());
         const idx = name => head.indexOf(name.toLowerCase());
         if (idx('Control system') < 0 || idx('Model') < 0) throw new Error('The first row must contain “Control system” and “Model” columns.');
         const get = (r, name) => idx(name) < 0 ? '' : String(r[idx(name)] ?? '').trim();
-        const payload = rows.map(r => ({system: get(r, 'Control system'), model: get(r, 'Model'), grp: get(r, 'Group'), hardware: get(r, 'Hardware'),
+        payload = rows.map(r => ({system: get(r, 'Control system'), model: get(r, 'Model'), grp: get(r, 'Group'), hardware: get(r, 'Hardware'),
           spec: get(r, 'Spec'), itemCode: get(r, 'Item code'), itemName: get(r, 'Item name'), brand: get(r, 'Brand'), supplier: get(r, 'Supplier'), value: get(r, 'Price') || get(r, 'Value')}));
         if (!payload.length) throw new Error('The file has no data rows.');
-        status.textContent = 'Importing ' + payload.length + ' rows…';
-        const result = await catalogueCall('importCatalogue', {rows: payload}, 'Imported ' + payload.length + ' rows.');
-        if (!result && el('hwDialogStatus')) return;
-      } catch (err) { status.textContent = cleanError(err); }
+        const check = await rpc('replaceCatalogueTables', [T(), {rows: payload, dryRun: true}]);
+        el('hwImportPreview').innerHTML = tbl(['Control system', 'Model', 'Rows now', 'Rows from file', 'What happens'],
+          check.tables.map(t => [h(t.system), h(t.model), String(t.oldRows), String(t.newRows), t.isNew ? 'New model is added' : 'Old rows replaced']));
+        status.textContent = check.rows + ' row(s) in ' + check.tables.length + ' model table(s). Nothing has changed yet. Press “Replace these models” to apply.';
+        el('hwImportGo').hidden = false;
+      } catch (err) { payload = null; status.textContent = cleanError(err); }
+    };
+    el('hwImportGo').onclick = async () => {
+      if (!payload) return;
+      el('hwImportGo').disabled = true;
+      const result = await catalogueCall('replaceCatalogueTables', {rows: payload}, 'Replaced ' + payload.length + ' row(s) of the models in the file.');
+      if (!result && el('hwImportGo')) el('hwImportGo').disabled = false;
     };
   }
 
@@ -701,6 +719,55 @@ const WlfHardware = (() => {
         rec.specialNote ? `<p class="hw-paid-note">${h(rec.specialNote)}</p>` : '<p class="note">No special note.</p>'}</section>`;
   }
 
+  /* ---- v2.6.8: QR label. The code holds plain text (readable by any scanner, no login) and the link that opens the lift in WLF (login needed). Serial numbers are never put in it. */
+  const dash = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : String(v).trim());
+  function qrFacts(rec) {
+    const sectionParts = (section, test) => rec.parts.filter(p => p.section === section && (!test || test(p)));
+    const names = list => list.map(p => p.hardware || p.name || p.model).filter(Boolean).join(', ');
+    const motorItems = rec.selection?.categories?.[0]?.items || [];
+    const motor = motorItems.find(it => /^motor model$/i.test(String(it.label).trim())) || motorItems.find(it => /model/i.test(String(it.label)));
+    const avr = sectionParts('avr')[0];
+    return [
+      ['Lift ID', rec.liftId], ['Project', rec.project], ['Controller', rec.controllerModel], ['Motor', motor?.value],
+      ['COP display', names(sectionParts('cop', p => /display/i.test(p.grp || '')))],
+      ['LOP display', names(sectionParts('lop'))], ['Transom display', names(sectionParts('transom'))],
+      ['AVR', avr ? String(avr.model || '').replace(/^AVR\s*/i, '') : '']];
+  }
+  const qrLink = rec => location.origin + location.pathname + '#qms=' + encodeURIComponent(rec.liftId);
+  function qrText(rec) {
+    return 'WLF QMS\n' + qrFacts(rec).map(([k, v]) => k + ': ' + dash(v)).join('\n') + '\n' + qrLink(rec);
+  }
+  function qrPanel(rec) {
+    let svg = '';
+    try { svg = WlfQr.svg(qrText(rec), {label: 'QR code of lift ' + rec.liftId}); } catch (err) { return `<section class="card hw-out" id="hwQr"><div class="overview-eyebrow">QR CODE</div><p class="note">${h(cleanError(err))}</p></section>`; }
+    return `<section class="card hw-out" id="hwQr"><div class="overview-eyebrow">QR CODE · CONTROL PANEL LABEL</div>
+      <div class="hw-qr"><div class="hw-qr-img" id="hwQrImg">${svg}<b>${h(rec.liftId)}</b></div>
+        <div><table class="tbl hw-table"><tbody>${qrFacts(rec).map(([k, v]) => `<tr><td class="hw-k">${h(k)}</td><td>${h(dash(v))}</td></tr>`).join('')}</tbody></table>
+          <p class="note">Scan with any phone camera or scanner to read these details. The last line is the link that opens this lift in WLF (sign-in needed). Serial numbers are not in the QR code.</p>
+          <div class="hw-toolbar"><button class="btn" type="button" id="qrSave">Save QR (PNG)</button><button class="btn ghost" type="button" id="qrPrint">Print label</button></div>
+          <p class="note overview-status" id="qrStatus" role="status"></p></div></div></section>`;
+  }
+  function bindQr(rec) {
+    const status = el('qrStatus');
+    const file = 'QR-' + String(rec.liftId).replace(/[^\w.-]+/g, '_') + '.png';
+    el('qrSave').onclick = async () => {
+      try {
+        const blob = await WlfQr.png(qrText(rec), {caption: rec.liftId});
+        const url = URL.createObjectURL(blob), a = document.createElement('a');
+        a.href = url; a.download = file; document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        status.textContent = 'QR saved as ' + file + '.';
+      } catch (err) { status.textContent = cleanError(err); }
+    };
+    el('qrPrint').onclick = () => {
+      const win = window.open('', '_blank');
+      if (!win) { status.textContent = 'Allow pop-ups to print the label, or use Save QR (PNG) and print the picture.'; return; }
+      win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>QR ' + h(rec.liftId) + '</title><style>@page{size:auto;margin:8mm}body{font:14px system-ui,Arial;text-align:center;margin:0}.l{display:inline-block;padding:6mm;border:1px solid #000;margin:4mm}.l svg{width:60mm;height:60mm}.l b{display:block;font-size:20px;margin-top:2mm}.l span{display:block;font-size:11px;margin-top:1mm}</style></head><body><div class="l">'
+        + WlfQr.svg(qrText(rec)) + '<b>' + h(rec.liftId) + '</b><span>' + h(rec.project) + '</span></div><script>onload=function(){setTimeout(function(){print()},200)}<\/script></body></html>');
+      win.document.close();
+    };
+  }
+
   async function downloadLifts(records, name, status) {
     try {
       status.textContent = 'Preparing Excel…';
@@ -721,8 +788,10 @@ const WlfHardware = (() => {
         ${edit ? '<button class="btn" type="button" id="qmsEdit">Edit</button>' : ''}${del ? '<button class="btn danger" type="button" id="qmsDelete">Delete</button>' : ''}</div></div>
       <p class="note overview-status" id="qmsLiftStatus" role="status">${h(message || '')}</p></div>
       ${liftTables(rec)}
+      ${qrPanel(rec)}
       <details class="card hw-out"><summary>Change history</summary><ul class="hw-history">${hist}</ul></details>`;
     el('qmsBack').onclick = openData;
+    if (el('qrSave')) bindQr(rec);
     el('qmsExcel').onclick = () => downloadLifts([rec], 'QMS-' + rec.liftId, el('qmsLiftStatus'));
     if (edit) el('qmsEdit').onclick = async () => {
       await loadCatalogue();
@@ -800,6 +869,7 @@ const WlfHardware = (() => {
     b.classList.toggle('active', name === 'data');
   }
 
+  let wantLift = '';
   async function openQms() {
     const root = el('tab-qms');
     const run = ++qmsRun;
@@ -811,7 +881,8 @@ const WlfHardware = (() => {
       await loadCatalogue(true);
       if (run !== qmsRun) return;
       if (typeof maybeRefreshIndex === 'function') maybeRefreshIndex();
-      openInput();
+      if (wantLift) { const id = wantLift; wantLift = ''; openData(); const box = el('qmsSearch'); if (box) box.liftId.value = id; searchLifts({liftId: id}); }
+      else openInput();
     } catch (err) {
       if (run === qmsRun) el('qmsPanel').innerHTML = `<div class="card"><p class="note">${h(cleanError(err))}</p></div>`;
     }
@@ -917,6 +988,22 @@ const WlfHardware = (() => {
       PAGES.qms = ['QMS', 'Lift-wise component record for QC'];
     }
   });
+  /* a scanned QR opens WLF at #qms=<Lift ID>: after sign-in the lift is shown (if the account has QMS access) */
+  function followQrLink() {
+    const m = /^#qms=(.+)$/.exec(location.hash);
+    if (!m) return;
+    let id = ''; try { id = decodeURIComponent(m[1]).slice(0, 80); } catch (err) { return; }
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (++tries > 600) { clearInterval(timer); return; }
+      const nav = document.querySelector('#nav [data-tab="qms"]');
+      if (typeof SESSION === 'undefined' || !SESSION || !nav || nav.hidden || nav.classList.contains('hidden')) return;
+      clearInterval(timer);
+      history.replaceState(null, '', location.pathname + location.search);
+      wantLift = id; openTab('qms');
+    }, 500);
+  }
+  window.addEventListener('load', followQrLink);
   window.addEventListener('wlf-logout', () => {
     catalogueRun++; qmsRun++; session = null; CAT = {rows: [], map: [], canEdit: false, at: 0}; draft = null; selected = {system: '', model: ''};
     for (const id of ['tab-catalogue', 'tab-qms', 'hwDialog']) el(id)?.replaceChildren();
