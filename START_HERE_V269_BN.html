@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.6.9 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.8 → 2.6.9 · ২৬ নভেম্বর ২০২৬</p>
+  <h1>Layout PDF থেকে QMS Input, Serial Scan ও নতুন QR লেবেল: deployment নির্দেশিকা</h1>
+  <p>এই আপডেটে <b>কোনো নতুন SQL নেই</b>। শুধু GitHub-এ ফাইল আপলোড করতে হবে। ডাটাবেসে বাড়তি জায়গাও লাগে না।</p>
+</header>
+
+<section id="what"><h2>কী বদলেছে (v2.6.9)</h2><ul>
+<li><b>QMS Input → "Upload layout PDF":</b> Walton lift-এর specification/layout PDF দিলে অ্যাপ নিজেই ঘরগুলোর মান পড়ে। PDF ব্রাউজারের ভেতরেই পড়া হয়: কোথাও আপলোড হয় না, সেভও হয় না।</li>
+<li><b>আগে যাচাই, তারপর Apply:</b> প্রথমে একটি টেবিলে দেখায় PDF-এ কী পাওয়া গেছে আর কোন ঘর ভরবে। <b>Apply</b> চাপলে তবেই ফর্মে বসে। তারপরও যেকোনো ঘর হাতে বদলানো যায়। <b>Save lift record</b> চাপার আগে কিছুই সেভ হয় না।</li>
+<li><b>যে ঘরগুলো ভরে:</b>
+<div class="scroll"><table>
+<tr><th>PDF-এর লাইন</th><th>QMS-এর ঘর</th></tr>
+<tr><td>Project Name / Address / Lift ID</td><td>Project name / Address / Lift ID</td></tr>
+<tr><td>Usage (Passenger / Cargo)</td><td>Lift type</td></tr>
+<tr><td>Lift Type (MR / MRL)</td><td>Motor-এর Usage type</td></tr>
+<tr><td>Rated Capacity, Rated Speed, Roping Type</td><td>Capacity, Speed, Roping</td></tr>
+<tr><td>Machine Brand, Model</td><td>Motor brand, Motor model (মিললে motor নিজে থেকেই বাছা হয়)</td></tr>
+<tr><td>AVR (… [15KVA])</td><td>AVR model (AVR 15 KVA; Catalogue-এ থাকলে)</td></tr>
+</table></div></li>
+<li><b>না মিললে:</b> PDF-এ মান না পেলে, বা মানটা আপনার Motor list কিংবা Catalogue-এ না থাকলে, ঘরটা খালি থাকে। কোন ঘর খালি রইল তা লেখা দিয়ে জানানো হয়। দুটো কাছাকাছি motor model মিললে অ্যাপ অনুমানে বাছে না; আপনাকেই বেছে নিতে হয়।</li>
+<li><b>Serial number:</b> প্রতিটি serial ঘরের নিচে <b>Scan</b> বোতাম আছে। চাপলে ফোনের ক্যামেরা খোলে এবং sticker-এর barcode বা QR পড়ে ঘরে বসায়। Battery ঘরে কমা দিয়ে একাধিক নম্বর যোগ হয়। হাতে লেখা ও paste আগের মতোই চলে।</li>
+<li><b>একই নম্বর দুবার দিলে সতর্কবার্তা:</b> দুটো ঘরে একই serial দিলে নিচে লাল লেখায় দেখায় কোন নম্বর কোন কোন ঘরে আছে। সতর্কবার্তা আসলেও সেভ আটকায় না, শুধু জানিয়ে দেয়।</li>
+<li><b>QR লেবেল:</b> QR-এর লেখা থেকে লিংক বাদ দেওয়া হয়েছে। QR-এর নিচে Lift ID-এর জায়গায় এখন ছোট Walton লোগো ও "Walton Lift" লেখা থাকে। lift-এ Paid feature থাকলে সেগুলোর নামও QR-এ যায়। Serial number QR-এ কখনো থাকে না।</li>
+</ul></section>
+
+<section id="order"><h2>কী কী করতে হবে</h2>
+<div class="attention">v2.6.4 থেকে v2.6.8 পর্যন্ত SQL বসানো না থাকলে আগে ক্রমানুসারে সেগুলো বসান (v2.6.8 প্যাকেজের নির্দেশিকা দেখুন)। <b>v2.6.9-এ নতুন SQL নেই।</b></div>
+<div class="scroll"><table>
+<tr><th>#</th><th>কাজ</th><th>ফল</th></tr>
+<tr><td>১</td><td>Supabase: <b>কিছু করতে হবে না</b> (SQL ও Edge Function অপরিবর্তিত)।</td><td>—</td></tr>
+<tr><td>২</td><td><code>WLF-GitHub-v2.6.9-UPLOAD.zip</code> আনজিপ করুন।</td><td>ভেতরে <code>web</code>, <code>dist</code>, <code>scripts</code>, <code>tests</code> ফোল্ডার ও কিছু ফাইল</td></tr>
+<tr><td>৩</td><td>GitHub-এ repo খুলুন → <b>Add file</b> → <b>Upload files</b> → আনজিপ করা ফোল্ডারের <b>ভেতরের সব</b> ফাইল ও ফোল্ডার টেনে ছাড়ুন → নিচে <b>Commit changes</b>।</td><td>আগের ফাইলের ওপর replace হয়</td></tr>
+<tr><td>৪</td><td>repo-র <b>Actions</b> ট্যাবে সর্বশেষ run শেষ হওয়া পর্যন্ত অপেক্ষা করুন।</td><td>সবুজ টিক</td></tr>
+<tr><td>৫</td><td>সাইটে Ctrl+F5 চাপুন (ফোনে অ্যাপ বন্ধ করে আবার খুলুন)।</td><td>Account পাতায় build <b>2.6.9</b></td></tr>
+</table></div>
+<p class="small">নতুন ফাইল: <code>web/layout-pdf.js</code>, <code>web/pdf-reader.mjs</code>, <code>web/pdf-worker.mjs</code> (PDF পড়ার লাইব্রেরি pdf.js, প্রায় ১.৮ MB)। এগুলো শুধু PDF আপলোড করলে তখনই লোড হয়, তাই অ্যাপ খোলার গতি বদলায় না। GitHub web-এ এক বারে ১০০টির বেশি ফাইল আপলোড করা যায় না; এই প্যাকেজে তার কম আছে।</p>
+</section>
+
+<section id="check"><h2>ঠিক হয়েছে কিনা দেখার উপায়</h2>
+<div class="scroll"><table>
+<tr><th>কী দেখবেন</th><th>কীভাবে</th><th>সঠিক ফল</th></tr>
+<tr><td>Layout PDF</td><td>QMS → QMS Input → <b>Upload layout PDF</b> → একটি layout PDF দিন</td><td>"From the layout PDF · check, then apply" টেবিল আসে, ফর্ম এখনো খালি</td></tr>
+<tr><td>Apply</td><td><b>Apply</b> চাপুন</td><td>Lift ID, Project, Address ইত্যাদি ভরে যায়; কী ভরল আর কী বাকি তা লেখা দেখায়</td></tr>
+<tr><td>সেভ</td><td>বাকি ঘর পূরণ করে Save lift record চাপুন</td><td>QMS Data-তে lift দেখা যায়</td></tr>
+<tr><td>Scan</td><td>Android ফোনের Chrome-এ serial-এর <b>Scan</b> চাপুন → ক্যামেরার অনুমতি দিন → barcode ধরুন</td><td>নম্বর ঘরে বসে যায়</td></tr>
+<tr><td>QR</td><td>QMS Data → lift খুলুন → QR code</td><td>নিচে লোগো ও "Walton Lift"; স্ক্যান করলে লেখাগুলো আসে, কোনো লিংক থাকে না</td></tr>
+</table></div></section>
+
+<section id="know"><h2>জানা দরকার</h2><ul>
+<li><b>Scan কোথায় চলে:</b> Android ফোনের Chrome ও অ্যাপে চলে। iPhone (Safari) ও কিছু কম্পিউটার ব্রাউজারে barcode পড়ার সুবিধা নেই। সেখানে Scan চাপলে লেখা আসে "This browser cannot scan barcodes"; তখন হাতে লিখুন।</li>
+<li>ক্যামেরা চালাতে সাইটটি https-এ থাকতে হয়। GitHub Pages এমনিতেই https, তাই সমস্যা নেই।</li>
+<li><b>শুধু লেখা আছে এমন sticker</b> (barcode নেই) এই ভার্সনে পড়া যায় না। ওগুলো হাতে লিখতে হবে। এটা পরের কোনো আপডেটে যোগ করা যেতে পারে।</li>
+<li>PDF-টা Walton-এর একই format-এর হতে হবে ("Project Name :", "Rated Capacity :" এর মতো লেবেলসহ)। scan করা ছবির PDF (লেখা select করা যায় না) পড়া যায় না।</li>
+<li>Motor brand ও model আপনার Component Selection-এর motor list-এর নামের সঙ্গে মিলতে হবে। যেমন PDF-এ "MCK 100" থাকলে list-এর "MCK100-E" ধরা হয়। কিন্তু "MCK100-E" ও "MCK100-F" দুটোই থাকলে অ্যাপ নিজে বাছবে না।</li>
+<li>Motor বসাতে Component Selection-এর অনুমতি লাগে। না থাকলে review টেবিলে "Needs Component Selection access" দেখায়।</li>
+</ul></section>
+
+<section id="limits"><h2>যা এখানে যাচাই করা যায়নি</h2><ul>
+<li><b>আসল ফোনের ক্যামেরায় Scan।</b> পরীক্ষায় নকল ক্যামেরা ও নকল barcode-reader দিয়ে পুরো ধাপ চালানো হয়েছে। আসল Android ফোনে আপনাকে একবার দেখে নিতে হবে।</li>
+<li>GitHub Pages থেকে <code>.mjs</code> ফাইল লোড হওয়া। GitHub Pages সাধারণত এগুলো ঠিকভাবে পাঠায়, কিন্তু এখান থেকে দেখা সম্ভব হয়নি। PDF আপলোডে "Failed to fetch dynamically imported module" এলে আমাকে জানান।</li>
+<li>Android APK-এর ভেতরে ক্যামেরার অনুমতি।</li>
+<li>অন্য project-এর layout PDF। আপনার দেওয়া একটি আসল PDF (সব ১১টি মান সঠিক পড়েছে) ও একটি বানানো PDF দিয়ে পরীক্ষা হয়েছে। আসল PDF-টা repo-তে রাখা হয়নি।</li>
+</ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>লক্ষণ</th><th>কারণ</th><th>সমাধান</th></tr>
+<tr><td>"This PDF does not look like a Walton lift layout PDF"</td><td>অন্য ধরনের PDF, বা ছবি-scan PDF</td><td>Walton-এর software থেকে বের করা layout PDF দিন</td></tr>
+<tr><td>"Failed to fetch dynamically imported module"</td><td><code>web/pdf-reader.mjs</code> আপলোড হয়নি, বা সাইট পুরোনো</td><td>UPLOAD zip-এর সব ফাইল আবার দিন, তারপর Ctrl+F5</td></tr>
+<tr><td>Motor ভরেনি, "No motor matches these values"</td><td>PDF-এর মানের মতো motor list-এ কিছু নেই</td><td>motor হাতে বাছুন</td></tr>
+<tr><td>Scan চাপলে ক্যামেরা খোলে না</td><td>ক্যামেরার অনুমতি দেওয়া হয়নি</td><td>Chrome → সাইটের তালা চিহ্ন → Camera → Allow</td></tr>
+<tr><td>Build এখনো 2.6.8 দেখায়</td><td>পুরোনো cache</td><td>Ctrl+F5, ফোনে অ্যাপ সম্পূর্ণ বন্ধ করে খুলুন</td></tr>
+</table></div></section>
+
+<footer>Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

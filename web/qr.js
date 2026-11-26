@@ -188,17 +188,21 @@
   function png(text, opts) {
     opts = opts || {};
     const m = matrix(text), quiet = 4, cells = m.length + quiet * 2, scale = Math.max(4, Math.floor((opts.size || 640) / cells)), side = cells * scale;
-    const caption = opts.caption || '', capH = caption ? Math.round(scale * 6) : 0;
+    const caption = opts.caption || '', logo = opts.logo || null, capH = caption || logo ? Math.round(scale * 8) : 0;
     const canvas = document.createElement('canvas'); canvas.width = side; canvas.height = side + capH;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#000';
     m.forEach((row, y) => row.forEach((dark, x) => { if (dark) ctx.fillRect((x + quiet) * scale, (y + quiet) * scale, scale, scale); }));
-    if (caption) {
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      let px = Math.round(capH * 0.55); ctx.font = '700 ' + px + 'px system-ui,Arial,sans-serif';
-      while (ctx.measureText(caption).width > side * 0.92 && px > 10) { px -= 2; ctx.font = '700 ' + px + 'px system-ui,Arial,sans-serif'; }
-      ctx.fillText(caption, side / 2, side + capH * 0.42);
+    if (capH) {
+      /* small logo and the words "Walton Lift" side by side under the code */
+      const logoH = logo ? Math.round(capH * 0.62) : 0, logoW = logo ? Math.round(logoH * logo.naturalWidth / logo.naturalHeight) : 0;
+      let px = Math.round(capH * 0.36); ctx.font = '700 ' + px + 'px system-ui,Arial,sans-serif';
+      const gap = logo && caption ? Math.round(capH * 0.2) : 0;
+      while (ctx.measureText(caption).width + logoW + gap > side * 0.9 && px > 8) { px -= 2; ctx.font = '700 ' + px + 'px system-ui,Arial,sans-serif'; }
+      const textW = caption ? ctx.measureText(caption).width : 0, left = Math.round((side - (logoW + gap + textW)) / 2), mid = side + capH * 0.48;
+      if (logo) ctx.drawImage(logo, left, Math.round(mid - logoH / 2), logoW, logoH);
+      if (caption) { ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000'; ctx.fillText(caption, left + logoW + gap, mid); }
     }
     return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(Error('Could not make the image.')), 'image/png'));
   }

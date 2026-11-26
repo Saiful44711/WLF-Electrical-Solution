@@ -1,6 +1,6 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),http=require('node:http'),fs=require('node:fs'),path=require('node:path');const {makeDB,IDS}=require('./pg-harness.cjs');
 let h,browser,context,page,server,errors=[],rpcCount=0;const passwords={};
-const mime={'.html':'text/html','.js':'application/javascript','.css':'text/css','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
+const mime={'.html':'text/html','.js':'application/javascript','.mjs':'text/javascript','.css':'text/css','.webmanifest':'application/manifest+json','.png':'image/png','.svg':'image/svg+xml'};
 const testConfig="window.WLF_CONFIG={supabaseUrl:'https://wlf-test.supabase.co',supabasePublishableKey:'sb_publishable_test_public_key',offlineHours:24};";
 const archiveParts=new Map();
 const Zip=require('jszip');
@@ -39,7 +39,7 @@ await h.db.query("update public.wlf_profiles set permissions=array['selection','
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.8-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.9-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -1718,6 +1718,7 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  await tab('qms');await page.locator('#qmsTabData').click();await page.locator('#qmsSearch [name=liftId]').fill('V7-1');await page.locator('#qmsSearch [type=submit]').click();await page.locator('#hwQr').waitFor({timeout:30000});
  {const t=await page.locator('#hwQr').innerText();for(const x of ['Lift ID','V7-1','AVR Tower 3','MOT 7.5 kW','COP display','LOP display','Transom display','AVR'])assert.ok(t.includes(x),'QR panel shows '+x);
   assert.ok(!t.includes('D-267')&&!t.includes('AV-700')&&!t.includes('BAT-1'),'no serial number in the QR panel');}
+ assert.match(await page.locator('#hwQrImg').innerText(),/Walton Lift/);assert.ok(!(await page.locator('#hwQrImg').innerText()).includes('V7-1'),'v2.6.9: no Lift ID under the QR code');assert.equal(await page.locator('#hwQrImg img').count(),1);
  await page.locator('#hwQr').scrollIntoViewIfNeeded();await shot('02-qr-panel-desktop');
  const decoder='import sys,cv2\nimg=cv2.imread(sys.argv[1])\nimg=cv2.copyMakeBorder(img,40,40,40,40,cv2.BORDER_CONSTANT,value=(255,255,255))\nr,_,_=cv2.QRCodeDetectorAruco().detectAndDecode(img)\nprint(r)\n';
  fs.writeFileSync('test-results/v268/decode.py',decoder);
@@ -1725,7 +1726,7 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  {const [d]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.locator('#qrSave').click()]);assert.match(d.suggestedFilename(),/^QR-V7-1\.png$/);await d.saveAs('test-results/v268/QR-V7-1.png');
   assert.equal(fs.readFileSync('test-results/v268/QR-V7-1.png').subarray(1,4).toString(),'PNG');
   if(canDecode){const txt=execFileSync('python3',['test-results/v268/decode.py','test-results/v268/QR-V7-1.png']).toString();
-   assert.match(txt,/^WLF QMS\nLift ID: V7-1\nProject: AVR Tower 3\nController: MOT 7\.5 kW\n/);assert.match(txt,/AVR: 30 KVA/);assert.match(txt,/#qms=V7-1/);assert.ok(!/D-267|AV-700|BAT-1/.test(txt),'scanned text has no serial number');}}
+   assert.match(txt,/^WLF QMS\nLift ID: V7-1\nProject: AVR Tower 3\nController: MOT 7\.5 kW\n/);assert.match(txt,/AVR: 30 KVA/);assert.ok(!/http|#qms/.test(txt),'v2.6.9: the QR text has no link');assert.ok(!/D-267|AV-700|BAT-1/.test(txt),'scanned text has no serial number');}}
  if(canDecode){await page.locator('#hwQrImg svg').screenshot({path:'test-results/v268/qr-screen.png'});
   assert.match(execFileSync('python3',['test-results/v268/decode.py','test-results/v268/qr-screen.png']).toString(),/Lift ID: V7-1/,'the QR on the screen can be scanned');}
  {const [pop]=await Promise.all([page.waitForEvent('popup',{timeout:15000}),page.locator('#qrPrint').click()]);await pop.waitForLoadState();assert.ok((await pop.content()).includes('V7-1'));await pop.close();}
@@ -1733,11 +1734,56 @@ fs.mkdirSync('test-results/v268',{recursive:true});
   await page.locator('#hwQr').scrollIntoViewIfNeeded();await shot('03-qr-panel-390-dark');
   const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
   await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
- // the QR link opens the lift after sign-in
- await page.evaluate(()=>{history.replaceState(null,'',location.pathname+'#qms=V7-1');});await page.reload();
- await page.locator('#hwQr').waitFor({timeout:60000});assert.match(await page.locator('#tab-qms h3').first().innerText(),/V7-1/);
- assert.equal(await page.evaluate(()=>location.hash),'','the link is removed from the address bar after opening');
- await shot('04-qr-link-opened-desktop');
+}
+// v2.6.9: layout PDF fills the QMS Input after Apply; serial Scan buttons; same number twice warning
+{const shot=async(name)=>{await page.screenshot({path:'test-results/v268/'+name+'.png'});};
+ const {layoutPdf}=require('./pdf-fixture.cjs');
+ await tab('qms');await page.locator('#qmsTabInput').click();await page.locator('#qmsLiftForm').waitFor();
+ const motor=await page.evaluate(()=>INDEX[0]);assert.ok(motor,'component motor list is loaded');
+ const wanted={project:'Test Project Alpha',address:'Road 5, Test City',liftId:'T-9001',capacity:String(motor.c),speed:String(motor.s),roping:motor.p,usage:'Passenger',room:motor.u==='MRL'?'MRL(Machine Room Less)':'MR(Machine Room)',brand:motor.b,model:motor.m,avr:'15'};
+ await page.locator('#hwLayoutFile').setInputFiles({name:'layout.pdf',mimeType:'application/pdf',buffer:layoutPdf(wanted)});
+ await page.locator('#hwLayoutApply').waitFor({timeout:30000}).catch(async e=>{console.log('REVIEW BOX:',await page.locator('#hwLayoutReview').innerText().catch(()=>'?'));throw e;});
+ {const t=await page.locator('#hwLayoutReview').innerText();assert.match(t,/Test Project Alpha/);assert.match(t,/T-9001/);assert.match(t,/Will be filled/);assert.ok(!/Not Passenger or Cargo|Not in the motor list/.test(t),'every value is found: '+t);assert.match(t,/Nothing is saved yet/);}
+ assert.equal(await page.locator('#qmsLiftForm [name=liftId]').inputValue(),'','nothing is filled before Apply');
+ await shot('05-layout-review-desktop');
+ await page.locator('#hwLayoutApply').click();await page.locator('#hwLayoutDone').waitFor({timeout:60000});
+ assert.equal(await page.locator('#qmsLiftForm [name=liftId]').inputValue(),'T-9001');
+ assert.equal(await page.locator('#qmsLiftForm [name=project]').inputValue(),'Test Project Alpha');
+ assert.equal(await page.locator('#qmsLiftForm [name=address]').inputValue(),'Road 5, Test City');
+ assert.equal(await page.locator('#qmsLiftForm [name="m-c"]').inputValue(),String(motor.c));
+ assert.equal(await page.locator('#qmsLiftForm [name="m-b"]').inputValue(),motor.b);
+ assert.equal(await page.locator('#qmsLiftForm [name="m-m"]').inputValue(),motor.m);
+ {const done=await page.locator('#hwLayoutDone').innerText();console.log('layout apply message:',done);assert.match(done,/Filled from the layout/);assert.match(done,/Nothing is saved until you press Save/);}
+ assert.equal(await page.locator('#qmsLiftForm [name=liftType]').inputValue(),'Passenger');assert.equal(await page.locator('#qmsLiftForm [name="m-u"]').inputValue(),motor.u);
+ {const has=await page.locator('#qmsLiftForm [name=avrModel] option').evaluateAll(o=>o.some(x=>x.value==='AVR 15 KVA'));assert.equal(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),has?'AVR 15 KVA':'');}
+ assert.equal((await sequential(()=>h.db.query("select count(*)::int c from wlf_private.qms_lifts where lift_id='T-9001'"))).rows[0].c,0,'Apply does not save the lift');
+ await shot('06-layout-applied-desktop');
+ // a PDF that is not a layout is refused with a readable message
+ await page.locator('#hwLayoutFile').setInputFiles({name:'other.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%%EOF\n')});
+ await page.locator('#hwLayoutReview .overview-status').waitFor({timeout:30000});
+ // serial Scan with a made-up camera and barcode reader
+ await page.evaluate(()=>{window.BarcodeDetector=class{async detect(){return [{rawValue:'SN-12345'}];}};
+   navigator.mediaDevices.getUserMedia=async()=>{const c=document.createElement('canvas');c.width=320;c.height=240;c.getContext('2d').fillRect(0,0,50,50);return c.captureStream();};});
+ await page.locator('#qmsLiftForm [name="sl-motor"]').locator('xpath=following-sibling::button[contains(@class,"hw-scan")]').click();
+ await page.waitForFunction(()=>document.querySelector('#qmsLiftForm [name="sl-motor"]').value==='SN-12345',null,{timeout:15000});
+ await page.locator('#qmsLiftForm [name="sl-battery"]').fill('B1');
+ await page.locator('#qmsLiftForm [name="sl-battery"]').locator('xpath=following-sibling::button[contains(@class,"hw-scan")]').click();
+ await page.waitForFunction(()=>document.querySelector('#qmsLiftForm [name="sl-battery"]').value==='B1, SN-12345',null,{timeout:15000});
+ assert.match(await page.locator('#hwSerialWarn').innerText(),/same number is entered more than once.*SN-12345/);
+ await page.locator('#qmsLiftForm [name="sl-battery"]').fill('B1, B2');
+ assert.equal(await page.locator('#hwSerialWarn').innerText(),'','the warning goes away when the numbers differ');
+ await page.locator('#qmsLiftForm [name="sl-drive"]').fill('B2');
+ assert.match(await page.locator('#hwSerialWarn').innerText(),/B2/);
+ await page.locator('#qmsLiftForm [name="sl-drive"]').fill('D-1');
+ await page.evaluate(()=>{delete window.BarcodeDetector;});
+ await page.locator('#qmsLiftForm [name="sl-ups"]').locator('xpath=following-sibling::button[contains(@class,"hw-scan")]').click();
+ assert.match(await page.locator('#hwSerialWarn').innerText(),/cannot scan barcodes/);
+ await page.locator('#hwSerialWarn').scrollIntoViewIfNeeded();await shot('07-serial-scan-desktop');
+ {const vp=page.viewportSize();await page.setViewportSize({width:390,height:844});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
+  await page.locator('.hw-laypdf').scrollIntoViewIfNeeded();await shot('08-layout-applied-390-dark');
+  await page.locator('.hw-serials').scrollIntoViewIfNeeded();await shot('09-serial-scan-390-dark');
+  const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
+  await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
 }
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');

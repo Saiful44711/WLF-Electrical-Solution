@@ -1,4 +1,12 @@
-# WLF Electrical Solution v2.6.8
+# WLF Electrical Solution v2.6.9
+
+## v2.6.9 Layout PDF to QMS Input, serial Scan, QR label (26 Nov 2026)
+
+- **QMS Input → Upload layout PDF**: a Walton lift specification/layout PDF is read **inside the browser** (pdf.js; the file is not uploaded or stored). A review table shows every value and what will happen. Nothing changes until **Apply**; nothing is saved until **Save lift record**. Filled: Lift ID, Project name, Address, Lift type (from "Usage": Passenger/Cargo), Capacity, Speed, motor Usage type (from "Lift Type": MR/MRL), Roping, Motor brand, Motor model, AVR model ("AVR … [15KVA]"). A value that is missing or not in the lists stays empty and is named in the message. Two close motor models are never guessed. Manual entry works as before.
+- **Serial numbers**: each field has a **Scan** button (phone camera, barcode or QR code; Chrome on Android). Typing and pasting still work. A warning appears when the same number is entered in two fields. Text-only stickers (no barcode) are not read in this version.
+- **QR label**: the link is removed from the QR text; under the QR code the Walton logo and "Walton Lift" replace the Lift ID; Paid feature names are added when the lift has them. Serial numbers are never in the QR code.
+- No new SQL and no extra database space (PDF, scans and QR images are not stored).
+
 
 ## v2.6.8 Technical Support Excel table, Catalogue model import, QMS QR code (24 Nov 2026)
 - **Technical Support Excel:** the Excel downloaded from the Technical Support menu (all six forms) is an Excel Table without the Request ID, Submitted by, Submitted at, Last updated, Assigned to and Solved by columns. The CSV download button is removed. Storage & Backup Excel files keep every column.

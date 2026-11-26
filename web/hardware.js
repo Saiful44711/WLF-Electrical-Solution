@@ -500,7 +500,8 @@ const WlfHardware = (() => {
     const copDisplays = copRows.filter(r => r.grp === 'COP Display'), copButtons = copRows.filter(r => r.grp === 'COP Button');
     const otherChecked = new Set(d.pickOther ?? d.parts.filter(x => x.section === 'other').map(x => x.catalogueId));
     return `<form id="qmsLiftForm" class="hw-qms" novalidate>
-      ${sec('1 · Project information', `<div class="hw-grid">
+      ${sec('1 · Project information', (record ? '' : `<div class="hw-laypdf"><label class="btn ghost hw-file">Upload layout PDF<input type="file" id="hwLayoutFile" accept="application/pdf,.pdf" hidden></label>
+        <span class="note">Reads the project details from a Walton layout PDF inside your browser. The file is not uploaded.</span></div><div id="hwLayoutReview" role="status"></div>`) + `<div class="hw-grid">
         <label>Lift ID *<input name="liftId" required maxlength="80" value="${h(d.liftId)}" ${record && !record.canEdit ? 'readonly' : ''}></label>
         <label>Project name *<input name="project" required maxlength="180" value="${h(d.project)}"></label>
         <label>Address *<input name="address" required maxlength="240" value="${h(d.address)}"></label>
@@ -516,7 +517,7 @@ const WlfHardware = (() => {
         ${d.serialsHidden ? '<p class="note">Serial numbers are not shown to your account. Leave a field blank to keep the saved value, or type a new one to replace it.</p>' : ''}
         <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => k === 'battery'
           ? `<label class="hw-battery">${t} <small>(up to 5 batteries, separate them with commas)</small><textarea name="sl-${k}" rows="3" maxlength="200" placeholder="Battery serial numbers">${h(d.serials[k])}</textarea></label>`
-          : `<label>${t}${serialRequired(k) && !d.serialsHidden ? ' *' : ''}<input name="sl-${k}" ${serialRequired(k) && !d.serialsHidden ? 'required' : ''} maxlength="80" value="${h(d.serials[k])}" ${d.serialsHidden ? 'placeholder="Saved (hidden)"' : ''}></label>`).join('')}</div>`)}
+          : `<label>${t}${serialRequired(k) && !d.serialsHidden ? ' *' : ''}<input name="sl-${k}" ${serialRequired(k) && !d.serialsHidden ? 'required' : ''} maxlength="80" value="${h(d.serials[k])}" ${d.serialsHidden ? 'placeholder="Saved (hidden)"' : ''}></label>`).join('')}</div><p class="note overview-status" id="hwSerialWarn" role="status"></p>`)}
       ${sec('4 · LOP · COP · Transom · Travelling cable', `<div class="hw-grid">
         ${field('lop', 'LOP model', p.lop, 'lop')}${field('cop0', 'COP display', copDisplays, 'cop', 0)}${field('cop1', 'COP button', copButtons, 'cop', 1)}
         ${field('faceplate', 'COP faceplate', p.faceplate, 'faceplate')}${field('transom', 'Transom display', p.transom, 'transom')}${field('cable', 'Travelling cable', p.cable, 'cable')}</div>`)}
@@ -598,6 +599,8 @@ const WlfHardware = (() => {
     f.elements.controllerModel.onchange = () => { readDraft(); for (const k of Object.keys(draft.pick)) if (k.startsWith('control:')) delete draft.pick[k]; draft.parts = draft.parts.filter(x => x.section !== 'control'); repaint(); };
     f.elements.avrModel.onchange = () => { readDraft(); paintAvr(f); };
     bindSuggest(f, repaint);
+    if (el('hwLayoutFile')) bindLayout(f, repaint);
+    bindSerialTools(f);
     f.querySelectorAll('[data-other-all]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = true; }));
     f.querySelectorAll('[data-other-none]').forEach(b => b.onclick = () => f.querySelectorAll('input[name=other]').forEach(c => { c.checked = false; }));
     f.querySelectorAll('[data-paid-chip]').forEach(b => b.onclick = () => {
@@ -648,6 +651,150 @@ const WlfHardware = (() => {
       repaint(true);      /* the form still shows the old values, so the new choice must not be read back from it */
     });
     f.querySelectorAll('[data-suggest-avr]').forEach(b => b.onclick = () => { readDraft(); draft.pick.avrModel = b.dataset.suggestAvr; repaint(true); });
+  }
+
+  /* ---- v2.6.9: layout PDF → QMS Input. The values are shown first; nothing changes until Apply is pressed. */
+  const lnorm = x => String(x ?? '').toLowerCase().replace(/[^a-z0-9.:]/g, '');
+  const sameModel = (list, pdf) => { const a = String(list ?? '').toLowerCase().replace(/[^a-z0-9]/g, ''), b = String(pdf ?? '').toLowerCase().replace(/[^a-z0-9]/g, ''); return !!b && (a === b || a.startsWith(b)); };
+  function layoutPlan(v) {
+    const idx = typeof INDEX !== 'undefined' ? INDEX : [];
+    const need = idx.length ? '' : 'Needs Component Selection access';
+    const inList = (list, ok) => idx.length ? (list.some(ok) ? '' : 'Not in the motor list') : need;
+    const liftType = ['Passenger', 'Cargo'].find(x => lnorm(v.usage).includes(lnorm(x)));
+    const avrModel = v.avrKva ? 'AVR ' + v.avrKva + ' KVA' : '';
+    const plain = x => ({ok: !!v[x], note: v[x] ? '' : 'Not found in the PDF'});
+    return [
+      {key: 'liftId', label: 'Lift ID', pdf: v.liftId, ...plain('liftId')},
+      {key: 'project', label: 'Project name', pdf: v.project, ...plain('project')},
+      {key: 'address', label: 'Address', pdf: v.address, ...plain('address')},
+      {key: 'liftType', label: 'Lift type', pdf: v.usage, ok: !!liftType, note: v.usage ? (liftType ? '' : 'Not Passenger or Cargo') : 'Not found in the PDF', value: liftType},
+      {key: 'capacity', label: 'Capacity (kg)', pdf: v.capacity, ...(v.capacity ? (m => ({ok: !m, note: m}))(inList(idx, r => r.c === Number(v.capacity))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'speed', label: 'Speed (m/s)', pdf: v.speed, ...(v.speed ? (m => ({ok: !m, note: m}))(inList(idx, r => r.s === Number(v.speed))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'usage', label: 'Usage type (motor)', pdf: v.room, ...(v.room ? (m => ({ok: !m, note: m}))(inList(idx, r => lnorm(r.u) === lnorm(v.room))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'roping', label: 'Roping', pdf: v.roping, ...(v.roping ? (m => ({ok: !m, note: m}))(inList(idx, r => lnorm(r.p) === lnorm(v.roping))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'motorBrand', label: 'Motor brand', pdf: v.motorBrand, ...(v.motorBrand ? (m => ({ok: !m, note: m}))(inList(idx, r => lnorm(r.b) === lnorm(v.motorBrand))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'motorModel', label: 'Motor model', pdf: v.motorModel, ...(v.motorModel ? (m => ({ok: !m, note: m}))(inList(idx, r => sameModel(r.m, v.motorModel))) : {ok: false, note: 'Not found in the PDF'})},
+      {key: 'avr', label: 'AVR model', pdf: v.avrKva ? v.avrKva + ' KVA' : '', ok: !!avrModel && modelsOf('AVR').includes(avrModel), note: !avrModel ? 'Not found in the PDF' : (modelsOf('AVR').includes(avrModel) ? '' : 'Not in the Hardware Catalogue'), value: avrModel}];
+  }
+  function bindLayout(f, repaint) {
+    const box = el('hwLayoutReview');
+    el('hwLayoutFile').onchange = async event => {
+      const file = event.target.files[0];
+      event.target.value = '';
+      if (!file) return;
+      box.innerHTML = '<p class="note">Reading ' + h(file.name) + '…</p>';
+      try {
+        const {values} = await WlfLayout.readFile(file);
+        const plan = layoutPlan(values);
+        box.innerHTML = `<div class="card hw-out hw-review"><div class="overview-eyebrow">FROM THE LAYOUT PDF · CHECK, THEN APPLY</div>${
+          tbl(['Field', 'In the PDF', 'What happens'], plan.map(x => [h(x.label), h(x.pdf || '—'), x.ok ? 'Will be filled' : '<span class="hw-nocode">' + h(x.note) + '</span>']))}
+          <p class="note">Nothing is saved yet. After Apply you can still change any field, then press Save lift record.</p>
+          <div class="overview-actions"><button class="btn" type="button" id="hwLayoutApply" ${plan.some(x => x.ok) ? '' : 'disabled'}>Apply</button><button class="btn ghost" type="button" id="hwLayoutCancel">Cancel</button></div></div>`;
+        el('hwLayoutCancel').onclick = () => { box.innerHTML = ''; };
+        el('hwLayoutApply').onclick = () => applyLayout(plan, values, repaint);
+      } catch (err) { box.innerHTML = '<p class="note overview-status">' + h(cleanError(err)) + '</p>'; }
+    };
+  }
+  async function applyLayout(plan, v, repaint) {
+    const ok = k => plan.find(x => x.key === k)?.ok;
+    readDraft();
+    for (const k of ['liftId', 'project', 'address']) if (ok(k)) draft[k] = v[k];
+    if (ok('liftType')) draft.liftType = plan.find(x => x.key === 'liftType').value;
+    repaint(true);
+    const g = el('qmsLiftForm'), notes = [];
+    const pick = (name, want, same) => {
+      const sel = g.elements[name]; if (!sel) return false;
+      const hits = [...sel.options].filter(o => o.value !== '' && same(o.value));
+      const opt = hits.find(o => lnorm(o.value) === lnorm(want)) || (hits.length === 1 ? hits[0] : null);   /* never guess between two close models */
+      if (!opt) return false;
+      sel.value = opt.value; return true;
+    };
+    const motorWanted = ['capacity', 'speed', 'usage', 'roping', 'motorBrand', 'motorModel'].some(ok);
+    if (motorWanted && g.elements['m-c']) {
+      if (ok('capacity') && !pick('m-c', v.capacity, x => Number(x) === Number(v.capacity))) notes.push('Capacity');
+      if (ok('speed') && !pick('m-s', v.speed, x => Number(x) === Number(v.speed))) notes.push('Speed');
+      if (ok('usage') && !pick('m-u', v.room, x => lnorm(x) === lnorm(v.room))) notes.push('Usage type');
+      if (ok('roping') && !pick('m-p', v.roping, x => lnorm(x) === lnorm(v.roping))) notes.push('Roping');
+      g.elements['m-p'].dispatchEvent(new Event('change'));
+      if (ok('motorBrand') && !pick('m-b', v.motorBrand, x => lnorm(x) === lnorm(v.motorBrand))) notes.push('Motor brand');
+      g.elements['m-b'].dispatchEvent(new Event('change'));
+      if (ok('motorModel') && !pick('m-m', v.motorModel, x => sameModel(x, v.motorModel))) notes.push('Motor model (no single match with these filters)');
+      el('hwMotorSearch').click();
+      const chips = [...g.querySelectorAll('[data-motor-row]')];
+      if (chips.length === 1) {
+        chips[0].click();
+        for (let i = 0; i < 80 && !draft.selection; i++) await new Promise(r => setTimeout(r, 100));
+        if (!draft.selection) notes.push('Motor (could not be loaded)');
+      } else if (chips.length > 1) notes.push(chips.length + ' motors match: choose one');
+      else notes.push('No motor matches these values');
+    }
+    if (ok('avr')) { draft.pick.avrModel = plan.find(x => x.key === 'avr').value; paintAvr(g); }
+    const done = plan.filter(x => x.ok).map(x => x.label), skipped = plan.filter(x => !x.ok).map(x => x.label + ' (' + x.note + ')');
+    el('hwLayoutReview').innerHTML = `<p class="note overview-status" id="hwLayoutDone">Filled from the layout: ${h(done.join(', ') || 'nothing')}.${notes.length ? ' Check: ' + h(notes.join('; ')) + '.' : ''}${skipped.length ? ' Not filled: ' + h(skipped.join('; ')) + '.' : ''} Nothing is saved until you press Save lift record.</p>`;
+  }
+
+  /* ---- v2.6.9: camera scan for serial numbers (barcode / QR) and a warning when one number is typed twice */
+  const canScan = () => typeof BarcodeDetector !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  function serialWarning(f) {
+    const seen = new Map();
+    for (const [k, t] of SERIALS) {
+      const input = f.elements['sl-' + k];
+      if (!input) continue;
+      for (const part of String(input.value).split(',').map(x => x.trim()).filter(Boolean)) {
+        const key = part.toLowerCase();
+        seen.set(key, [...(seen.get(key) || []), {part, t}]);
+      }
+    }
+    const twice = [...seen.values()].filter(list => list.length > 1);
+    el('hwSerialWarn').textContent = twice.length ? 'Check: the same number is entered more than once: ' + twice.map(list => list[0].part + ' (' + list.map(x => x.t).join(', ') + ')').join('; ') + '.' : '';
+  }
+  function bindSerialTools(f) {
+    f.querySelectorAll('.hw-serials [name^="sl-"]').forEach(input => {
+      input.addEventListener('input', () => serialWarning(f));
+      if (input.parentNode.querySelector('.hw-scan')) return;
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'btn ghost hw-scan'; button.textContent = 'Scan';
+      button.setAttribute('aria-label', 'Scan ' + (input.closest('label')?.firstChild?.textContent || 'serial number').trim());
+      button.onclick = () => scanInto(f, input);
+      input.after(button);
+    });
+  }
+  async function scanInto(f, input) {
+    const warn = el('hwSerialWarn');
+    if (!canScan()) { warn.textContent = 'This browser cannot scan barcodes. Use Chrome on an Android phone, or type or paste the number.'; return; }
+    let stream = null, stopped = false;
+    const stop = () => { stopped = true; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; };
+    const node = openDialog('Scan serial number', `<video id="hwScanVideo" class="hw-scan-video" playsinline muted autoplay></video>
+      <p class="note overview-status" id="hwScanNote" role="status">Starting the camera…</p><div class="overview-actions"><button class="btn ghost" type="button" id="hwScanStop">Cancel</button></div>`);
+    node.addEventListener('close', stop, {once: true});
+    el('hwScanStop').onclick = () => { stop(); closeDialog(); };
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({video: {facingMode: {ideal: 'environment'}}, audio: false});
+      if (stopped) { stop(); return; }
+      const video = el('hwScanVideo');
+      video.srcObject = stream;
+      await video.play().catch(() => {});
+      el('hwScanNote').textContent = 'Point the camera at the barcode or QR code on the label.';
+      const detector = new BarcodeDetector();
+      while (!stopped) {
+        let found = [];
+        try { found = await detector.detect(video); } catch (err) { /* frame not ready yet */ }
+        const value = found.map(x => String(x.rawValue || '').trim()).find(Boolean);
+        if (value) {
+          stop(); closeDialog();
+          if (input.tagName === 'TEXTAREA' && input.value.trim()) input.value = (input.value.trim().replace(/,\s*$/, '') + ', ' + value).slice(0, input.maxLength > 0 ? input.maxLength : 200);
+          else input.value = value.slice(0, input.maxLength > 0 ? input.maxLength : 80);
+          input.dispatchEvent(new Event('input', {bubbles: true}));
+          input.focus();
+          return;
+        }
+        await new Promise(r => setTimeout(r, 200));
+      }
+    } catch (err) {
+      stop();
+      const note = el('hwScanNote');
+      if (note) note.textContent = /denied|permission|NotAllowed/i.test(String(err && (err.name + err.message))) ? 'Camera permission was refused. Allow the camera for this site, or type the number.' : 'Could not use the camera: ' + cleanError(err);
+    }
   }
 
   function bindMotor(f, afterChange) {
@@ -719,7 +866,7 @@ const WlfHardware = (() => {
         rec.specialNote ? `<p class="hw-paid-note">${h(rec.specialNote)}</p>` : '<p class="note">No special note.</p>'}</section>`;
   }
 
-  /* ---- v2.6.8: QR label. The code holds plain text (readable by any scanner, no login) and the link that opens the lift in WLF (login needed). Serial numbers are never put in it. */
+  /* ---- QR label (v2.6.8; v2.6.9: no link). The code holds plain text that any scanner can read without sign-in. Serial numbers are never put in it. */
   const dash = v => (v === undefined || v === null || String(v).trim() === '' ? '—' : String(v).trim());
   function qrFacts(rec) {
     const sectionParts = (section, test) => rec.parts.filter(p => p.section === section && (!test || test(p)));
@@ -731,28 +878,29 @@ const WlfHardware = (() => {
       ['Lift ID', rec.liftId], ['Project', rec.project], ['Controller', rec.controllerModel], ['Motor', motor?.value],
       ['COP display', names(sectionParts('cop', p => /display/i.test(p.grp || '')))],
       ['LOP display', names(sectionParts('lop'))], ['Transom display', names(sectionParts('transom'))],
-      ['AVR', avr ? String(avr.model || '').replace(/^AVR\s*/i, '') : '']];
+      ['AVR', avr ? String(avr.model || '').replace(/^AVR\s*/i, '') : ''],
+      ['Paid features', [...new Set(sectionParts('paid').map(p => p.grp || p.hardware).filter(Boolean))].join(', ')]].filter(([k, v]) => k !== 'Paid features' || v);
   }
-  const qrLink = rec => location.origin + location.pathname + '#qms=' + encodeURIComponent(rec.liftId);
   function qrText(rec) {
-    return 'WLF QMS\n' + qrFacts(rec).map(([k, v]) => k + ': ' + dash(v)).join('\n') + '\n' + qrLink(rec);
+    return 'WLF QMS\n' + qrFacts(rec).map(([k, v]) => k + ': ' + dash(v)).join('\n');
   }
   function qrPanel(rec) {
     let svg = '';
     try { svg = WlfQr.svg(qrText(rec), {label: 'QR code of lift ' + rec.liftId}); } catch (err) { return `<section class="card hw-out" id="hwQr"><div class="overview-eyebrow">QR CODE</div><p class="note">${h(cleanError(err))}</p></section>`; }
     return `<section class="card hw-out" id="hwQr"><div class="overview-eyebrow">QR CODE · CONTROL PANEL LABEL</div>
-      <div class="hw-qr"><div class="hw-qr-img" id="hwQrImg">${svg}<b>${h(rec.liftId)}</b></div>
+      <div class="hw-qr"><div class="hw-qr-img" id="hwQrImg">${svg}<div class="hw-qr-brand"><img src="company-logo.png" alt="" width="28"><b>Walton Lift</b></div></div>
         <div><table class="tbl hw-table"><tbody>${qrFacts(rec).map(([k, v]) => `<tr><td class="hw-k">${h(k)}</td><td>${h(dash(v))}</td></tr>`).join('')}</tbody></table>
-          <p class="note">Scan with any phone camera or scanner to read these details. The last line is the link that opens this lift in WLF (sign-in needed). Serial numbers are not in the QR code.</p>
+          <p class="note">Scan with any phone camera or scanner to read these details. Serial numbers are not in the QR code.</p>
           <div class="hw-toolbar"><button class="btn" type="button" id="qrSave">Save QR (PNG)</button><button class="btn ghost" type="button" id="qrPrint">Print label</button></div>
           <p class="note overview-status" id="qrStatus" role="status"></p></div></div></section>`;
   }
+  const loadLogo = () => new Promise(resolve => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = 'company-logo.png'; });
   function bindQr(rec) {
     const status = el('qrStatus');
     const file = 'QR-' + String(rec.liftId).replace(/[^\w.-]+/g, '_') + '.png';
     el('qrSave').onclick = async () => {
       try {
-        const blob = await WlfQr.png(qrText(rec), {caption: rec.liftId});
+        const blob = await WlfQr.png(qrText(rec), {caption: 'Walton Lift', logo: await loadLogo()});
         const url = URL.createObjectURL(blob), a = document.createElement('a');
         a.href = url; a.download = file; document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 5000);
@@ -762,8 +910,8 @@ const WlfHardware = (() => {
     el('qrPrint').onclick = () => {
       const win = window.open('', '_blank');
       if (!win) { status.textContent = 'Allow pop-ups to print the label, or use Save QR (PNG) and print the picture.'; return; }
-      win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>QR ' + h(rec.liftId) + '</title><style>@page{size:auto;margin:8mm}body{font:14px system-ui,Arial;text-align:center;margin:0}.l{display:inline-block;padding:6mm;border:1px solid #000;margin:4mm}.l svg{width:60mm;height:60mm}.l b{display:block;font-size:20px;margin-top:2mm}.l span{display:block;font-size:11px;margin-top:1mm}</style></head><body><div class="l">'
-        + WlfQr.svg(qrText(rec)) + '<b>' + h(rec.liftId) + '</b><span>' + h(rec.project) + '</span></div><script>onload=function(){setTimeout(function(){print()},200)}<\/script></body></html>');
+      win.document.write('<!doctype html><html><head><meta charset="utf-8"><title>QR ' + h(rec.liftId) + '</title><style>@page{size:auto;margin:8mm}body{font:14px system-ui,Arial;text-align:center;margin:0}.l{display:inline-block;padding:6mm;border:1px solid #000;margin:4mm}.l svg{width:60mm;height:60mm;display:block}.b{display:flex;align-items:center;justify-content:center;gap:2mm;margin-top:2mm}.b img{height:7mm}.b b{font-size:12px}</style></head><body><div class="l">'
+        + WlfQr.svg(qrText(rec)) + '<div class="b"><img src="' + h(new URL('company-logo.png', location.href).href) + '" alt=""><b>Walton Lift</b></div></div><script>onload=function(){setTimeout(function(){print()},400)}<\/script></body></html>');
       win.document.close();
     };
   }
@@ -869,7 +1017,6 @@ const WlfHardware = (() => {
     b.classList.toggle('active', name === 'data');
   }
 
-  let wantLift = '';
   async function openQms() {
     const root = el('tab-qms');
     const run = ++qmsRun;
@@ -881,8 +1028,7 @@ const WlfHardware = (() => {
       await loadCatalogue(true);
       if (run !== qmsRun) return;
       if (typeof maybeRefreshIndex === 'function') maybeRefreshIndex();
-      if (wantLift) { const id = wantLift; wantLift = ''; openData(); const box = el('qmsSearch'); if (box) box.liftId.value = id; searchLifts({liftId: id}); }
-      else openInput();
+      openInput();
     } catch (err) {
       if (run === qmsRun) el('qmsPanel').innerHTML = `<div class="card"><p class="note">${h(cleanError(err))}</p></div>`;
     }
@@ -988,22 +1134,6 @@ const WlfHardware = (() => {
       PAGES.qms = ['QMS', 'Lift-wise component record for QC'];
     }
   });
-  /* a scanned QR opens WLF at #qms=<Lift ID>: after sign-in the lift is shown (if the account has QMS access) */
-  function followQrLink() {
-    const m = /^#qms=(.+)$/.exec(location.hash);
-    if (!m) return;
-    let id = ''; try { id = decodeURIComponent(m[1]).slice(0, 80); } catch (err) { return; }
-    let tries = 0;
-    const timer = setInterval(() => {
-      if (++tries > 600) { clearInterval(timer); return; }
-      const nav = document.querySelector('#nav [data-tab="qms"]');
-      if (typeof SESSION === 'undefined' || !SESSION || !nav || nav.hidden || nav.classList.contains('hidden')) return;
-      clearInterval(timer);
-      history.replaceState(null, '', location.pathname + location.search);
-      wantLift = id; openTab('qms');
-    }, 500);
-  }
-  window.addEventListener('load', followQrLink);
   window.addEventListener('wlf-logout', () => {
     catalogueRun++; qmsRun++; session = null; CAT = {rows: [], map: [], canEdit: false, at: 0}; draft = null; selected = {system: '', model: ''};
     for (const id of ['tab-catalogue', 'tab-qms', 'hwDialog']) el(id)?.replaceChildren();

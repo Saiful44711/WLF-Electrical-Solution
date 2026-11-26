@@ -1,4 +1,6 @@
-WLF Electrical Solution v2.6.8 - SQL run order
+WLF Electrical Solution v2.6.9 - SQL run order
+
+v2.6.9 has NO new SQL. If UPDATE_V268.sql is already run, upload the GitHub files only.
 
 A) EXISTING live project (v2.6.2 needs UPDATE_V261.sql, which needs UPDATE_V260.sql):
    1. backup-kit: 01_STRUCTURE_BACKUP.sql and 02_DATA_BACKUP.sql (download both CSVs)
