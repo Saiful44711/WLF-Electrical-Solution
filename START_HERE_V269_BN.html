@@ -87,7 +87,7 @@ footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
 <li><b>Scan কোথায় চলে:</b> Android ফোনের Chrome ও অ্যাপে চলে। iPhone (Safari) ও কিছু কম্পিউটার ব্রাউজারে barcode পড়ার সুবিধা নেই। সেখানে Scan চাপলে লেখা আসে "This browser cannot scan barcodes"; তখন হাতে লিখুন।</li>
 <li>ক্যামেরা চালাতে সাইটটি https-এ থাকতে হয়। GitHub Pages এমনিতেই https, তাই সমস্যা নেই।</li>
 <li><b>শুধু লেখা আছে এমন sticker</b> (barcode নেই) এই ভার্সনে পড়া যায় না। ওগুলো হাতে লিখতে হবে। এটা পরের কোনো আপডেটে যোগ করা যেতে পারে।</li>
-<li>PDF-টা Walton-এর একই format-এর হতে হবে ("Project Name :", "Rated Capacity :" এর মতো লেবেলসহ)। scan করা ছবির PDF (লেখা select করা যায় না) পড়া যায় না।</li>
+<li>দুই ধরনের Walton PDF পড়া যায়: (১) "WALTON LIFT SPECIFICATION" শিট, যেখানে লেবেলের পরে কোলন (<code>Project Name : …</code>); (২) Layout for production-এর "LIFT TECHNICAL SPECIFICATIONS" টেবিল (PROJECT NAME, TYPE OF LIFT, USAGE TYPE, TRACTION MACHINE BRAND, MODEL, AVR…)। scan করা ছবির PDF (লেখা select করা যায় না) পড়া যায় না।</li>
 <li>Motor brand ও model আপনার Component Selection-এর motor list-এর নামের সঙ্গে মিলতে হবে। যেমন PDF-এ "MCK 100" থাকলে list-এর "MCK100-E" ধরা হয়। কিন্তু "MCK100-E" ও "MCK100-F" দুটোই থাকলে অ্যাপ নিজে বাছবে না।</li>
 <li>Motor বসাতে Component Selection-এর অনুমতি লাগে। না থাকলে review টেবিলে "Needs Component Selection access" দেখায়।</li>
 </ul></section>
@@ -96,7 +96,7 @@ footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
 <li><b>আসল ফোনের ক্যামেরায় Scan।</b> পরীক্ষায় নকল ক্যামেরা ও নকল barcode-reader দিয়ে পুরো ধাপ চালানো হয়েছে। আসল Android ফোনে আপনাকে একবার দেখে নিতে হবে।</li>
 <li>GitHub Pages থেকে <code>.mjs</code> ফাইল লোড হওয়া। GitHub Pages সাধারণত এগুলো ঠিকভাবে পাঠায়, কিন্তু এখান থেকে দেখা সম্ভব হয়নি। PDF আপলোডে "Failed to fetch dynamically imported module" এলে আমাকে জানান।</li>
 <li>Android APK-এর ভেতরে ক্যামেরার অনুমতি।</li>
-<li>অন্য project-এর layout PDF। আপনার দেওয়া একটি আসল PDF (সব ১১টি মান সঠিক পড়েছে) ও একটি বানানো PDF দিয়ে পরীক্ষা হয়েছে। আসল PDF-টা repo-তে রাখা হয়নি।</li>
+<li>অন্য project-এর layout PDF। আপনার দেওয়া দুটি আসল PDF (দুই ধরনের; দুটোতেই সব ১১টি মান সঠিক, দ্বিতীয়টিতে motor Ziehl Abegg SM 190-11B-20 নিজে থেকেই বাছা হয়েছে) ও বানানো PDF দিয়ে পরীক্ষা হয়েছে। আসল PDF repo-তে রাখা হয়নি।</li>
 </ul></section>
 
 <section id="trouble"><h2>সমস্যা হলে</h2>

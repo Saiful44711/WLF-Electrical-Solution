@@ -1758,6 +1758,10 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  {const has=await page.locator('#qmsLiftForm [name=avrModel] option').evaluateAll(o=>o.some(x=>x.value==='AVR 15 KVA'));assert.equal(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),has?'AVR 15 KVA':'');}
  assert.equal((await sequential(()=>h.db.query("select count(*)::int c from wlf_private.qms_lifts where lift_id='T-9001'"))).rows[0].c,0,'Apply does not save the lift');
  await shot('06-layout-applied-desktop');
+ // optional: a real layout PDF from disk (never committed) — WLF_REAL_LAYOUT=/path/to/file.pdf
+ if(process.env.WLF_REAL_LAYOUT){await page.locator('#hwLayoutFile').setInputFiles(process.env.WLF_REAL_LAYOUT);await page.locator('#hwLayoutApply').waitFor({timeout:60000});
+  console.log('REAL LAYOUT REVIEW:',(await page.locator('#hwLayoutReview').innerText()).replace(/\s+/g,' '));await shot('06b-real-layout-review');
+  await page.locator('#hwLayoutApply').click();await page.locator('#hwLayoutDone').waitFor({timeout:60000});console.log('REAL LAYOUT DONE:',await page.locator('#hwLayoutDone').innerText());await shot('06c-real-layout-applied');}
  // a PDF that is not a layout is refused with a readable message
  await page.locator('#hwLayoutFile').setInputFiles({name:'other.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n%%EOF\n')});
  await page.locator('#hwLayoutReview .overview-status').waitFor({timeout:30000});

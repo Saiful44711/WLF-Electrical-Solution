@@ -40,14 +40,43 @@
       }
       return '';
     }
+    /* second layout style ("LIFT TECHNICAL SPECIFICATIONS" table): the label sits in one cell and the value in the cell to its right,
+       on the same line, with no colon. The value may be split into several pieces that touch each other. */
+    const isSpecPage = page => list.some(i => i.page === page && /^lift technical specifications?$/i.test(i.str));
+    const bare = t => clean(t).replace(/\s*:$/, '');
+    function cellAfter(lab) {
+      const right = list.filter(o => o.page === lab.page && o !== lab && Math.abs(o.y - lab.y) <= LINE + 1 && o.x > lab.x + (lab.w || 0) - 1).sort((a, b) => a.x - b.x);
+      if (!right.length || right[0].x - (lab.x + (lab.w || 0)) > 260) return '';
+      const parts = [right[0]];
+      for (let j = 1; j < right.length; j++) { const prev = parts[parts.length - 1]; if (right[j].x - (prev.x + (prev.w || 0)) > 25) break; parts.push(right[j]); }
+      return clean(parts.map(i => i.str).join(' '));
+    }
+    function cellOf(labels, near) {
+      const want = labels.map(l => l.toLowerCase());
+      let cands = list.filter(i => want.includes(bare(i.str).toLowerCase()));
+      if (near) cands = cands.filter(near);
+      cands.sort((a, b) => (isSpecPage(b.page) - isSpecPage(a.page)) || a.page - b.page);
+      for (const lab of cands) { const v = cellAfter(lab); if (v && !want.includes(bare(v).toLowerCase())) return v; }
+      return '';
+    }
+    const brandLabel = list.find(i => /^(traction )?machine brand$/i.test(bare(i.str)));
     const raw = {
-      project: valueOf('Project Name'), address: valueOf('Address'), liftId: valueOf('Lift ID'),
+      project: valueOf('Project Name') || cellOf(['Project Name']),
+      address: valueOf('Address') || cellOf(['Address', 'Location', 'Project Location', 'Site Address']),
+      liftId: valueOf('Lift ID') || cellOf(['Lift ID']),
       capacity: valueOf('Rated Capacity', 'GENERAL'), speed: valueOf('Rated Speed', 'GENERAL'), roping: valueOf('Roping Type', 'GENERAL'),
       usage: valueOf('Usage', 'GENERAL'), room: valueOf('Lift Type', 'GENERAL'), motorBrand: valueOf('Machine Brand', 'TRACTION'), motorModel: valueOf('Model', 'TRACTION')};
     for (const k of ['capacity', 'speed', 'roping', 'usage', 'room']) if (!raw[k]) raw[k] = valueOf({capacity: 'Rated Capacity', speed: 'Rated Speed', roping: 'Roping Type', usage: 'Usage', room: 'Lift Type'}[k]);
+    const table = {capacity: ['Rated Capacity'], speed: ['Rated Speed'], roping: ['Roping', 'Roping Type'], usage: ['Usage Type', 'Usage'], room: ['Type of Lift', 'Lift Type'], motorBrand: ['Traction Machine Brand', 'Machine Brand']};
+    for (const k of Object.keys(table)) if (!raw[k]) raw[k] = cellOf(table[k]);
+    /* the machine "MODEL" row is the one just under the machine brand row */
+    if (!raw.motorModel && brandLabel) raw.motorModel = cellOf(['Model', 'Machine Model'], i => i.page === brandLabel.page && i.y < brandLabel.y && brandLabel.y - i.y < 45 && Math.abs(i.x - brandLabel.x) < 200);
+    /* "GEARLESS - SM190.11B-20 - (240 X 6R X 6.5mm)" -> "SM190.11B-20" */
+    if (/ - /.test(raw.motorModel)) { const parts = raw.motorModel.replace(/\([^)]*\)/g, '').split(/\s+-\s+|^-\s*|\s*-$/).map(clean).filter(x => x && !/^gear(less|ed)$/i.test(x)); if (parts.length) raw.motorModel = parts.find(x => /\d/.test(x)) || parts[0]; }
+    const avrCell = cellOf(['AVR', 'AVR Capacity']);
     const room = (/^\s*(MRL|MR)\b/i.exec(raw.room || '') || [])[1] || (/machine\s*room\s*less/i.test(raw.room || '') ? 'MRL' : /machine\s*room/i.test(raw.room || '') ? 'MR' : '');
     const all = list.map(i => i.str).join(' ');
-    const avr = /AVR[^\[\]]{0,80}\[\s*(\d+(?:\.\d+)?)\s*KVA\s*\]/i.exec(all);
+    const avr = /AVR[^\[\]]{0,80}\[\s*(\d+(?:\.\d+)?)\s*KVA\s*\]/i.exec(all) || (/^\s*no\b/i.test(avrCell) ? null : /(\d+(?:\.\d+)?)\s*KVA/i.exec(avrCell));
     const number = text => { const m = /(\d+(?:\.\d+)?)/.exec(text || ''); return m ? m[1] : ''; };
     return {
       raw: {...raw, avr: avr ? avr[1] + ' KVA' : ''},
