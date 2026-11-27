@@ -77,9 +77,21 @@ function sheetXml(sheet) {
     '<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>' +
     '<headerFooter><oddFooter>&amp;L' + xmlText(String(sheet.footer || '').replace(/&/g, '&&')) + '&amp;RPage &amp;P of &amp;N</oddFooter></headerFooter></worksheet>';
 }
+/* Text goes into one shared string table (xl/sharedStrings.xml), the standard Excel way.
+   Google Sheets drops the spaces of inline strings, so inline text is not used. */
+let REPORT_SST = null;
+function reportSharedIndex(t) {
+  let i = REPORT_SST.map.get(t);
+  if (i === undefined) { i = REPORT_SST.list.length; REPORT_SST.list.push(t); REPORT_SST.map.set(t, i); }
+  return i;
+}
 function cellXml(v, s, ref) {
   if (typeof v === 'number' && Number.isFinite(v)) return '<c r="' + ref + '" s="' + s + '"><v>' + v + '</v></c>';
-  return '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xmlText(String(v ?? '').slice(0, 32000)) + '</t></is></c>';
+  return '<c r="' + ref + '" s="' + s + '" t="s"><v>' + reportSharedIndex(String(v ?? '').slice(0, 32000)) + '</v></c>';
+}
+function reportSharedStringsXml() {
+  return XML + '<sst xmlns="' + MAIN + '" count="' + REPORT_SST.list.length + '" uniqueCount="' + REPORT_SST.list.length + '">' +
+    REPORT_SST.list.map(t => '<si><t xml:space="preserve">' + xmlText(t) + '</t></si>').join('') + '</sst>';
 }
 export async function buildMonthlyWorkbook(Zip, sheets) {
   const zip = new Zip(), seen = new Set();
@@ -95,13 +107,15 @@ export async function buildMonthlyWorkbook(Zip, sheets) {
     names.map((n, i) => '<sheet name="' + xmlText(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets>' +
     '<definedNames>' + names.map((n, i) => '<definedName name="_xlnm.Print_Titles" localSheetId="' + i + '">\'' + xmlText(n.replace(/'/g, "''")) + '\'!$1:$2</definedName>').join('') + '</definedNames></workbook>');
   zip.file('xl/_rels/workbook.xml.rels', XML + '<Relationships xmlns="' + PREL + '">' + names.map((_, i) => rel('rId' + (i + 1), 'worksheet', 'worksheets/sheet' + (i + 1) + '.xml')).join('') +
-    rel('rId' + (names.length + 1), 'styles', 'styles.xml') + '</Relationships>');
+    rel('rId' + (names.length + 1), 'styles', 'styles.xml') + rel('rId' + (names.length + 2), 'sharedStrings', 'sharedStrings.xml') + '</Relationships>');
   zip.file('xl/styles.xml', STYLES);
-  sheets.forEach((s, i) => zip.file('xl/worksheets/sheet' + (i + 1) + '.xml', sheetXml(s)));
+  REPORT_SST = {list: [], map: new Map()};
+  try { sheets.forEach((s, i) => zip.file('xl/worksheets/sheet' + (i + 1) + '.xml', sheetXml(s))); zip.file('xl/sharedStrings.xml', reportSharedStringsXml()); } finally { REPORT_SST = null; }
   zip.file('[Content_Types].xml', XML + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>' +
     '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
     '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '<Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/>' +
     names.map((_, i) => '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>').join('') + '</Types>');
   return zip.generateAsync({type: 'uint8array', compression: 'DEFLATE', compressionOptions: {level: 6}});
 }
