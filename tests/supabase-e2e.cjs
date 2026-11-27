@@ -1814,7 +1814,10 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  fs.writeFileSync('test-results/v270/support.xlsx',excelFiles.get('test_excel_'+before));fs.writeFileSync('test-results/v270/activity.xlsx',excelFiles.get('test_excel_'+(before+1)));fs.writeFileSync('test-results/v270/damage.xlsx',excelFiles.get('test_excel_'+(before+2)));
  await page.locator('#wlfMonthlyCard').scrollIntoViewIfNeeded();await shot('01-monthly-reports-desktop');
  // making the same month again replaces the file: one list row per report, the old file goes to the Drive bin
- await page.locator('[data-monthly-kind][value=activity]').uncheck();await page.locator('[data-monthly-kind][value=damage]').uncheck();
+ for(const k of ['activity','damage']){await page.locator('[data-monthly-kind][value='+k+']').setChecked(false,{trial:true});await page.locator('[data-monthly-kind][value='+k+']').uncheck();}
+ // the card keeps the choice when the Storage page is drawn again
+ await page.locator('#wlfRefreshStorage').click();await page.locator('#wlfMonthlyHistory table').waitFor();
+ assert.deepEqual(await page.locator('[data-monthly-kind]').evaluateAll(a=>a.map(x=>x.checked)),[true,false,false],'choices kept after the page is drawn again');
  await page.locator('#wlfMonthlyMake').click();await page.waitForFunction(()=>/Saved in Google Drive: Technical Support Monthly Report [^·]*$/.test(document.querySelector('#wlfMonthlyStatus').textContent),null,{timeout:60000});
  await page.waitForTimeout(500);
  assert.equal(await page.locator('#wlfMonthlyHistory tbody tr').count(),3);

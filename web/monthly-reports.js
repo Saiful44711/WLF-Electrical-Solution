@@ -9,8 +9,11 @@ const WlfMonthlyReports = (() => {
   const monthName = m => MONTHS[Number(m.slice(5, 7)) - 1] + ' ' + m.slice(0, 4);
   const when = iso => iso ? new Date(iso).toLocaleString('en-GB', {timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false}) : '—';
 
+  /* the Storage page can be drawn again while it is open (refresh, finished backups): keep the choices made on this card */
+  const memo = {account: null, kinds: null, month: ''};
   function mount(root, api) {
     if (!root) return;
+    if (memo.account !== T()) { memo.account = T(); memo.kinds = null; memo.month = ''; }
     const account = T();
     const current = () => root.isConnected && T() === account;
     root.innerHTML = '<section class="card wlf-module" id="wlfMonthlyCard"><h3>Monthly reports</h3>' +
@@ -19,12 +22,16 @@ const WlfMonthlyReports = (() => {
       '<div class="mr-auto"><div><b>Automatic</b><p class="note" id="wlfMonthlyAuto">Checking…</p></div>' +
       '<div class="wlf-tools-actions"><button type="button" class="btn" id="wlfMonthlyOn">Turn on</button><button type="button" class="btn ghost" id="wlfMonthlyOff">Turn off</button></div></div>' +
       '<div class="mr-make"><label>Month<input type="month" id="wlfMonthlyMonth"></label>' +
-      '<div class="wlf-choice-list">' + Object.keys(NAMES).map(k => '<label class="wlf-choice"><input type="checkbox" value="' + k + '" data-monthly-kind checked> ' + h(NAMES[k]) + '</label>').join('') + '</div>' +
+      '<div class="wlf-choice-list">' + Object.keys(NAMES).map(k => '<label class="wlf-choice"><input type="checkbox" value="' + k + '" data-monthly-kind' + (!memo.kinds || memo.kinds.includes(k) ? ' checked' : '') + '> ' + h(NAMES[k]) + '</label>').join('') + '</div>' +
       '<button type="button" class="btn" id="wlfMonthlyMake">Make report now</button></div>' +
       '<p class="note">Making a month again replaces that month\'s file in Google Drive (the old file goes to the Drive bin).</p>' +
       '<div id="wlfMonthlyStatus" role="status" aria-live="polite"></div>' +
       '<h4 style="margin:18px 0 6px">Saved reports</h4><div id="wlfMonthlyHistory" aria-live="polite">Loading…</div></section>';
     const get = s => root.querySelector(s);
+    const remember = () => { memo.kinds = [...root.querySelectorAll('[data-monthly-kind]:checked')].map(x => x.value); memo.month = get('#wlfMonthlyMonth').value; };
+    root.querySelectorAll('[data-monthly-kind]').forEach(x => { x.onchange = remember; });
+    get('#wlfMonthlyMonth').onchange = remember;
+    if (memo.month) get('#wlfMonthlyMonth').value = memo.month;
     const say = (msg, error = false) => { if (!current()) return; const n = get('#wlfMonthlyStatus'); n.textContent = msg; n.classList.toggle('error', error); };
     let state = null;
     async function load() {
