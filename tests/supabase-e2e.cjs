@@ -1014,7 +1014,7 @@ await tab('components');await page.locator('#compFilter-0').waitFor({state:'atta
 await page.evaluate(()=>{document.querySelectorAll('#componentAdminFilters select').forEach(x=>{x.value='';x.dispatchEvent(new Event('change'));});});
 await page.waitForFunction(()=>/^(\d+) of \1 components$/.test(document.getElementById('compCount').textContent));
 const allRows=await page.locator('#componentsTable tbody tr').count();assert.ok(allRows>10);
-const model=await page.evaluate(()=>{const i=compData.headers.indexOf('Motor Model');return String(compData.records[0].values[i]);});
+await page.waitForFunction(()=>typeof compData!=='undefined'&&compData&&compData.headers&&compData.records.length);const model=await page.evaluate(()=>{const i=compData.headers.indexOf('Motor Model');return String(compData.records[0].values[i]);});
 const cap=await page.evaluate(()=>String(compData.records[0].values[0]));
 await page.locator('#compSearch').fill(cap+' '+model.toLowerCase());
 await page.waitForFunction(n=>document.querySelectorAll('#componentsTable tbody tr').length<n,allRows,{timeout:8000}).catch(async e=>{console.log('DBG',allRows,cap,model,await page.locator('#componentsTable tbody tr').count(),await page.locator('#compSearch').inputValue(),await page.locator('#compCount').innerText());throw e;});
@@ -1031,7 +1031,7 @@ await page.locator('.comp-wrap').evaluate(n=>n.scrollIntoView({block:'start'}));
 await page.evaluate(()=>setAppearance('light'));await page.setViewportSize({width:1440,height:900});await page.evaluate(()=>{document.querySelector('.comp-wrap').scrollLeft=0;stickComponentColumns();});
 // edit one component through the screen -> change log
 await page.locator('#compSearch').fill(cap+' '+model);await page.locator('#componentsTable tbody tr').first().locator('button',{hasText:'Edit'}).click();
-const pIdx=await page.evaluate(()=>compData.headers.indexOf('Motor Power (KW)'));
+await page.waitForFunction(()=>typeof compData!=='undefined'&&compData&&compData.headers&&compData.records.length);const pIdx=await page.evaluate(()=>compData.headers.indexOf('Motor Power (KW)'));
 const oldP=await page.locator('#ef-'+pIdx).inputValue();await page.locator('#ef-'+pIdx).fill('99.5');await page.locator('#saveCompBtn').click();
 await page.locator('#globalMsg').filter({hasText:'Component saved'}).waitFor();
 // 2) Usage Dashboard: 7 days, no Technical Support, change log, From-To delete
@@ -1814,7 +1814,9 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  fs.writeFileSync('test-results/v270/support.xlsx',excelFiles.get('test_excel_'+before));fs.writeFileSync('test-results/v270/activity.xlsx',excelFiles.get('test_excel_'+(before+1)));fs.writeFileSync('test-results/v270/damage.xlsx',excelFiles.get('test_excel_'+(before+2)));
  await page.locator('#wlfMonthlyCard').scrollIntoViewIfNeeded();await shot('01-monthly-reports-desktop');
  // making the same month again replaces the file: one list row per report, the old file goes to the Drive bin
- for(const k of ['activity','damage']){await page.locator('[data-monthly-kind][value='+k+']').setChecked(false,{trial:true});await page.locator('[data-monthly-kind][value='+k+']').uncheck();}
+ // the page may be drawn again during a click (slow CI machines): click, then read the live checkbox, and try again if needed
+ for(const k of ['activity','damage']){for(let tries=0;;tries++){const box=page.locator('[data-monthly-kind][value='+k+']');if(!(await box.isChecked()))break;if(tries>4)throw Error('could not untick '+k);
+   await box.click();await page.waitForFunction(v=>!document.querySelector('[data-monthly-kind][value='+v+']').checked,k,{timeout:3000}).catch(()=>{});}}
  // the card keeps the choice when the Storage page is drawn again
  await page.locator('#wlfRefreshStorage').click();await page.locator('#wlfMonthlyHistory table').waitFor();
  assert.deepEqual(await page.locator('[data-monthly-kind]').evaluateAll(a=>a.map(x=>x.checked)),[true,false,false],'choices kept after the page is drawn again');
