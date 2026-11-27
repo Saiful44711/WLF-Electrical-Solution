@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.7.0 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.6.9 → 2.7.0 · ২৭ নভেম্বর ২০২৬</p>
+  <h1>মাসিক রিপোর্ট Google Drive-এ, আর QMS Input-এ AVR টেবিল বন্ধ: deployment নির্দেশিকা</h1>
+  <p>এবার তিনটা কাজ: <b>একটা SQL</b> চালানো, <b>Edge Function</b> বদলানো, আর <b>GitHub আপলোড</b>। তারপর অ্যাপে একবার <b>Turn on</b> চাপতে হবে।</p>
+</header>
+
+<section id="what"><h2>কী বদলেছে (v2.7.0)</h2><ul>
+<li><b>মাসিক রিপোর্ট:</b> প্রতি মাসে তিনটা Excel ফাইল তৈরি হয়ে Google Drive-এর তিনটা আলাদা ফোল্ডারে জমা হবে। ফাইলগুলো সরাসরি জমা দেওয়ার মতো করে সাজানো: চওড়া কলাম, রঙিন শিরোনাম, % আর সংখ্যা ঠিক ফরম্যাটে, আর প্রিন্টে A4 landscape-এ পাতার চওড়ায় ফিট হয়।
+<div class="scroll"><table>
+<tr><th>Drive ফোল্ডার</th><th>ফাইলের নাম (উদাহরণ)</th><th>শিটগুলো</th></tr>
+<tr><td>Technical Support Monthly Report</td><td>Technical Support Monthly Report 2026-11.xlsx</td><td><b>Summary</b> (মোট, section অনুযায়ী % · সমস্যা অনুযায়ী %, সবচেয়ে বেশি আসা সমস্যা হলুদ রঙে · error code · একই lift-এ একই সমস্যা বারবার · কে সবচেয়ে বেশি support নিয়েছে · R&amp;I-এর কে কত support দিয়েছে) · প্রতিটা section-এর আলাদা শিট (Commissioning, After Sales, Production, Factory Maintenance, QC, Installation) · <b>All requests</b></td></tr>
+<tr><td>R&amp;I Team Activity Monthly Report</td><td>R&amp;I Team Activity Monthly Report 2026-11.xlsx</td><td><b>Summary</b> (sector অনুযায়ী, R&amp;I সদস্য অনুযায়ী, কোন form বেশি, মোট সময়) · Team R&amp;I Activity · Supplier &amp; SCM Communication · Reports · Sales Support · <b>All entries</b></td></tr>
+<tr><td>Damage Demand Monthly Report</td><td>Damage Demand Monthly Report 2026-11.xlsx</td><td><b>Summary</b> (সবচেয়ে বেশি সমস্যা · কোন component সবচেয়ে বেশি নষ্ট · কোন section-এ বেশি · কোন user-এর অধীনে বেশি · controller অনুযায়ী) · প্রতিটা section-এর আলাদা শিট · <b>All demands</b></td></tr>
+</table></div></li>
+<li><b>নিজে থেকে চলবে:</b> প্রতি রাত ২টায় (ঢাকা সময়) সার্ভার দেখে আগের মাসের কোন রিপোর্ট এখনো তৈরি হয়নি, আর শুধু সেগুলোই বানায়। ফলে প্রতি মাসের ১ তারিখ সকালেই আগের মাসের রিপোর্ট তৈরি থাকে। কোনো রাতে ব্যর্থ হলে পরের রাতে আবার চেষ্টা করে। কেউ অ্যাপ না খুললেও চলে।</li>
+<li><b>হাতে বানানো:</b> Storage &amp; Backup → Monthly reports-এ যেকোনো মাস বেছে <b>Make report now</b> চাপলে তখনই রিপোর্ট তৈরি হয়। একই মাস আবার বানালে আগের ফাইলটা Drive-এর Bin-এ চলে যায় আর নতুনটা তার জায়গা নেয়।</li>
+<li><b>QMS Input:</b> AVR model বাছার পর "AVR … · ALL ITEMS" টেবিল আর খোলে না, শুধু এক লাইনে দেখায় কয়টা item সেভ হবে। <b>Output টেবিল, Excel আর backup-এ AVR-এর সব item আগের মতোই থাকে।</b></li>
+<li><b>ডাটাবেস:</b> রিপোর্ট শুধু তথ্য পড়ে, কিছু মোছে না, কিছু বদলায়ও না। Excel ফাইল থাকে Drive-এ। ডাটাবেসে প্রতি রিপোর্টের জন্য একটা করে ছোট লাইন যোগ হয় (মাসে ৩টা, বছরে ৩৬টা, মোট কয়েক KB)।</li>
+</ul></section>
+
+<section id="order"><h2>ক্রম অনুযায়ী কাজ</h2>
+<div class="attention">ক্রম: <b>SQL আগে → Edge Function → GitHub → Turn on</b>। v2.6.4 থেকে v2.6.8-এর SQL বসানো না থাকলে আগে সেগুলো ক্রমানুসারে বসান। v2.6.9-এর কোনো SQL ছিল না।</div>
+<h3>১. SQL (Supabase)</h3><ol>
+<li>supabase.com → আপনার project → বাম পাশে <b>SQL Editor</b> → <b>New query</b>।</li>
+<li><code>WLF-Supabase-v2.7.0.zip</code> খুলে <code>UPDATE_V270.sql</code> Notepad-এ খুলুন → Ctrl+A, Ctrl+C → Supabase-এর বক্সে Ctrl+V → <b>Run</b>।</li>
+<li>নিচে ফল দেখাবে <code>v270_ready = true</code>। (দুবার চালালেও ক্ষতি নেই।)</li>
+</ol>
+<h3>২. Extension দুটো চালু আছে কিনা দেখা</h3><ol>
+<li>বাম পাশে <b>Database</b> → <b>Extensions</b>।</li>
+<li>সার্চ বক্সে <code>pg_cron</code> লিখুন। সুইচ সবুজ (ON) থাকলে ঠিক আছে। বন্ধ থাকলে সুইচে চাপুন → <b>Enable extension</b>।</li>
+<li>একইভাবে <code>pg_net</code> চালু করুন।</li>
+<li>এই ধাপে কোনোটা চালু করতে হলে ১ নম্বর ধাপের SQL আরেকবার চালান।</li>
+</ol>
+<h3>৩. Edge Function বদলানো</h3><ol>
+<li>বাম পাশে <b>Edge Functions</b> → <b>wlf-maintenance</b> → <b>Code</b> ট্যাব।</li>
+<li>কোডের বক্সে ক্লিক করে Ctrl+A, তারপর Delete।</li>
+<li>প্যাকেজের <code>edge-function/wlf-maintenance/index.ts</code> Notepad-এ খুলুন → Ctrl+A, Ctrl+C → Supabase-এর বক্সে Ctrl+V। (প্রথম লাইন <code>// @ts-nocheck</code>। লাল দাগ দেখালে চিন্তা নেই।)</li>
+<li><b>Deploy updates</b> চাপুন এবং "Successfully deployed" আসা পর্যন্ত অপেক্ষা করুন।</li>
+<li><b>Details</b> ট্যাবে <b>Verify JWT</b> বন্ধ (OFF) থাকতে হবে। <b>এটা জরুরি</b>, নইলে রাতের সময়সূচি কাজ করবে না।</li>
+</ol>
+<h3>৪. GitHub আপলোড</h3><ol>
+<li><code>WLF-GitHub-v2.7.0-UPLOAD.zip</code> extract করুন।</li>
+<li>GitHub-এ repo খুলুন → <b>Add file</b> → <b>Upload files</b> → extract করা ফোল্ডারের <b>ভেতরের সব</b> ফাইল ও ফোল্ডার টেনে ছাড়ুন → নিচে <b>Commit changes</b>।</li>
+<li><b>Actions</b> ট্যাবে সবুজ টিক আসা পর্যন্ত অপেক্ষা করুন। তারপর সাইটে Ctrl+F5 চাপুন। Account পাতায় build <b>2.7.0</b> দেখাবে।</li>
+</ol>
+<h3>৫. অ্যাপে চালু করা (Super Admin)</h3><ol>
+<li><b>Storage &amp; Backup</b> → নিচে নামলে <b>Monthly reports</b> কার্ড পাবেন।</li>
+<li><b>Turn on</b> চাপুন। লেখা আসবে "On. Every night at 02:00 …"।</li>
+<li>পরীক্ষা করতে Month-এ <b>October 2026</b> বা <b>November 2026</b> বেছে <b>Make report now</b> চাপুন। কয়েক সেকেন্ড পরে "Saved in Google Drive: …" আসবে, আর নিচের তালিকায় ফাইলের লিংক দেখাবে।</li>
+<li>Google Drive-এ তিনটা নতুন ফোল্ডার দেখবেন: <b>Technical Support Monthly Report</b>, <b>R&amp;I Team Activity Monthly Report</b>, <b>Damage Demand Monthly Report</b>।</li>
+</ol>
+</section>
+
+<section id="check"><h2>ঠিক হয়েছে কিনা দেখার উপায়</h2>
+<div class="scroll"><table>
+<tr><th>কী দেখবেন</th><th>সঠিক ফল</th></tr>
+<tr><td>SQL Editor-এ <code>select jobname, schedule from cron.job;</code> চালান (Turn on চাপার পরে)</td><td><code>wlf-monthly-reports</code> · <code>0 20 * * *</code> (UTC রাত ৮টা = ঢাকা রাত ২টা)</td></tr>
+<tr><td>Monthly reports কার্ডের "Last check"</td><td>প্রথম রাতের পরে একটা সময় দেখাবে, কোনো "Last problem" থাকবে না</td></tr>
+<tr><td>১ ডিসেম্বর সকালে Monthly reports তালিকা</td><td>November 2026-এর তিনটা লাইন, "Made by: Automatic"</td></tr>
+<tr><td>QMS Input → AVR model বাছুন</td><td>টেবিল খোলে না, এক লাইনে "AVR 15 KVA: 15 items … shown in the output"</td></tr>
+<tr><td>সেভ করা lift-এর QMS Data output</td><td>AVR-এর সব item-এর টেবিল আগের মতোই দেখায়</td></tr>
+</table></div></section>
+
+<section id="know"><h2>জানা দরকার</h2><ul>
+<li><b>Section কীভাবে ধরা হয়:</b> request যে team form দিয়ে পাঠানো হয়েছে (Commissioning, After Sales ইত্যাদি), সেটাই তার section। যে section-এর কোনো request নেই, তার শিটেও লেখা থাকে "No records in this month."</li>
+<li><b>Repeat problem:</b> মাসে যে সমস্যা সবচেয়ে বেশিবার এসেছে, সেটা হলুদ রঙে চিহ্নিত থাকে। একই Lift ID-তে একই সমস্যা দুই বা তার বেশিবার এলে আলাদা টেবিলে দেখায়। দুটো সমস্যা সমান সংখ্যায় এলে কোনোটাই হলুদ হয় না, যাতে ভুল বার্তা না যায়।</li>
+<li><b>মাসের হিসাব ঢাকা সময়ে:</b> যেমন ১ নভেম্বর রাত ১২:১০-এর request নভেম্বরের হিসাবে যায়।</li>
+<li><b>Backup with Clear-এর আগে রিপোর্ট:</b> Excel backup-এর "Backup with Clear" দিয়ে মুছে ফেলা record পরে কোনো রিপোর্টে আসবে না। তাই কোনো মাস Clear করার আগে সেই মাসের রিপোর্ট বানিয়ে রাখুন। ১ তারিখের নিজে থেকে বানানো রিপোর্টেই এটা হয়ে যায়।</li>
+<li>রিপোর্ট বানানো ও দেখা শুধু Super Admin পারেন (Storage &amp; Backup পাতার মতোই)। Drive-এর ফোল্ডার আপনি চাইলে অন্যদের সঙ্গে শেয়ার করতে পারেন।</li>
+<li>Drive থেকে কোনো ফাইল আপনি নিজে মুছে ফেললে সেই মাস আবার "Make report now" দিয়ে বানানো যায়। তালিকা থেকে "Delete from list" চাপলে Drive-এর ফাইল থেকেই যায়।</li>
+</ul></section>
+
+<section id="limits"><h2>যা এখানে যাচাই করা যায়নি</h2><ul>
+<li><b>আসল pg_cron আর pg_net দিয়ে রাতের সময়সূচি।</b> আমার পরীক্ষার ডাটাবেসে এই দুটো extension নেই। "চালু নেই" অবস্থায় সঠিক বার্তা আসে কিনা দেখা হয়েছে, আর সার্ভারের রিপোর্ট-বানানোর পুরো ধাপ নকল Drive দিয়ে চালানো হয়েছে। প্রথম রাতের পরে কার্ডের "Last check" দেখে নিশ্চিত হবেন।</li>
+<li><b>আসল Google Drive-এ ফাইল ও ফোল্ডার তৈরি।</b> একই ধরনের Drive ব্যবস্থা আগের backup-গুলোতে কাজ করছে, কিন্তু নতুন ফোল্ডারগুলো এখান থেকে দেখা যায়নি।</li>
+<li><b>Supabase-এ Edge Function deploy।</b> কোডের syntax পরীক্ষা হয়েছে, কিন্তু Deno-তে চালানো যায়নি।</li>
+<li><b>Microsoft Excel-এ খোলা।</b> ফাইলগুলো LibreOffice-এ খুলে প্রিন্ট-ভিউ দেখা হয়েছে। Excel-এ রং বা কলামের চওড়া সামান্য আলাদা দেখাতে পারে।</li>
+</ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>লক্ষণ</th><th>কারণ</th><th>সমাধান</th></tr>
+<tr><td>Turn on চাপলে "Turn on the extensions pg_cron and pg_net first"</td><td>Extension বন্ধ</td><td>২ নম্বর ধাপ, তারপর SQL আবার চালান, তারপর Turn on</td></tr>
+<tr><td>"Unsupported action" বা "Unsupported report action"</td><td>Edge Function পুরোনো</td><td>৩ নম্বর ধাপ আবার করুন</td></tr>
+<tr><td>"Google Drive setup required"</td><td>Drive-এর secret নেই</td><td>আগের GOOGLE_DRIVE_SETUP নির্দেশিকা দেখুন (backup-এর জন্য যা আগে করা আছে, সেটাই লাগে)</td></tr>
+<tr><td>প্রথম রাতের পরেও "Last check: —"</td><td>Edge Function-এ Verify JWT চালু আছে, তাই সার্ভারের ডাক ফেরত যাচ্ছে</td><td>Details → Verify JWT OFF → Save; তারপর পরের রাত পর্যন্ত অপেক্ষা</td></tr>
+<tr><td>১ তারিখে রিপোর্ট আসেনি</td><td>Turn on চাপা হয়নি, অথবা রাতে সমস্যা হয়েছে</td><td>কার্ডে On লেখা আছে কিনা আর "Last problem" দেখুন; দরকার হলে Make report now চাপুন</td></tr>
+</table></div></section>
+
+<footer>Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

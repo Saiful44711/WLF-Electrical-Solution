@@ -458,15 +458,15 @@ const WlfHardware = (() => {
   const motorTables = sel => (sel.categories || []).map(c => `<div class="hw-sub"><div class="overview-eyebrow">${h(c.title)}</div><table class="tbl hw-table"><tbody>${
     c.items.map(it => `<tr><td class="hw-k">${h(it.label)}</td><td>${h(it.value)}</td></tr>`).join('')}</tbody></table></div>`).join('');
 
-  /* v2.6.7: the AVR model sits in the control system section. Every item of the chosen model is shown in its own table and saved with the lift. */
+  /* v2.6.7: the AVR model sits in the control system section. v2.7.0: the item table is no longer shown on the input page;
+     every item of the chosen model is still saved with the lift and shown in the output tables. */
   const avrModelNow = () => draft.pick.avrModel ?? savedPart('avr')?.model ?? '';
   function avrBlock() {
     const model = avrModelNow();
     const rows = model ? rowsOf('AVR', model).filter(usable) : [];
     return `<div class="hw-grid"><label>AVR model<select name="avrModel">${optionList(modelsOf('AVR'), model, '— none —')}</select></label></div>
       <p class="note">${draft.selection ? 'The AVR model follows the selected motor; you can change it by hand.' : 'Select a motor to get the suggested AVR model, or choose the AVR model by hand.'}</p>
-      ${!model ? '' : rows.length ? `<div class="hw-sub"><div class="overview-eyebrow">${h(model)} · ALL ITEMS</div>${
-        tbl(['Category', 'Hardware', 'Spec', 'Item code', 'Brand', 'Supplier', 'Price (৳)'], rows.map(r => [h(r.grp), h([r.hardware, r.itemName].filter(Boolean).join(' · ')), h(r.spec), r.itemCode ? h(r.itemCode) : '<span class="hw-nocode">no code</span>', h(r.brand), h(r.supplier), h(money(r.value))]))}</div>`
+      ${!model ? '' : rows.length ? `<p class="note hw-avr-count">${h(model)}: ${rows.length} item${rows.length === 1 ? '' : 's'} from the Hardware Catalogue are saved with this lift and shown in the output.</p>`
         : `<p class="note">${h(model)} has no items in the Hardware Catalogue yet. The model name is recorded; the Super Admin fills in the items later.</p>`}`;
   }
   /* the AVR model follows the motor: suggested size from Component Selection, if that size is in the catalogue */

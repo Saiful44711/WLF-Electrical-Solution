@@ -15,6 +15,7 @@ async function drive(path,init={}){
     if(!bytes)throw Error('Backup file missing');
     return new Response(bytes);
   }
+  if(init.method==='PATCH'){(globalThis.driveTrash||(globalThis.driveTrash=[])).push(path.split('/').at(-1));return Response.json({});}   // v2.7.0: old monthly report to the Drive bin
   const boundary=init.headers['Content-Type'].split('boundary=')[1];
   const raw=Buffer.from(await new Response(init.body).arrayBuffer());
   const metaEnd=raw.indexOf('\r\n--'+boundary,raw.indexOf('\r\n\r\n')+4);
@@ -32,14 +33,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V270.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
-const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.6.9-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');const {reportMaintenance}=await import('../supabase/functions/_shared/wlf-report.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.7.0-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
@@ -62,6 +63,8 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  else if(body.action==='backupPart'){let nonce=crypto.randomUUID(),part=await sql('prepare',{...p,project:'wlf-test',nonce});if(!part.alreadyVerified){archiveParts.set(p.id+':'+p.batch,part);await sql('verify',{...p,nonce,fileId:'drive_sample_'+p.batch,sha256:'a'.repeat(64)});}data={verified:true};}
  else if(body.action==='downloadPart')data=archiveParts.get(p.id+':'+p.batch);
  else if(body.action==='restore')data=await sql('restore',{archive:p.archive,project:'wlf-test'});
+ else if(body.action.startsWith('report')||body.action==='monthlyReports'){const reportSql=async(a,x={})=>sequential(async()=>(await h.db.query('select public.wlf_report_admin($1,$2,$3) result',[a,id,x])).rows[0].result);(globalThis.edgeLog||(globalThis.edgeLog=[])).push(body.action);
+  data=await reportMaintenance({action:body.action,payload:p,sql:reportSql,drive,folderFor:async k=>'folder_'+k,Zip,selfUrl:'https://wlftest.supabase.co/functions/v1/wlf-maintenance'});if(body.action==='reportStatus')data={...data,driveConfigured:true};}
  else if(body.action==='deleteRejectedUser'){let target=await sql('reserveDeleteUser',{email:p.email});await h.db.query('delete from auth.users where id=$1',[target.id]);await sql('releaseDeleteUser',{id:target.id});data={deleted:true};}
  else data=await sql(({clearPart:'clear'})[body.action]||body.action);
  }
@@ -505,8 +508,8 @@ assert.match(await page.locator('#qmsLiftForm [name=avrModel]').inputValue(),/^A
 assert.equal(await page.locator('#qmsLiftForm [name=avr]').count(),0,'there is no AVR item dropdown any more');
 assert.equal(await page.locator('#hwAvr').locator('xpath=ancestor::fieldset[1]/legend').innerText().then(x=>/^3 · Control system/.test(x)),true,'AVR model is in the control system section');
 await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 30 KVA');
-assert.equal(await page.locator('#hwAvr tbody tr').count(),15,'all 15 items of AVR 30 KVA are listed in their own table');
-assert.ok((await page.locator('#hwAvr').innerText()).includes('Full AVR'));
+assert.equal(await page.locator('#hwAvr table').count(),0,'v2.7.0: the AVR item table is not opened on the input page');
+assert.match(await page.locator('#hwAvr').innerText(),/AVR 30 KVA: 15 items from the Hardware Catalogue are saved with this lift and shown in the output/);
 assert.equal(await page.locator('#qmsLiftForm [name=sl-avr]').getAttribute('required')!==null,true,'AVR SL is required once an AVR model is chosen');
 assert.equal(await page.locator('#qmsLiftForm [name=sl-battery]').evaluate(e=>e.tagName),'TEXTAREA');assert.equal(await page.locator('#qmsLiftForm [name=sl-battery]').getAttribute('required'),null,'Battery SL is optional');
 await page.locator('#qmsLiftForm [name=lop]').selectOption({index:1});
@@ -1196,7 +1199,7 @@ await v259shot('06-catalogue-mot');
 // 3) the new AVR item shows up in the QMS form
 await tab('qms');await page.locator('#qmsLiftForm').waitFor();
 await page.locator('#qmsLiftForm [name=avrModel]').selectOption('AVR 80 KVA');
-assert.match(await page.locator('#hwAvr').innerText(),/AVR Servo Stabilizer 80 KVA/);
+assert.match(await page.locator('#hwAvr').innerText(),/AVR 80 KVA: 1 item from the Hardware Catalogue/);
 // 4) Raise Damage Demand takes the part from the catalogue
 await logout();await login('user');await category();
 for(let i=0;i<4&&!(await page.locator('#supportRequestForm').isVisible());i++){await page.locator('#newSupportRequest').click();await page.locator('#supportRequestForm').waitFor({timeout:4000}).catch(()=>{});}
@@ -1786,6 +1789,41 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  {const vp=page.viewportSize();await page.setViewportSize({width:390,height:844});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
   await page.locator('.hw-laypdf').scrollIntoViewIfNeeded();await shot('08-layout-applied-390-dark');
   await page.locator('.hw-serials').scrollIntoViewIfNeeded();await shot('09-serial-scan-390-dark');
+  const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
+  await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
+}
+// v2.7.0: monthly reports (Technical Support, R&I Team Activity, Damage Demand) to Google Drive, Storage & Backup
+{const shot=async(name)=>{await page.screenshot({path:'test-results/v270/'+name+'.png'});};fs.mkdirSync('test-results/v270',{recursive:true});
+ const month=new Date(Date.now()+6*3600e3).toISOString().slice(0,7);
+ await tab('storage');await page.locator('#wlfMonthlyCard').waitFor();await page.locator('#wlfMonthlyHistory table').waitFor().catch(async e=>{console.log('MONTHLY PANE:',await page.locator('#wlfMonthlyHistory').innerText());throw e;});
+ assert.match(await page.locator('#wlfMonthlyAuto').innerText(),/Off\. First switch on the extensions pg_cron and pg_net/,'no pg_cron in the test database');
+ await page.locator('#wlfMonthlyMonth').fill(month);
+ const before=excelFiles.size;
+ await page.locator('#wlfMonthlyMake').click();
+ await page.waitForFunction(()=>/Saved in Google Drive/.test(document.querySelector('#wlfMonthlyStatus').textContent)||document.querySelector('#wlfMonthlyStatus').classList.contains('error'),null,{timeout:60000});
+ const said=await page.locator('#wlfMonthlyStatus').innerText();console.log('monthly reports:',said);
+ assert.match(said,/Technical Support Monthly Report \d{4}-\d{2}\.xlsx.*R&I Team Activity Monthly Report.*Damage Demand Monthly Report/);
+ assert.equal(excelFiles.size,before+3,'three files saved');
+ await page.locator('#wlfMonthlyHistory tbody tr').nth(2).waitFor();
+ assert.equal(await page.locator('#wlfMonthlyHistory tbody tr').count(),3);
+ const names=[];for(let i=before;i<before+3;i++){const z=await Zip.loadAsync(excelFiles.get('test_excel_'+i));const wb=await z.file('xl/workbook.xml').async('string');names.push([...wb.matchAll(/<sheet name="([^"]+)"/g)].map(m=>m[1].replace(/&amp;/g,'&')));
+  const first=await z.file('xl/worksheets/sheet1.xml').async('string');assert.match(first,/Monthly Report · /);assert.ok(z.file('xl/styles.xml'),'styled workbook');}
+ assert.deepEqual(names[0],['Summary','Commissioning','After Sales','Production','Factory Maintenance','QC','Installation','All requests']);
+ assert.deepEqual(names[1],['Summary','Team R&I Activity','Supplier & SCM Communication','Reports','Sales Support','All entries']);
+ assert.deepEqual(names[2],['Summary','Commissioning','After Sales','Factory Maintenance','Installation','All demands']);
+ fs.writeFileSync('test-results/v270/support.xlsx',excelFiles.get('test_excel_'+before));fs.writeFileSync('test-results/v270/activity.xlsx',excelFiles.get('test_excel_'+(before+1)));fs.writeFileSync('test-results/v270/damage.xlsx',excelFiles.get('test_excel_'+(before+2)));
+ await page.locator('#wlfMonthlyCard').scrollIntoViewIfNeeded();await shot('01-monthly-reports-desktop');
+ // making the same month again replaces the file: one list row per report, the old file goes to the Drive bin
+ await page.locator('[data-monthly-kind][value=activity]').uncheck();await page.locator('[data-monthly-kind][value=damage]').uncheck();
+ await page.locator('#wlfMonthlyMake').click();await page.waitForFunction(()=>/Saved in Google Drive: Technical Support Monthly Report [^·]*$/.test(document.querySelector('#wlfMonthlyStatus').textContent),null,{timeout:60000});
+ await page.waitForTimeout(500);
+ assert.equal(await page.locator('#wlfMonthlyHistory tbody tr').count(),3);
+ assert.ok((globalThis.driveTrash||[]).includes('test_excel_'+before),'old support report moved to the Drive bin');
+ // Turn on needs pg_cron and pg_net
+ await page.locator('#wlfMonthlyOn').click();await page.waitForFunction(()=>/pg_cron and pg_net/.test(document.querySelector('#wlfMonthlyStatus').textContent));
+ assert.match(await page.locator('#wlfMonthlyStatus').getAttribute('class'),/error/);
+ {const vp=page.viewportSize();await page.setViewportSize({width:390,height:844});await page.evaluate(()=>setAppearance('dark'));await page.waitForTimeout(300);
+  await page.locator('#wlfMonthlyCard').scrollIntoViewIfNeeded();await shot('02-monthly-reports-390-dark');
   const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth}));if(over.sw>over.cw+1)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
   await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
 }

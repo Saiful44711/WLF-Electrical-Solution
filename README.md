@@ -1,3 +1,17 @@
+# WLF Electrical Solution v2.7.0
+
+## v2.7.0 Monthly reports to Google Drive; AVR item table off the QMS Input page (27 Nov 2026)
+
+- **Monthly reports** (Storage & Backup → Monthly reports, Super Admin): three styled, print-ready Excel files per month, each in its own Google Drive folder:
+  - `Technical Support Monthly Report`: Summary (overview, support by section with share, problems with share and the most frequent problem highlighted, error codes, the same problem on the same lift, support needed by requester, support given by R&I members), one sheet per section (section = the team form the requester used: Commissioning, After Sales, Production, Factory Maintenance, QC, Installation), and an *All requests* sheet.
+  - `R&I Team Activity Monthly Report`: Summary (by sector, by R&I member, most used forms, time invested), one sheet per sector (Team R&I Activity, Supplier & SCM Communication, Reports, Sales Support), and an *All entries* sheet.
+  - `Damage Demand Monthly Report`: Summary (most frequent problem, components failing most, damage by section, damage by user/requester, by controller), one sheet per section, and an *All demands* sheet.
+  - Months follow Bangladesh time. Top values are highlighted only when there is one clear top value. A4 landscape, fit to page width, title rows repeat on every printed page.
+- **Automatic**: `UPDATE_V270.sql` + *Turn on* schedules a pg_cron job (02:00 Bangladesh time every night) that calls `wlf-maintenance` with its own token (`x-wlf-cron`). Only the reports of the last complete month that are still missing are made, so the month is ready on the 1st and a failed night is retried the next night. **Make report now** makes any month by hand; making a month again replaces its file (the old file goes to the Drive bin).
+- **Database**: the reports only read data. New: `wlf_private.monthly_reports` (one small row per report and month) and `wlf_private.report_settings` (one row). Excel files live in Google Drive only.
+- **QMS Input**: the AVR model's item table ("AVR … · ALL ITEMS") is no longer opened on the input page; a one-line note shows how many items are saved. The output tables, Excel and backups show the AVR items exactly as before.
+- Edge Function `wlf-maintenance` changed (paste `edge-function/wlf-maintenance/index.ts` as one file, Verify JWT OFF).
+
 # WLF Electrical Solution v2.6.9
 
 ## v2.6.9 Layout PDF to QMS Input, serial Scan, QR label (26 Nov 2026)

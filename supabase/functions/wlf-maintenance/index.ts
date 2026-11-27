@@ -2,7 +2,8 @@
 import {createClient} from 'npm:@supabase/supabase-js@2.118.0';
 import JSZip from 'npm:jszip@3.10.1';
 import {excelMaintenance,archiveMaintenance} from '../_shared/wlf-excel-edge.mjs';
-const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
+import {reportMaintenance} from '../_shared/wlf-report.mjs';
+const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type,x-wlf-cron','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});
@@ -12,12 +13,23 @@ Deno.serve(async(req)=>{
  const url=Deno.env.get('SUPABASE_URL')!,keys=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS')||'{}'),key=keys.default||Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
  if(!url||!key)throw Error('Server configuration missing');
  const admin=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+ // v2.7.0: the monthly schedule (pg_cron + pg_net) calls with its own token instead of a signed-in Super Admin
+ const cronToken=req.headers.get('x-wlf-cron')||'';
+ let auth:any={user:{id:null}};
+ if(cronToken){
+  if(!/^[a-f0-9]{48}$/.test(cronToken)){status=401;throw Error('Schedule token rejected');}
+ }else{
  const token=(req.headers.get('Authorization')||'').replace(/^Bearer\s+/i,'');
- const {data:auth,error:authError}=await admin.auth.getUser(token);if(authError||!auth.user){status=401;throw Error('Sign in required');}
+ const r=await admin.auth.getUser(token);if(r.error||!r.data.user){status=401;throw Error('Sign in required');}
+ auth=r.data;
  const {data:me,error:meError}=await admin.from('wlf_profiles').select('id,role,status').eq('id',auth.user.id).single();
  if(meError||me?.role!=='Super Admin'||me?.status!=='Approved'){status=403;throw Error('Super Admin only');}
+ }
  if(Number(req.headers.get('content-length')||0)>12000000)throw Error('Request too large');
  const body=await req.json(),action=body.action,p=body.payload||{};
+ if(cronToken&&action!=='monthlyReports'){status=403;throw Error('Not allowed for the schedule');}
+ async function reportSql(a:string,x:any={}){const r=await admin.rpc('wlf_report_admin',{action:a,actor:auth.user.id,payload:cronToken?{...x,token:cronToken}:x});if(r.error)throw Error(r.error.message);return r.data;}
+ const selfUrl=url.replace(/\/$/,'')+'/functions/v1/wlf-maintenance';
  const project=new URL(url).hostname.split('.')[0];
  async function sql(action:string,payload:any={}){const r=await admin.rpc('wlf_backup_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
 async function usageSql(action:string,payload:any={}){const r=await admin.rpc('wlf_usage_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
@@ -26,6 +38,10 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  const clientId=Deno.env.get('WLF_GOOGLE_CLIENT_ID'),clientSecret=Deno.env.get('WLF_GOOGLE_CLIENT_SECRET'),refreshToken=Deno.env.get('WLF_GOOGLE_REFRESH_TOKEN');
  const configured=!!(clientId&&clientSecret&&refreshToken);
  if(action==='status')return new Response(JSON.stringify({...await sql('status'),driveConfigured:configured}),{headers});
+ if(['reportStatus','reportHistory','reportDeleteHistory','reportSchedule'].includes(action))
+  {const out=await reportMaintenance({action,payload:p,sql:reportSql,selfUrl});return new Response(JSON.stringify(action==='reportStatus'?{...out,driveConfigured:configured}:out),{headers});}
+ const reportAction=['reportGenerate','monthlyReports'].includes(action);
+ if(cronToken&&!configured){await reportSql('checked',{error:'Google Drive is not set up'});throw Error('Google Drive setup required');}
  if(action==='deleteRejectedUser'){
  const target=await sql('reserveDeleteUser',{email:p.email});try{const {error}=await admin.auth.admin.deleteUser(target.id);if(error)throw error;}finally{await sql('releaseDeleteUser',{id:target.id});}
  return new Response(JSON.stringify({deleted:true}),{headers});
@@ -44,18 +60,23 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  return new Response(JSON.stringify(await sql('restore',{archive:p.archive,project})),{headers});}
  if(action==='files')return new Response(JSON.stringify(await sql('files',p)),{headers});
  if(action==='abandon')return new Response(JSON.stringify(await sql('abandon',p)),{headers});
- if(!excelAction&&!archiveAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
+ if(!excelAction&&!archiveAction&&!reportAction&&!['backupPart','downloadPart','clearPart'].includes(action))throw Error('Unsupported action');
  if(!configured)throw Error('Google Drive setup required. Read GOOGLE_DRIVE_SETUP_BN.html in the update package.');
  const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId!,client_secret:clientSecret!,refresh_token:refreshToken!,grant_type:'refresh_token'})});
  const t=await tr.json();if(!tr.ok||!t.access_token)throw Error('Google Drive authorization expired or invalid. Reconnect using the setup guide.');
  async function drive(path:string,init:any={}){const r=await fetch('https://www.googleapis.com/'+path,{...init,headers:{Authorization:'Bearer '+t.access_token,...(init.headers||{})}});if(!r.ok)throw Error('Google Drive request failed ('+r.status+'). Nothing was cleared.');return r;}
  async function driveFolder(kind='backup'){
- const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — ']}[kind];
+ const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — '],
+  reportSupport:['wlfReportSupport','Technical Support Monthly Report'],reportActivity:['wlfReportActivity','R&I Team Activity Monthly Report'],reportDamage:['wlfReportDamage','Damage Demand Monthly Report']}[kind];
  const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='"+cfg[0]+"' and value='"+project+"' }";
  const folders=await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)&pageSize=1')).json();let folder=folders.files?.[0]?.id;
- if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+project,mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
+ if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+(kind.startsWith('report')?'':project),mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
   if(!/^[a-zA-Z0-9_-]+$/.test(folder||''))throw Error('Drive did not return a backup folder ID.');
   return folder;
+ }
+ if(reportAction){
+  const result=await reportMaintenance({action,payload:p,sql:reportSql,drive,folderFor:driveFolder,Zip:JSZip,selfUrl});
+  return new Response(JSON.stringify(result),{headers});
  }
  if(archiveAction){
   const result=await archiveMaintenance({action,payload:p,usageSql,fullSql,drive,folderFor:driveFolder,project,Zip:JSZip});
