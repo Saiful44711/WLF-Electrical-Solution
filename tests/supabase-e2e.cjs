@@ -1795,7 +1795,7 @@ fs.mkdirSync('test-results/v268',{recursive:true});
 // v2.7.0: monthly reports (Technical Support, R&I Team Activity, Damage Demand) to Google Drive, Storage & Backup
 {const shot=async(name)=>{await page.screenshot({path:'test-results/v270/'+name+'.png'});};fs.mkdirSync('test-results/v270',{recursive:true});
  const month=new Date(Date.now()+6*3600e3).toISOString().slice(0,7);
- await tab('storage');await page.locator('#wlfMonthlyCard').waitFor();await page.locator('#wlfMonthlyHistory table').waitFor().catch(async e=>{console.log('MONTHLY PANE:',await page.locator('#wlfMonthlyHistory').innerText());throw e;});
+ await tab('storage');await page.locator('#wlfMonthlyCard').waitFor();assert.equal((await page.locator('.wlf-build').first().textContent()).trim(),'WLF v'+require('../package.json').version,'the menu shows the real build');await page.locator('#wlfMonthlyHistory table').waitFor().catch(async e=>{console.log('MONTHLY PANE:',await page.locator('#wlfMonthlyHistory').innerText());throw e;});
  assert.match(await page.locator('#wlfMonthlyAuto').innerText(),/Off\. First switch on the extensions pg_cron and pg_net/,'no pg_cron in the test database');
  await page.locator('#wlfMonthlyMonth').fill(month);
  const before=excelFiles.size;

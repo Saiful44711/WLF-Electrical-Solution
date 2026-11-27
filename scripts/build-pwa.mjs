@@ -13,6 +13,8 @@ for(const f of await fs.readdir('dist')){
  else if(f.endsWith('.css'))await fs.writeFile('dist/'+f,(await transform(await fs.readFile('dist/'+f,'utf8'),{loader:'css',minify:true})).code);
 }
 for(const f of ['pdf-reader.mjs','pdf-worker.mjs'])await fs.copyFile('web/'+f,'dist/'+f); // v2.6.9: PDF reader, loaded only when a layout PDF is chosen (not pre-cached)
+// the build label in the menu always shows the version of package.json (it was typed by hand before and fell behind at 2.6.7)
+{const version=JSON.parse(await fs.readFile('package.json','utf8')).version;const pwa=await fs.readFile('dist/pwa.js','utf8');if(!pwa.includes('__WLF_VERSION__'))throw Error('dist/pwa.js has no __WLF_VERSION__ label');await fs.writeFile('dist/pwa.js',pwa.replaceAll('__WLF_VERSION__',version));}
 const assets=(await fs.readdir('dist')).sort();
 const hash=createHash('sha256');
 for(const file of assets){hash.update(file+'\0');hash.update(await fs.readFile('dist/'+file));}

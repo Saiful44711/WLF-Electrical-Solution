@@ -35,6 +35,8 @@ const WlfMonthlyReports = (() => {
     const say = (msg, error = false) => { if (!current()) return; const n = get('#wlfMonthlyStatus'); n.textContent = msg; n.classList.toggle('error', error); };
     let state = null;
     async function load() {
+      /* the month box never stays empty: last month (Bangladesh time) until the server answers */
+      { const m = get('#wlfMonthlyMonth'); if (!m.value) { const d = new Date(Date.now() + 6 * 3600e3); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); m.value = d.toISOString().slice(0, 7); } }
       try {
         const [status, history] = await Promise.all([api.edge('reportStatus'), api.edge('reportHistory')]);
         if (!current()) return;
@@ -61,7 +63,13 @@ const WlfMonthlyReports = (() => {
           if (!confirm('Delete this report from the list? The file stays in Google Drive.')) return;
           await api.edge('reportDeleteHistory', {id: b.dataset.monthlyDelete}); say('Removed from the list.');
         }); });
-      } catch (err) { if (current()) get('#wlfMonthlyHistory').textContent = err.message; }
+      } catch (err) {
+        if (!current()) return;
+        const old = /Unsupported action/i.test(err.message);
+        const text = old ? 'The wlf-maintenance Edge Function in Supabase is older than this app. Deploy the v2.7.0 index.ts (Verify JWT off), then press Refresh.' : err.message;
+        get('#wlfMonthlyAuto').textContent = old ? 'Not available yet: the Edge Function needs the v2.7.0 update.' : 'Could not check: ' + err.message;
+        get('#wlfMonthlyHistory').innerHTML = '<p class="error-text">' + h(text) + '</p>';
+      }
     }
     async function run(fn) {
       if (api.busy() || !current()) { say('Another backup or report is still running. Wait a moment and try again.', true); return; }

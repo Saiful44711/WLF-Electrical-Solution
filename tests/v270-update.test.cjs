@@ -79,3 +79,13 @@ test('turning the schedule on needs pg_cron and pg_net; a wrong address is refus
   assert.deepEqual(await admin(h, 'schedule', IDS.sa, {enable: false}), {enabled: false});
   if (cron) await assert.rejects(admin(h, 'schedule', IDS.sa, {enable: true, url: 'https://evil.example/x'}), /address rejected/);
 });
+
+test('v2.7.0: the build label in the menu shows the package.json version, never a hand-typed one', () => {
+  const fs = require('node:fs'), path = require('node:path'), root = path.join(__dirname, '..');
+  const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
+  const web = fs.readFileSync(path.join(root, 'web/pwa.js'), 'utf8');
+  assert.ok(web.includes('WLF v__WLF_VERSION__') && !/WLF v\d/.test(web), 'web/pwa.js keeps the placeholder');
+  assert.match(fs.readFileSync(path.join(root, 'scripts/build-pwa.mjs'), 'utf8'), /replaceAll\('__WLF_VERSION__',version\)/);
+  const dist = path.join(root, 'dist/pwa.js');
+  if (fs.existsSync(dist)) { const d = fs.readFileSync(dist, 'utf8'); assert.ok(d.includes('WLF v' + version + '<'), 'dist label is ' + version); assert.ok(!d.includes('__WLF_VERSION__')); }
+});
