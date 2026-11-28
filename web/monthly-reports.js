@@ -13,10 +13,10 @@ const WlfMonthlyReports = (() => {
   const when = iso => iso ? new Date(iso).toLocaleString('en-GB', {timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false}) : '—';
 
   /* the Storage page can be drawn again while it is open (refresh, finished backups): keep the choices made on this card */
-  const memo = {account: null, kinds: null, month: '', backups: null, bmonth: ''};
+  const memo = {account: null, kinds: null, month: '', backups: null, bmonth: '', say: null, sayB: null, paint: null, reload: null};
   function mount(root, api) {
     if (!root) return;
-    if (memo.account !== T()) { memo.account = T(); memo.kinds = null; memo.month = ''; memo.backups = null; memo.bmonth = ''; }
+    if (memo.account !== T()) { memo.account = T(); memo.kinds = null; memo.month = ''; memo.backups = null; memo.bmonth = ''; memo.say = null; memo.sayB = null; }
     const account = T();
     const current = () => root.isConnected && T() === account;
     root.innerHTML = '<section class="card wlf-module" id="wlfMonthlyCard"><h3>Monthly reports</h3>' +
@@ -48,8 +48,12 @@ const WlfMonthlyReports = (() => {
     get('#wlfMonthlyMonth').onchange = remember; get('#wlfMbMonth').onchange = remember;
     if (memo.month) get('#wlfMonthlyMonth').value = memo.month;
     if (memo.bmonth) get('#wlfMbMonth').value = memo.bmonth;
-    const sayB = (msg, error = false) => { if (!current()) return; const n = get('#wlfMbStatus'); n.textContent = msg; n.classList.toggle('error', error); };
-    const say = (msg, error = false) => { if (!current()) return; const n = get('#wlfMonthlyStatus'); n.textContent = msg; n.classList.toggle('error', error); };
+    /* The Storage page can be drawn again while a report or backup is running (this card is then replaced by a new one).
+       The message is kept outside the card and shown on whichever card is on the screen, so the result is never lost. */
+    const paint = () => { for (const [key, id] of [['say', '#wlfMonthlyStatus'], ['sayB', '#wlfMbStatus']]) { const n = root.querySelector(id); const m = memo[key]; if (n && m && Date.now() - m.at < 120000) { n.textContent = m.msg; n.classList.toggle('error', m.error); } } };
+    const sayB = (msg, error = false) => { if (memo.account !== account) return; memo.sayB = {msg, error, at: Date.now()}; if (memo.paint) memo.paint(); };
+    const say = (msg, error = false) => { if (memo.account !== account) return; memo.say = {msg, error, at: Date.now()}; if (memo.paint) memo.paint(); };
+    memo.paint = paint; paint();
     let state = null;
     async function load() {
       /* the month box never stays empty: last month (Bangladesh time) until the server answers */
@@ -92,7 +96,7 @@ const WlfMonthlyReports = (() => {
     async function run(fn, out = say) {
       if (api.busy() || !current()) { out('Another backup or report is still running. Wait a moment and try again.', true); return; }
       api.lock(true);
-      try { await fn(); } catch (err) { out(err.message, true); } finally { try { if (current()) await load(); } finally { api.lock(false); } }
+      try { await fn(); } catch (err) { out(err.message, true); } finally { try { if (current()) await load(); else if (memo.reload) await memo.reload(); } finally { api.lock(false); } }
     }
     get('#wlfMonthlyMake').onclick = () => run(async () => {
       const month = get('#wlfMonthlyMonth').value, kinds = [...root.querySelectorAll('[data-monthly-kind]:checked')].map(x => x.value);
@@ -149,6 +153,7 @@ const WlfMonthlyReports = (() => {
       if (!confirm('Turn off the automatic monthly Excel backup? Saved files stay in Google Drive.')) return;
       await api.edge('reportSchedule', {backup: false}); sayB('Automatic monthly Excel backup is off.');
     }, sayB);
+    memo.reload = load;
     load();
   }
   return {mount};

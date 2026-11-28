@@ -1887,10 +1887,12 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  // monthly Excel backup by hand: file named by month, own folder per module, never clears
  assert.match(await page.locator('#wlfMbAuto').innerText(),/Off\. First switch on the extensions pg_cron and pg_net/);
  const month=new Date(Date.now()+6*3600e3).toISOString().slice(0,7);
- await page.locator('#wlfMbMonth').fill(month);
+ await page.locator('#wlfMbTable').waitFor();await page.locator('#wlfMbMonth').fill(month);
  for(const k of ['activity','project','damage','claim']){for(let tries=0;;tries++){const box=page.locator('[data-mb-kind][value='+k+']');if(!(await box.isChecked()))break;if(tries>4)throw Error('could not untick '+k);await box.click();await page.waitForTimeout(150);}}
  const before=excelFiles.size,runs0=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.excel_runs where with_clear'))).rows[0].n);
  await page.locator('#wlfMbMake').click();
+ // the Storage page is drawn again while the backup runs (a slow phone, a refresh): the result must still reach the new card
+ await page.evaluate(()=>WlfTools.storage());await page.locator('#wlfMbCard').waitFor();
  await page.waitForFunction(()=>/Saved in Google Drive/.test(document.querySelector('#wlfMbStatus').textContent)||document.querySelector('#wlfMbStatus').classList.contains('error'),null,{timeout:60000});
  const said=await page.locator('#wlfMbStatus').innerText();console.log('monthly backup:',said);
  assert.ok(said.includes('Technical Support Backup '+month+'.xlsx')&&said.includes('QMS Data Backup '+month+'.xlsx'),said);
