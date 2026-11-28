@@ -1,4 +1,13 @@
-# WLF Electrical Solution v2.7.2
+# WLF Electrical Solution v2.7.3
+
+## v2.7.3 Announcements, QMS and R&I (28 Nov 2026)
+
+- **Announcement pop-up**: a new announcement opens as a pop-up for the people it is meant for, when they sign in or open the app. It stays until they press "OK, I have read it" (once per person).
+- **QMS Input**: "Save lift record" now shows a confirmation pop-up (Lift ID, project, control system, time), like Technical Support and R&I Activity.
+- **R&I Project Manager**: the person who created a project (and the Super Admin) can hide it with a button. A hidden project is not shown to anyone else; nothing is deleted; "Show to everyone" brings it back.
+- **Project PPTX** carries the Walton Lift logo in the top-right corner of every slide.
+- **QMS, NICE 3000+**: the serial field is "ARD SL" (not UPS SL); it is also named ARD in QMS Data and the Excel files.
+- SQL: run `supabase/UPDATE_V273.sql` (after V272). Edge Function: redeploy `wlf-maintenance` (index.ts from this package).
 
 ## v2.7.2 Safety and monthly automation (28 Nov 2026)
 

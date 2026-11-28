@@ -55,8 +55,18 @@ function ganttRange(project) {
   return {start,end,offset:value=>(days(value)-start)/(end-start),
     length:(from,to)=>(days(to)-days(from)+86400000)/(end-start)};
 }
+/* the Walton Lift logo the app already shows (company-logo.png), as a picture for the slides; a missing file never stops the export */
+async function companyLogo() {
+  try {
+    const r=await fetch('company-logo.png'); if(!r.ok) return '';
+    const bytes=new Uint8Array(await r.arrayBuffer()); let bin='';
+    for(let i=0;i<bytes.length;i+=32768) bin+=String.fromCharCode.apply(null,bytes.subarray(i,i+32768));
+    return 'image/png;base64,'+btoa(bin);
+  } catch(_) { return ''; }
+}
 async function projectPpt(project,people) {
   const deck=new PptxGenJS();
+  const logo=await companyLogo();
   deck.layout='LAYOUT_WIDE'; deck.author='WLF Electrical Solution'; deck.company='WLF';
   deck.subject='R&I project review'; deck.title=project.name;
   const person=id=>people.find(p=>p.id===id)?.name||(id?'Former team member':'Unassigned');
@@ -66,7 +76,12 @@ async function projectPpt(project,people) {
     const page=deck.addSlide(); page.background={color:palette.background};
     page.addShape(deck.ShapeType.rect,{x:0,y:0,w:13.333,h:.12,fill:{color:palette.accent},line:{color:palette.accent}});
     add(page,'WLF ELECTRICAL SOLUTION   /   R&I PROJECT MANAGER',{x:.6,y:.38,w:12,h:.24,fontSize:12,color:palette.accent});
-    add(page,title,{x:.6,y:.88,w:12.1,h:.75,fontSize:28,bold:true,fit:'shrink'});
+    /* Walton Lift logo, top right, on a white card so the blue letters stay readable on the dark slide (logo is 512 x 377) */
+    if(logo){
+      page.addShape(deck.ShapeType.roundRect,{x:11.55,y:.26,w:1.4,h:1.0,fill:{color:'FFFFFF'},line:{color:'FFFFFF'},rectRadius:.08});
+      page.addImage({data:logo,x:11.68,y:.32,w:1.14,h:.84});
+    }
+    add(page,title,{x:.6,y:.88,w:logo?10.7:12.1,h:.75,fontSize:28,bold:true,fit:'shrink'});
     add(page,subtitle,{x:.6,y:1.64,w:12,h:.32,fontSize:13,color:palette.soft,fit:'shrink'});
     return page;
   }

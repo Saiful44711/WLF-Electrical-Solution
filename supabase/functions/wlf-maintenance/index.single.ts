@@ -159,7 +159,7 @@ function qmsSheets(records) {
   ];
   /* serial numbers only for lifts whose serials were sent (accounts without the permission get none) */
   if (lifts.some(l=>!l.serialsHidden)) sheets.push({name:'QMS Serial numbers',headers:['Lift ID','Project','Part','Serial number'],
-    rows:lifts.filter(l=>!l.serialsHidden).flatMap(l=>qmsSerials.filter(([k])=>l.serials[k]).map(([k,t])=>[l.liftId,l.project,t,l.serials[k]]))});
+    rows:lifts.filter(l=>!l.serialsHidden).flatMap(l=>qmsSerials.filter(([k])=>l.serials[k]).map(([k,t])=>[l.liftId,l.project,serialName(k,t,l.system),l.serials[k]]))});
   sheets.push({name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))});
   return sheets;
 }
@@ -195,6 +195,7 @@ function backupSheets(snapshot) {
 }
 
 /* ---------- v2.6.4: QMS output tables (one source for the lift Excel report and the backup flat sheet) ---------- */
+const serialName=(k,t,system)=>k==='ups'&&/NICE/i.test(String(system||''))?'ARD':t;   // a NICE controller has an ARD, not a UPS (same stored number)
 const qmsSerials=[['motor','Motor'],['encoder','Encoder'],['drive','Drive'],['ups','UPS'],['cartop','Cartop PCB'],['cop','COP PCB'],['copDisplay','COP Display'],['avr','AVR'],['battery','Battery']];
 const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function qmsDate(value) {
@@ -244,7 +245,7 @@ function qmsTables(raw) {
     {head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:2},{head:'Brand',key:'brand',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],
     rows:parts(['control']).map(p=>({a:p.grp||'',b:p.hardware||'',spec:p.spec||'',code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
   blocks.push({no:4,name:'Serial numbers',columns:[{head:'Part',key:'a',span:3},{head:'Serial number',key:'spec',span:7}],
-    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'\u2014'})),
+    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:serialName(k,t,rec.system),spec:rec.serials?.[k]||'\u2014'})),
     hidden:rec.serialsHidden,empty0:'Serial numbers are not shown to this account.'});
   const names={lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable'};
   blocks.push({no:5,name:'COP \u00b7 LOP \u00b7 Transom \u00b7 Travelling cable',short:'COP LOP Transom Cable',columns:[{head:'Part',key:'a',span:2},{head:'Model',key:'b',span:2},{head:'Item code',key:'code',span:1},
@@ -932,7 +933,7 @@ async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Z
 
 // ---- Request handler
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type,x-wlf-cron','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
-const EDGE_VERSION='2.7.2';   // shown on the System status card; must match the app
+const EDGE_VERSION='2.7.3';   // shown on the System status card; must match the app
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});

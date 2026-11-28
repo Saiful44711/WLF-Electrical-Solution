@@ -79,7 +79,7 @@ async function setup(t) {
 
 test('Edge Function reports its version for the System status card', async t => {
   const h = await setup(t), call = await handler(h, mockDrive());
-  assert.deepEqual(await call('version'), {edge: '2.7.2', driveConfigured: true});
+  assert.deepEqual(await call('version'), {edge: '2.7.3', driveConfigured: true});
 });
 
 test('monthly Excel backup on the schedule: 3 files per call, folders Monthly Excel Backup / <category>, nothing cleared', async t => {

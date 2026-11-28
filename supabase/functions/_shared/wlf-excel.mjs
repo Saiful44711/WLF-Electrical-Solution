@@ -153,7 +153,7 @@ export function qmsSheets(records) {
   ];
   /* serial numbers only for lifts whose serials were sent (accounts without the permission get none) */
   if (lifts.some(l=>!l.serialsHidden)) sheets.push({name:'QMS Serial numbers',headers:['Lift ID','Project','Part','Serial number'],
-    rows:lifts.filter(l=>!l.serialsHidden).flatMap(l=>qmsSerials.filter(([k])=>l.serials[k]).map(([k,t])=>[l.liftId,l.project,t,l.serials[k]]))});
+    rows:lifts.filter(l=>!l.serialsHidden).flatMap(l=>qmsSerials.filter(([k])=>l.serials[k]).map(([k,t])=>[l.liftId,l.project,serialName(k,t,l.system),l.serials[k]]))});
   sheets.push({name:'QMS Output Tables',headers:qmsFlatHeaders,rows:lifts.flatMap(l=>qmsFlatRows(l))});
   return sheets;
 }
@@ -189,6 +189,7 @@ export function backupSheets(snapshot) {
 }
 
 /* ---------- v2.6.4: QMS output tables (one source for the lift Excel report and the backup flat sheet) ---------- */
+const serialName=(k,t,system)=>k==='ups'&&/NICE/i.test(String(system||''))?'ARD':t;   // a NICE controller has an ARD, not a UPS (same stored number)
 const qmsSerials=[['motor','Motor'],['encoder','Encoder'],['drive','Drive'],['ups','UPS'],['cartop','Cartop PCB'],['cop','COP PCB'],['copDisplay','COP Display'],['avr','AVR'],['battery','Battery']];
 const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 function qmsDate(value) {
@@ -238,7 +239,7 @@ export function qmsTables(raw) {
     {head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:2},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
     rows:parts(['control']).map(p=>({a:p.grp||'',b:p.hardware||'',spec:p.spec||'',code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
   blocks.push({no:4,name:'Serial numbers',columns:[{head:'Part',key:'a',span:3},{head:'Serial number',key:'spec',span:7}],
-    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'—'})),
+    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:serialName(k,t,rec.system),spec:rec.serials?.[k]||'—'})),
     hidden:rec.serialsHidden,empty0:'Serial numbers are not shown to this account.'});
   const names={lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable'};
   blocks.push({no:5,name:'COP · LOP · Transom · Travelling cable',short:'COP LOP Transom Cable',columns:[{head:'Part',key:'a',span:2},{head:'Model',key:'b',span:2},{head:'Item code',key:'code',span:1},

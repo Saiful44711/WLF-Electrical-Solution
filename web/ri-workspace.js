@@ -259,15 +259,15 @@ const WlfRi = (() => {
   function projectCard(row) {
     const p=row.data, can=owner(row), pct=WlfExports.progress(p.tasks);
     return `<details class="card" data-project="${h(row.id)}" ${projects.expanded.has(row.id)?'open':''}>
-      <summary><b>${h(p.name)}</b> · ${h(p.impact)} · ${badge(p.status)} · ${pct}% complete</summary>
+      <summary><b>${h(p.name)}</b> · ${h(p.impact)} · ${badge(p.status)} · ${pct}% complete${row.hidden?' · <span class="ri-hidden-tag">Hidden</span>':''}</summary>
       <div class="review-heading"><div><h3>${h(p.name)}</h3><p class="note">Created by ${h(row.owner_name)}
-        · Lead ${h(labelPerson(p.lead))} · ${h(p.start)} to ${h(p.end)}</p></div>
+        · Lead ${h(labelPerson(p.lead))} · ${h(p.start)} to ${h(p.end)}</p>${row.hidden?'<p class="ri-hidden-note">Hidden: only the person who created it and the Super Admin can see this project.</p>':''}</div>
         ${button('Download PPTX','project-ppt',row.id)}</div>
       <p>Collaborators ${h(p.collaborators.map(labelPerson).join(', ')||'None')}</p>
       <p>Financial outcome ${p.financial?'Yes':'No'} · Documentation ${p.documentation?'Yes':'No'}</p>
       ${p.brief?'<p>'+h(p.brief)+'</p>':''}
       ${can?rowActions(button('Edit project','edit-project',row.id)+button('+ Add task','add-task',row.id)+
-        button('Delete project','delete-project',row.id)):''}
+        button(row.hidden?'Show to everyone':'Hide project','toggle-hidden',row.id)+button('Delete project','delete-project',row.id)):''}
       <h4>Gantt chart</h4>${gantt(p)}
       <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Task</th><th>Assignee</th><th>Start</th><th>End</th><th>Status</th>
         <th>Progress</th>${can?'<th>Actions</th>':''}</tr></thead><tbody>${p.tasks.map(t=>`<tr><td>${h(t.name)}</td>
@@ -417,6 +417,12 @@ const WlfRi = (() => {
       b.disabled=true;try{
         await saveProject(row,id,crypto.randomUUID(),{...row.data,tasks:row.data.tasks.filter(t=>t.id!==task.id)});
       }finally{b.disabled=false;}
+    } else if(action==='toggle-hidden'&&row&&owner(row)){
+      const hide=!row.hidden;
+      if(!confirm(hide?'Hide this project? Only you and the Super Admin will be able to see it. You can show it again at any time.':'Show this project to everyone with R&I Project Manager access again?'))return;
+      b.disabled=true;try{
+        await call('setRiProjectHidden',{id,hidden:hide});await loadProjects();
+      }catch(err){alert(cleanError(err));}finally{b.disabled=false;}
     } else if(action==='delete-project'&&row&&owner(row)){
       if(!confirm('Remove this project and its tasks?'))return;
       b.disabled=true;try{

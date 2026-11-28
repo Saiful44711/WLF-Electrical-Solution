@@ -33,16 +33,18 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V270.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V271.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V272.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V270.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V271.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V272.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V273.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');const {reportMaintenance}=await import('../supabase/functions/_shared/wlf-report.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.7.2-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.7.3-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
-browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);page.on('pageerror',e=>errors.push(e.message));
+browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);globalThis.annSeen=[];globalThis.annLocator=page.locator('#wlfAnnouncePopup[open]');globalThis.annHandler=async d=>{const t=(await d.innerText()).replace(/\s+/g,' ');await page.keyboard.press('Escape');const stillOpen=(await d.count())===1;const box=await d.boundingBox();globalThis.annSeen.push({t,stillOpen,box,vw:page.viewportSize().width});
+ if(globalThis.annSeen.length===1){fs.mkdirSync('test-results/v273',{recursive:true});await page.screenshot({path:'test-results/v273/04-announcement-popup.png'});}
+ await d.locator('#wlfAnnounceOk').click();};await page.addLocatorHandler(globalThis.annLocator,globalThis.annHandler);page.on('pageerror',e=>errors.push(e.message));
 await context.route('https://wlf-test.supabase.co/**',async route=>{let request=route.request(),url=new URL(request.url()),body=request.postDataJSON(),data,status=200;try{
 if(url.pathname==='/auth/v1/token'){let name=body.email?.split('@')[0]||'sa',id=IDS[name];if(!id||body.password!==(passwords[name]||'test-password-123')){status=400;data={msg:'Invalid login credentials'};}else data={access_token:jwt(id),refresh_token:'refresh-'+name,expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,token_type:'bearer',user:{id,email:name+'@example.test',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email'},user_metadata:{name}}};}
 else if(url.pathname==='/auth/v1/user'){const id=JSON.parse(Buffer.from(request.headers().authorization.split('.')[1],'base64url').toString()).sub;const name=Object.keys(IDS).find(k=>IDS[k]===id);passwords[name]=body.password;data={id,email:name+'@example.test',aud:'authenticated',role:'authenticated',user_metadata:{name}};}else if(url.pathname==='/auth/v1/logout')data={};else if(url.pathname==='/rest/v1/rpc/wlf_rpc'){rpcCount++;let id=JSON.parse(Buffer.from(request.headers().authorization.split('.')[1],'base64url').toString()).sub,name=Object.keys(IDS).find(k=>IDS[k]===id);data=await sequential(()=>h.rpc(name,body.action,body.args));}
@@ -52,7 +54,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  if(process.env.WLF_EDGE_DELAY)await new Promise(r=>setTimeout(r,Number(process.env.WLF_EDGE_DELAY)));
  const sql=async(action,payload=p)=>(await h.db.query('select public.wlf_backup_admin($1,$2,$3)result',[action,id,payload])).rows[0].result;
  const excelSql=async(action,payload={})=>sequential(async()=>(await h.db.query('select public.wlf_excel_admin($1,$2,$3) result',[action,id,payload])).rows[0].result);
- if(body.action==='version')data={edge:globalThis.edgeVersion||'2.7.2',driveConfigured:true};
+ if(body.action==='version')data={edge:globalThis.edgeVersion||'2.7.3',driveConfigured:true};
  else if(body.action==='status')data={...await sequential(()=>sql('status')),driveConfigured:true};
  else if(body.action==='excelHistory')data=await excelSql('history');
  else if(body.action==='excelDeleteHistory')data=await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id});
@@ -276,6 +278,17 @@ const pptZip=await Zip.loadAsync(fs.readFileSync('test-results/v220-project.pptx
 assert.ok(pptZip.file('ppt/slides/slide2.xml'));
 assert.match(await pptZip.file('ppt/slides/slide2.xml').async('string'),/Record controller tests/);
 await page.screenshot({path:'test-results/v220-project.png',fullPage:true});
+// v2.7.3: the Walton Lift logo is on every slide (top right), and the creator can hide / show the project
+assert.ok(Object.keys(pptZip.files).some(f=>/^ppt\/media\/.*\.png$/.test(f)),'the Walton Lift logo picture is inside the deck');
+for(const n of [1,2])assert.match(await pptZip.file('ppt/slides/slide'+n+'.xml').async('string'),/<p:pic>/,'slide '+n+' carries the logo');
+{const card=page.locator('[data-project] ').first();
+ assert.equal(await page.locator('[data-ri-action=toggle-hidden]').first().innerText(),'Hide project');
+ page.once('dialog',d=>d.accept());await page.locator('[data-ri-action=toggle-hidden]').first().click();
+ await page.locator('.ri-hidden-tag').first().waitFor();assert.equal(await page.locator('[data-ri-action=toggle-hidden]').first().innerText(),'Show to everyone');
+ assert.match(await page.locator('.ri-hidden-note').first().innerText(),/only the person who created it and the Super Admin/);
+ fs.mkdirSync('test-results/v273',{recursive:true});await page.locator('[data-project]').first().scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v273/02-project-hidden.png'});
+ page.once('dialog',d=>d.accept());await page.locator('[data-ri-action=toggle-hidden]').first().click();
+ await page.waitForFunction(()=>!document.querySelector('.ri-hidden-tag'));assert.equal(await page.locator('[data-ri-action=toggle-hidden]').first().innerText(),'Hide project');}
 
 // Excel export uses the real Edge workbook generator, with a fake Drive connection.
 await tab('storage');
@@ -538,7 +551,12 @@ const over=await page.evaluate(()=>({sw:document.documentElement.scrollWidth,cw:
 await page.screenshot({path:'test-results/v260/03-qms-motor-selected-360.png',fullPage:true});
 if(over.sw>over.cw+1||over.wide.length)throw Error('MOBILE-OVERFLOW '+JSON.stringify(over));
 await page.setViewportSize(vp);}
+// v2.7.3: Save lift record opens the same confirmation pop-up as Technical Support and R&I Activity (it stays until OK)
+await page.removeLocatorHandler(globalThis.savedLocator);
 await qmsSubmit();
+{const dlg=page.locator('#wlfSavedDialog[open]');await dlg.waitFor();assert.equal(await dlg.locator('h3').innerText(),'Lift record saved');const t=await dlg.innerText();assert.ok(t.includes('L-101')&&/Saved at \(Dhaka\)/.test(t),t);
+ const shotDir='test-results/v273';fs.mkdirSync(shotDir,{recursive:true});await page.screenshot({path:shotDir+'/01-qms-saved-popup.png'});
+ await dlg.locator('[data-saved-close]').click();await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);}
 await page.locator('#qmsLiftStatus').filter({hasText:'Lift L-101 saved'}).waitFor().catch(async e=>{throw Error('QMS-DIAG status=['+(await page.locator('#qmsLiftStatus').innerText().catch(()=>'?'))+'] errors='+JSON.stringify(errors)+' console='+JSON.stringify((globalThis.consoleErrors||[]).slice(-5))+' disabled='+(await page.locator('#qmsLiftForm [type=submit]').isDisabled().catch(()=>'?')));});
 await page.locator('#qmsLiftForm [name=liftId]').fill('l-101 ');
 await page.locator('#qmsLiftForm [name=project]').fill('Other');
@@ -843,13 +861,20 @@ assert.equal((await sequential(()=>h.db.query("select count(*)::int n from publi
 // Management Dashboard screenshots
 await tab('workspace-dashboard');await page.locator('#apBody .mgmt-card').first().waitFor();await v253shot('06-management-dashboard');
 // the Commissioning user: red count, announcement card, Read, my work breakdown
-await logout();await login('user');await tab('account');
-await page.locator('#announceCard .announce-item').filter({hasText:'Site safety week'}).waitFor();
-await page.locator('#profileNavBadge:not([hidden])').waitFor();const before253=Number(await page.locator('#profileNavBadge').innerText());assert.ok(before253>=1);
+// v2.7.3: the unread announcement opens as a pop-up that stays until OK is pressed (phone size, dark: the hardest case)
+{const vp=page.viewportSize();await logout();await page.setViewportSize({width:390,height:844});await page.evaluate(()=>setAppearance('dark'));
+ globalThis.annSeen.length=0;await login('user');
+ for(let k=0;k<75&&!globalThis.annSeen.some(x=>/Site safety week/.test(x.t));k++){if(await page.locator('#wlfAnnouncePopup[open]').count())await globalThis.annHandler(page.locator('#wlfAnnouncePopup[open]'));else await page.waitForTimeout(200);}
+ const seen=globalThis.annSeen.find(x=>/Site safety week/.test(x.t));assert.ok(seen,'the announcement opened as a pop-up when the user signed in');
+ assert.ok(seen.stillOpen,'Escape does not close the announcement');assert.ok(seen.box.x>=0&&seen.box.x+seen.box.width<=390,'pop-up fits a phone');assert.match(seen.t,/OK, I have read it/);
+ await page.evaluate(()=>setAppearance('light'));await page.setViewportSize(vp);}
+await page.waitForFunction(()=>!document.querySelector('#wlfAnnouncePopup[open]'));
+await tab('account');
+await page.locator('#announceCard .announce-old').waitFor();assert.equal(await page.locator('[data-ann-read]').count(),0,'nothing is left unread');
 assert.equal(await page.locator('#myActivityCard').count(),0,'v2.5.6: My Activity removed');
 await page.locator('#announceCard').scrollIntoViewIfNeeded();await v253shot('07-profile-announcement');
-await page.locator('[data-ann-read]').first().click();await page.locator('#announceCard .announce-old').waitFor();
-await page.waitForFunction(n=>{const b=document.getElementById('profileNavBadge');return b&&(b.hidden?0:Number(b.textContent))===n-1;},before253);
+// it does not come back after OK
+await page.reload();await page.locator('#app').waitFor({state:'visible'});await page.waitForTimeout(1500);assert.equal(await page.locator('#wlfAnnouncePopup[open]').count(),0,'a read announcement is not shown again');
 await logout();await login('admin');await tab('account');await page.waitForTimeout(400);assert.equal(await page.locator('#announceCard').isHidden(),true,'Sales section does not get the Commissioning announcement');
 await logout();await login('sa');
 /* ---- v2.5.4: Component Selection reset, R&I Electrical support push, Supplier Claim ---- */
@@ -1874,14 +1899,14 @@ fs.mkdirSync('test-results/v268',{recursive:true});
 {const shot=async(name)=>{fs.mkdirSync('test-results/v272',{recursive:true});await page.screenshot({path:'test-results/v272/'+name+'.png'});};
  await tab('storage');await page.locator('#wlfSystemTable').waitFor({timeout:30000});
  const sys=async()=>(await page.locator('#wlfSystemTable tbody tr').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
- {const rows=await sys();assert.equal(rows.length,4);for(const r of rows)assert.match(r,/✓ OK$/,'all parts match: '+r);assert.match(rows[0],/App \(this page\) 2\.7\.2/);assert.match(rows[1],/Database 2\.7\.2/);assert.match(rows[2],/Edge Function \(wlf-maintenance\) 2\.7\.2/);}
+ {const rows=await sys();assert.equal(rows.length,4);for(const r of rows)assert.match(r,/✓ OK$/,'all parts match: '+r);assert.match(rows[0],/App \(this page\) 2\.7\.3/);assert.match(rows[1],/Database 2\.7\.3/);assert.match(rows[2],/Edge Function \(wlf-maintenance\) 2\.7\.3/);}
  await page.locator('#wlfSystemCard').scrollIntoViewIfNeeded();await shot('01-system-status-ok');
- globalThis.edgeVersion='2.7.1';await page.locator('#wlfErrorRefresh').click();await page.waitForFunction(()=>/Deploy the v2\.7\.2 index\.ts/.test(document.querySelector('#wlfSystemTable')?.innerText||''));
+ globalThis.edgeVersion='2.7.1';await page.locator('#wlfErrorRefresh').click();await page.waitForFunction(()=>/Deploy the v2\.7\.3 index\.ts/.test(document.querySelector('#wlfSystemTable')?.innerText||''));
  await shot('02-system-status-edge-old');globalThis.edgeVersion='';
  // a page error reaches the log with page, account and version; only the Super Admin sees it
  await page.evaluate(()=>WlfReportError('E2E sample error: cannot read x','at test.js:1:1'));await page.waitForTimeout(500);
  await page.locator('#wlfErrorRefresh').click();await page.locator('#wlfErrorTable').waitFor();
- {const t=await page.locator('#wlfErrorTable').innerText();assert.match(t,/E2E sample error/);assert.match(t,/storage/);assert.match(t,/2\.7\.2/);}
+ {const t=await page.locator('#wlfErrorTable').innerText();assert.match(t,/E2E sample error/);assert.match(t,/storage/);assert.match(t,/2\.7\.3/);}
  await page.locator('#wlfErrorCard').scrollIntoViewIfNeeded();await shot('03-error-log');
  page.once('dialog',d=>d.accept());await page.locator('#wlfErrorClear').click();await page.waitForFunction(()=>/No errors in the last 7 days/.test(document.querySelector('#wlfErrorList').innerText));
  // monthly Excel backup by hand: file named by month, own folder per module, never clears
@@ -1924,6 +1949,16 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  assert.match(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content'),/script-src 'self'/);
  assert.equal(await page.locator('[onclick],[onchange]').count(),0,'no inline event handler is left');
 }
+// v2.7.3: a NICE controller has an ARD, not a UPS
+{const form='#qmsLiftForm ';await tab('qms');await page.locator('#qmsTabInput').click();await page.locator(form).waitFor();
+ const labels=async()=>(await page.locator(form+'.hw-serials label').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
+ await page.locator(form+'[name=system]').selectOption('NICE3000+');
+ {const l=await labels();assert.ok(l.some(t=>/^ARD SL/.test(t)),'NICE shows ARD SL: '+l.join(' | '));assert.ok(!l.some(t=>/^UPS SL/.test(t)),'NICE shows no UPS SL');}
+ await page.locator(form+'.hw-serials').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v273/03-qms-nice-ard.png'});
+ await page.locator(form+'[name=system]').selectOption('MOT');
+ {const l=await labels();assert.ok(l.some(t=>/^UPS SL/.test(t))&&!l.some(t=>/^ARD SL/.test(t)),'MOT keeps UPS SL: '+l.join(' | '));}
+ // the stored number is the same field, so a NICE lift saved earlier shows its serial as ARD
+ await page.locator(form+'[name=system]').selectOption('NICE3000+');await page.locator(form+'[name=sl-ups]').fill('ARD-1');assert.equal(await page.locator(form+'[name=sl-ups]').inputValue(),'ARD-1');}
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(globalThis.consoleErrors.filter(t=>/Content Security Policy|Refused to (execute|load|apply|connect|frame|run)/i.test(t)),[],'v2.7.2: nothing is blocked by the Content-Security-Policy');assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
 })().catch(async err=>{console.error(err);console.error('Page errors',errors);if(page&&!page.isClosed()){console.error((await page.locator('body').innerText()).slice(-3500));await page.screenshot({path:'test-results/failure.png',fullPage:true}).catch(()=>{});}console.error('\n==== FAILURE SUMMARY (copy everything below this line) ====\n'+String(err&&err.message||err).slice(0,9000));process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.close();if(h)await h.close();});

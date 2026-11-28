@@ -59,7 +59,7 @@ const WlfAdmin = (() => {
     if (!SESSION || badgeBusy || !navigator.onLine || (!force && Date.now() - badgeAt < 15000)) return;
     const run = epoch;
     badgeBusy = true; badgeAt = Date.now();
-    try { const x = await rpc('getNavBadges', [T()]); if (run === epoch && SESSION) paintBadges(x); }
+    try { const x = await rpc('getNavBadges', [T()]); if (run === epoch && SESSION) { paintBadges(x); if (Number(x.announcements || 0) > 0) announcementPopup(); } }
     catch (err) { /* the menu keeps its last counts */ }
     finally { badgeBusy = false; }
   }
@@ -87,6 +87,50 @@ const WlfAdmin = (() => {
         catch (err) { b.disabled = false; showMsg(cleanError(err), 'error'); }
       });
     } catch (err) { if (run === epoch && !card.innerHTML) card.hidden = true; }
+  }
+
+  /* ------------------------------------------------------------ v2.7.3: unread announcements open as a pop-up that stays until OK is pressed */
+  let popupOpen = false;
+  const popupSkipped = new Set();   // ones that could not be marked as read (offline): not shown again until the next sign-in
+  function announcementDialog(x, index, total) {
+    let d = el('wlfAnnouncePopup');
+    if (!d) { d = document.createElement('dialog'); d.id = 'wlfAnnouncePopup'; d.className = 'wlf-announce-popup'; d.setAttribute('aria-labelledby', 'wlfAnnounceTitle'); document.body.appendChild(d); }
+    d.innerHTML = `<div class="wlf-announce-body"><div class="wlf-announce-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l5 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M16 9a3 3 0 0 1 0 6"/></svg></div>
+      <p class="wlf-announce-count">Announcement${total > 1 ? ' ' + (index + 1) + ' of ' + total : ''}</p>
+      <h3 id="wlfAnnounceTitle">${h(x.title)}</h3>
+      ${x.body ? `<div class="wlf-announce-text">${h(x.body)}</div>` : ''}
+      <small>${h(x.by)} · ${h(when(x.updatedAt || x.at))}${x.expiresOn ? ' · until ' + h(onDay(x.expiresOn)) : ''}</small>
+      <p class="wlf-announce-error" id="wlfAnnounceError" role="alert" hidden></p>
+      <button type="button" class="btn" id="wlfAnnounceOk" autofocus>OK, I have read it</button></div>`;
+    return new Promise(resolve => {
+      const finish = () => { d.removeEventListener('close', finish); resolve(); };
+      d.addEventListener('close', finish);
+      d.oncancel = e => e.preventDefault();          // Escape does not close it: only OK does
+      d.onclick = null;                              // a click outside does not close it either
+      el('wlfAnnounceOk').onclick = async e => {
+        const b = e.currentTarget; b.disabled = true;
+        try { await rpc('markAnnouncementRead', [T(), {id: x.id}]); }
+        catch (err) { popupSkipped.add(x.id); }      // offline: the notice stays unread and shows again at the next sign-in
+        d.close();
+      };
+      try { d.showModal(); } catch (_) { d.setAttribute('open', ''); }
+    });
+  }
+  async function announcementPopup() {
+    if (!SESSION || popupOpen || !navigator.onLine) return;
+    const run = epoch;
+    popupOpen = true;
+    try {
+      const {items} = await rpc('getAnnouncements', [T()]);
+      if (run !== epoch) return;
+      const queue = items.filter(x => !x.read && !popupSkipped.has(x.id));
+      for (let i = 0; i < queue.length; i++) {
+        if (run !== epoch || !SESSION) break;
+        await announcementDialog(queue[i], i, queue.length);
+      }
+    } catch (err) { /* the pop-up never blocks the app */ }
+    finally { popupOpen = false; }
+    if (run === epoch && SESSION) { loadAnnouncements(); refreshBadges(true); }
   }
 
   /* ------------------------------------------------------------ Usage Dashboard: activity log (7 days), From-To delete, component change log */
@@ -403,6 +447,7 @@ const WlfAdmin = (() => {
   window.addEventListener('wlf-ready', () => { badgeAt = 0; refreshBadges(true); });
   window.addEventListener('wlf-logout', () => {
     epoch++;
+    popupSkipped.clear(); { const d = el('wlfAnnouncePopup'); if (d && d.open) d.close(); }
     for (const id of ['announceCard', 'tab-recycle-bin', 'tab-announcements']) { const x = el(id); if (x) x.innerHTML = ''; }
     if (el('announceCard')) el('announceCard').hidden = true;
     for (const id of ['profileNavBadge', 'damageNavBadge', 'supplierNavBadge']) if (el(id)) el(id).hidden = true;

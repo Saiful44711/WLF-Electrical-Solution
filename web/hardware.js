@@ -350,6 +350,9 @@ const WlfHardware = (() => {
   /* ---------------------------------------------------------------- QMS */
   const SECTION_NAMES = {control: 'Control system', lop: 'LOP', cop: 'COP', faceplate: 'COP faceplate', transom: 'Transom', cable: 'Travelling cable', other: 'Other components', avr: 'AVR', paid: 'Paid feature'};
   const SERIALS = [['motor', 'Motor SL'], ['encoder', 'Encoder SL'], ['drive', 'Drive SL'], ['ups', 'UPS SL'], ['cartop', 'Cartop PCB SL'], ['cop', 'COP PCB SL'], ['copDisplay', 'COP Display SL'], ['avr', 'AVR SL'], ['battery', 'Battery SL']];
+  /* NICE controllers use an ARD, not a UPS: the same stored number (key "ups", so old records keep working) is shown as ARD */
+  const isNice = system => /NICE/i.test(String(system || ''));
+  const serialsOf = system => SERIALS.map(([k, t]) => [k, k === 'ups' && isNice(system) ? 'ARD SL' : t]);
   const serialRequired = k => k === 'avr' ? !!(draft && draft.pick.avrModel) : k !== 'battery';   /* AVR SL only when an AVR model is chosen; Battery SL is optional (up to 5 batteries) */
   let draft = null;
 
@@ -515,7 +518,7 @@ const WlfHardware = (() => {
         ${controlBlock()}
         <div id="hwAvr">${avrBlock()}</div>
         ${d.serialsHidden ? '<p class="note">Serial numbers are not shown to your account. Leave a field blank to keep the saved value, or type a new one to replace it.</p>' : ''}
-        <div class="hw-grid hw-serials">${SERIALS.map(([k, t]) => k === 'battery'
+        <div class="hw-grid hw-serials">${serialsOf(d.system).map(([k, t]) => k === 'battery'
           ? `<label class="hw-battery">${t} <small>(up to 5 batteries, separate them with commas)</small><textarea name="sl-${k}" rows="3" maxlength="200" placeholder="Battery serial numbers">${h(d.serials[k])}</textarea></label>`
           : `<label>${t}${serialRequired(k) && !d.serialsHidden ? ' *' : ''}<input name="sl-${k}" ${serialRequired(k) && !d.serialsHidden ? 'required' : ''} maxlength="80" value="${h(d.serials[k])}" ${d.serialsHidden ? 'placeholder="Saved (hidden)"' : ''}></label>`).join('')}</div><p class="note overview-status" id="hwSerialWarn" role="status"></p>`)}
       ${sec('4 · LOP · COP · Transom · Travelling cable', `<div class="hw-grid">
@@ -592,6 +595,13 @@ const WlfHardware = (() => {
     return items;
   }
 
+  /* the same confirmation pop-up as Technical Support and R&I Activity: it stays until OK is pressed */
+  function savedPopup(title, rec) {
+    if (typeof WlfFields === 'undefined' || !WlfFields.savedPopup) return;
+    const at = new Date().toLocaleString('en-GB', {timeZone: 'Asia/Dhaka', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false});
+    WlfFields.savedPopup(title, [['Lift ID', rec.liftId], ['Project', rec.project], ['Control system', [rec.system, rec.controllerModel].filter(Boolean).join(' · ')], ['Saved at (Dhaka)', at]]);
+  }
+
   function bindQmsForm(record, back) {
     const f = el('qmsLiftForm');
     const repaint = keep => { if (!keep) readDraft(); el('qmsPanel').innerHTML = qmsForm(record); bindQmsForm(record, back); };
@@ -621,13 +631,14 @@ const WlfHardware = (() => {
       try {
         for (const [k, t] of [['liftId', 'Lift ID'], ['project', 'Project name'], ['address', 'Address'], ['motorType', 'Motor type'], ['liftType', 'Lift type'], ['deliveryDate', 'Delivery date'], ['system', 'Control system'], ['controllerModel', 'Controller model']])
           if (!draft[k]) throw new Error('Enter or select: ' + t + '.');
-        if (!draft.serialsHidden) for (const [k, t] of SERIALS) if (serialRequired(k) && !draft.serials[k]) throw new Error('Enter the ' + t + '.');
+        if (!draft.serialsHidden) for (const [k, t] of serialsOf(draft.system)) if (serialRequired(k) && !draft.serials[k]) throw new Error('Enter the ' + t + '.');
         const items = buildItems();
         button.disabled = true;
         status.textContent = 'Saving…';
         const saved = await rpc('saveQmsLift', [T(), {id: draft.id, revision: draft.revision, liftId: draft.liftId, project: draft.project, address: draft.address,
           deliveryDate: draft.deliveryDate, motorType: draft.motorType, liftType: draft.liftType, system: draft.system, controllerModel: draft.controllerModel,
           serials: draft.serials, selection: draft.selection, specialNote: draft.specialNote, items}]);
+        savedPopup(record ? 'Lift record updated' : 'Lift record saved', saved);
         if (record) { showLift(saved, 'Changes saved.'); return; }
         draft = newDraft();
         el('qmsPanel').innerHTML = qmsForm(null);
@@ -737,7 +748,7 @@ const WlfHardware = (() => {
   const canScan = () => typeof BarcodeDetector !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   function serialWarning(f) {
     const seen = new Map();
-    for (const [k, t] of SERIALS) {
+    for (const [k, t] of serialsOf(f.elements.system && f.elements.system.value)) {
       const input = f.elements['sl-' + k];
       if (!input) continue;
       for (const part of String(input.value).split(',').map(x => x.trim()).filter(Boolean)) {
@@ -851,7 +862,7 @@ const WlfHardware = (() => {
         tbl(['Group', 'Hardware', 'Spec', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['control']).map(p => [h(p.grp), h(p.hardware), h(p.spec), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
       <section class="card hw-out"><div class="overview-eyebrow">4 · SERIAL NUMBERS</div>${rec.serialsHidden
         ? '<p class="note">Serial numbers are not shown to your account. The Super Admin gives access in User Management (QMS / See and download the Serial numbers table).</p>'
-        : tbl(['Part', 'Serial number'], SERIALS.map(([k, t]) => [h(t.replace(/ SL$/, '')), k === 'battery' ? '<span class="hw-battery-out">' + (h(rec.serials?.[k]) || '—') + '</span>' : h(rec.serials?.[k]) || '—']), 'No serial numbers were recorded.')}</section>
+        : tbl(['Part', 'Serial number'], serialsOf(rec.system).map(([k, t]) => [h(t.replace(/ SL$/, '')), k === 'battery' ? '<span class="hw-battery-out">' + (h(rec.serials?.[k]) || '—') + '</span>' : h(rec.serials?.[k]) || '—']), 'No serial numbers were recorded.')}</section>
       <section class="card hw-out"><div class="overview-eyebrow">5 · COP · LOP · TRANSOM · TRAVELLING CABLE</div>${
         tbl(['Part', 'Model', 'Item code', 'Item name', 'Brand', 'Price (৳)'], parts(['lop', 'cop', 'faceplate', 'transom', 'cable']).map(p => [h(SECTION_NAMES[p.section] + (p.grp && p.section === 'cop' ? ' · ' + p.grp.replace('COP ', '') : '')), h(p.hardware), codeCell(p), h(p.name), h(p.brand), h(money(p.value))]))}</section>
       <section class="card hw-out" id="hwOutAvr"><div class="overview-eyebrow">6 · AVR${parts(['avr'])[0] ? ' — ' + h(parts(['avr'])[0].model) : ''}</div>${

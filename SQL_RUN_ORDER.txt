@@ -1,4 +1,6 @@
-WLF Electrical Solution v2.7.2 - SQL run order
+WLF Electrical Solution v2.7.3 - SQL run order
+
+v2.7.3: run supabase/UPDATE_V273.sql after UPDATE_V272.sql (hide project; v273_ready = true), then redeploy the wlf-maintenance Edge Function (index.ts from this package).
 
 v2.7.2: run supabase/UPDATE_V272.sql after UPDATE_V271.sql, then redeploy the wlf-maintenance Edge Function (index.ts from this package).
 
