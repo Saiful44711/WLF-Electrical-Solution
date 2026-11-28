@@ -36,12 +36,22 @@ function unique(label,fallback,seen,limit) {
   seen.add(name.toLowerCase());
   return name;
 }
-function cell(value,address) {
+const shown=value=>Array.isArray(value)?value.join(', '):String(value??'');
+function cell(value,address,wrap) {
   if (typeof value==='number' && Number.isFinite(value)) return '<c r="'+address+'"><v>'+value+'</v></c>';
   if (typeof value==='boolean') return '<c r="'+address+'" t="b"><v>'+Number(value)+'</v></c>';
-  const display=Array.isArray(value)?value.join(', '):String(value??'');
-  return textCell(address,null,display.slice(0,32767));
+  return textCell(address,wrap?1:null,shown(value).slice(0,32767));
 }
+/* v2.7.2: column width from the content (10 to 60 characters); longer text wraps and the row grows (up to 8 lines) */
+const longestLine=t=>String(t).split(/\r?\n/).reduce((m,l)=>Math.max(m,l.length),0);
+function layout(headers,rows) {
+  const widths=headers.map((h,j)=>{let w=String(h).length+3;for(let i=0;i<Math.min(rows.length,400);i++){const v=rows[i][j];if(v!==undefined&&v!==null&&v!=='')w=Math.max(w,longestLine(shown(v))+2);}return Math.max(10,Math.min(60,w));});
+  return {widths,lines:(row)=>Math.min(8,Math.max(1,...headers.map((_,j)=>{const v=row[j];if(v===undefined||v===null||typeof v==='number')return 1;
+    return String(shown(v)).split(/\r?\n/).reduce((n,l)=>n+Math.max(1,Math.ceil(l.length/(widths[j]-1))),0);})))};
+}
+const tableStyles='<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'+
+  '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders>'+
+  '<cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs></styleSheet>';
 
 export async function buildWorkbook(Zip,groups) { return withSharedStrings(()=>buildWorkbookInner(Zip,groups)); }
 async function buildWorkbookInner(Zip,groups) {
@@ -60,9 +70,9 @@ async function buildWorkbookInner(Zip,groups) {
     workbookRelationships.push(rel(relation,'worksheet',file));
     overrides.push(override(file,'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml'),
       override(tableFile,'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml'));
-    const data=rows.map((row,i)=>'<row r="'+(i+1)+'">'+headers.map((_,j)=>cell(row[j],letters(j)+(i+1))).join('')+'</row>').join('');
-    const columns=headers.map((header,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+
-      Math.max(14,Math.min(43,header.length+4))+'" customWidth="1"/>').join('');
+    const lay=layout(headers,rows);
+    const data=rows.map((row,i)=>{const n=i?lay.lines(row):1;return '<row r="'+(i+1)+'"'+(n>1?' ht="'+(n*15)+'" customHeight="1"':'')+'>'+headers.map((_,j)=>cell(row[j],letters(j)+(i+1),i>0&&n>1)).join('')+'</row>';}).join('');
+    const columns=headers.map((header,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+lay.widths[i]+'" customWidth="1"/>').join('');
     add('xl/'+file,'<worksheet xmlns="'+main+'" xmlns:r="'+office+'"><dimension ref="'+range+'"/>'+
       '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
       '<cols>'+columns+'</cols><sheetData>'+data+'</sheetData><tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>');
@@ -74,12 +84,14 @@ async function buildWorkbookInner(Zip,groups) {
   }
   add('xl/workbook.xml','<workbook xmlns="'+main+'" xmlns:r="'+office+'"><bookViews><workbookView/></bookViews><sheets>'+sheets.join('')+'</sheets></workbook>');
   add('xl/sharedStrings.xml',sharedStringsXml());
-  add('xl/_rels/workbook.xml.rels',relationships(workbookRelationships.join('')+rel('rIdSST','sharedStrings','sharedStrings.xml')));
+  add('xl/styles.xml',tableStyles);
+  add('xl/_rels/workbook.xml.rels',relationships(workbookRelationships.join('')+rel('rIdSST','sharedStrings','sharedStrings.xml')+rel('rIdSTY','styles','styles.xml')));
   add('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
     '<Default Extension="xml" ContentType="application/xml"/>'+
     override('workbook.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')+
     override('sharedStrings.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml')+
+    override('styles.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml')+
     overrides.join('')+'</Types>');
   return zip.generateAsync({type:'uint8array',compression:'DEFLATE',compressionOptions:{level:3}});
 }

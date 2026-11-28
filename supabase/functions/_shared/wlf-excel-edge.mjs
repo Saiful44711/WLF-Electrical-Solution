@@ -14,13 +14,17 @@ function base64(bytes) {
   }
   return result;
 }
+/* v2.7.2 monthly automatic backup: "Technical Support Backup 2026-11.xlsx" */
+export function monthlyName(kind,month) {
+  return ({support:'Technical Support',activity:'R&I Team Activity',project:'R&I Project Manager',qms:'QMS Data',damage:'Damage Demand',claim:'Supplier Claim'}[kind]||'Backup')+' Backup '+month+'.xlsx';
+}
 function fileName(run,extension='xlsx') {
   const module={support:'Technical-Support',activity:'RI-Team-Activity',project:'RI-Project',qms:'QMS-Data',damage:'Damage-Demand',claim:'Supplier-Claim'}[run.kind]||'Backup';
   const period=run.date_from?run.date_from+'_to_'+run.date_to:'All-Dates';
   return 'WLF-'+module+'-'+period+'-'+run.id.slice(0,8)+'.'+extension;
 }
 
-export async function excelMaintenance({action,payload,sql,drive,folder,project,Zip}) {
+export async function excelMaintenance({action,payload,sql,drive,folder,project,Zip,monthly}) {
   const id=payload.id;
   async function readFile(fileId,expected) {
     if(!/^[-a-zA-Z0-9_]{5,200}$/.test(fileId||''))throw Error('A verified backup file was not found.');
@@ -55,7 +59,7 @@ export async function excelMaintenance({action,payload,sql,drive,folder,project,
       const bytes=await buildWorkbook(Zip,backupSheets(snapshot));
       if(bytes.length>4000000)throw Error('Workbook is too large. Choose a shorter date range.');
       const run={id,kind:snapshot.kind,date_from:payload.from,date_to:payload.to};
-      const parent=await folder(),workbook=await saveFile(bytes,fileName(run),excelMime,parent);
+      const parent=await folder(),workbook=await saveFile(bytes,monthly?monthlyName(run.kind,monthly):fileName(run),excelMime,parent);
       let recovery;
       if(payload.withClear) {
         const archive={format:recoveryFormat,project,id,kind:run.kind,records:snapshot.records};
@@ -63,6 +67,7 @@ export async function excelMaintenance({action,payload,sql,drive,folder,project,
       }
       const verified=await sql('verify',{id,nonce,workbookId:workbook.id,workbookHash:workbook.sha256,
         recoveryId:recovery?.id,recoveryHash:recovery?.sha256});
+      if(monthly)return {run:verified,name:monthlyName(run.kind,monthly),records:snapshot.total};
       return encodeDownload(verified,bytes);
     } catch(err) {
       try { await sql('release',{id,nonce}); } catch (_) { /* The short database lease also expires. */ }

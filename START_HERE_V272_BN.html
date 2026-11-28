@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.7.2 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.7.1 → 2.7.2 · ২৮ নভেম্বর ২০২৬</p>
+  <h1>নিরাপত্তা, মাসিক স্বয়ংক্রিয় backup আর System status: deployment নির্দেশিকা</h1>
+  <p>তিন জায়গায় কাজ: (১) SQL, (২) Edge Function, (৩) GitHub। শেষে অ্যাপে System status কার্ড দেখে মিলিয়ে নিন, তিনটাই সবুজ হতে হবে।</p>
+</header>
+
+<section id="what"><h2>কী নতুন</h2><ul>
+<li><b>Request access:</b> Name, Employee ID বা Section-এর কোনোটা খালি থাকলে সার্ভার অনুরোধ নেয় না, অ্যাপের পুরোনো সংস্করণ থেকে এলেও না। Employee ID আর Section ছাড়া কোনো অ্যাকাউন্ট <b>Approve</b> করা যায় না। চেষ্টা করলে লেখা আসে "Fill in the Employee ID and the Section before approving this account."</li>
+<li><b>Monthly Excel backup</b> (Storage &amp; Backup-এ নতুন কার্ড):
+  <ul>
+  <li>প্রতি মাসের ১ তারিখ রাতে ছয়টা module-এর আগের মাসের Excel তৈরি হয়: Technical Support, R&amp;I Team Activity, R&amp;I Project Manager, QMS Data, Damage Demand, Supplier Claim।</li>
+  <li>ফাইলগুলো যায় Google Drive-এর <b>Monthly Excel Backup</b> ফোল্ডারে, প্রতিটা module-এর আলাদা ফোল্ডারে।</li>
+  <li><b>কিছুই মোছে না।</b></li>
+  <li><b>Make backup now</b> দিয়ে যেকোনো মাসের backup হাতেও বানানো যায়।</li>
+  <li>Backup কার্ডের বোতামগুলো আগের মতোই আছে।</li>
+  </ul></li>
+<li><b>মাসিক রিপোর্ট:</b> Drive-এ এখন একটাই মূল ফোল্ডার, <b>Monthly Analysis Report</b>। তার ভেতরে তিনটা রিপোর্টের আলাদা ফোল্ডার। আগের আলাদা ফোল্ডারগুলো ফাইলসহ নিজে থেকেই এর ভেতরে চলে আসবে, যখন পরের রিপোর্টটা বানানো হবে।</li>
+<li><b>Excel-এর চেহারা:</b> কলামের চওড়া লেখা অনুযায়ী ঠিক হয়। লম্বা লেখা পরের লাইনে যায় (wrap) আর সারি সেই অনুযায়ী উঁচু হয়।</li>
+<li><b>System status কার্ড:</b> অ্যাপ, ডাটাবেস আর Edge Function কোন ভার্সনে চলছে দেখায়। না মিললে লাল লেখায় বলে দেয় কী করতে হবে।</li>
+<li><b>Error log কার্ড:</b> কারও অ্যাপে error হলে এখানে জমা হয়: কখন, কে, কোন পাতা। ৭ দিন পর নিজে থেকে মুছে যায়, প্রতি অ্যাকাউন্টের ঘণ্টায় সর্বোচ্চ ৩০টা জমা হয়। শুধু Super Admin দেখতে পারেন।</li>
+<li><b>নিরাপত্তা নিয়ম (Content-Security-Policy):</b> অ্যাপ এখন শুধু নিজের ফাইলের কোড চালায়।</li>
+<li><b>গতি:</b> তারিখের index যোগ হয়েছে। QMS snapshot পরিষ্কারের ফাংশন এখন অনেক কম মেমোরি নেয়।</li>
+<li><b>রিপোর্টে space-এর সমস্যা স্থায়ীভাবে ঠিক:</b> Edge Function-এর ফাইল এখন শুধু সাধারণ ইংরেজি অক্ষরে লেখা, তাই copy-paste করলে কিছু বদলায় না।</li>
+</ul></section>
+
+<section id="order"><h2>কী কী করতে হবে (এই ক্রমে)</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>কাজ</th><th>ফল</th></tr>
+<tr><td>১</td><td>Supabase → <b>SQL Editor</b> → <b>New query</b> → <code>UPDATE_V272.sql</code>-এর পুরোটা paste করুন → <b>Run</b>।</td><td><code>v272_ready = true</code>। পাশে <code>pending_without_id_or_section</code>-এ দেখায় এমন কতগুলো Pending অ্যাকাউন্ট আছে।</td></tr>
+<tr><td>২</td><td>zip-এর <code>edge-function/wlf-maintenance/index.ts</code> Notepad দিয়ে খুলুন → Ctrl+A → Ctrl+C। Supabase → Edge Functions → ঠিক <b>wlf-maintenance</b> নামের function → <b>Code</b> → পুরোনো লেখা মুছে paste করুন → <b>Deploy updates</b>।</td><td>তালিকায় UPDATED ঘরে "a few seconds ago"</td></tr>
+<tr><td>৩</td><td><code>WLF-GitHub-v2.7.2-UPLOAD.zip</code> extract করুন → GitHub → <b>Add file</b> → <b>Upload files</b> → ভেতরের সব কিছু টেনে ছাড়ুন → <b>Commit changes</b>।</td><td>Actions-এ সবুজ টিক</td></tr>
+<tr><td>৪</td><td>Ctrl+F5 চাপুন → Storage &amp; Backup → উপরে <b>System status</b> দেখুন।</td><td>App, Database আর Edge Function তিনটাই <b>2.7.2 ✓ OK</b></td></tr>
+<tr><td>৫</td><td>Monthly Excel backup কার্ডে <b>Turn on</b> চাপুন। pg_cron আর pg_net আগেই চালু আছে।</td><td>"On. On the 1st, between 02:00 and 05:00…"</td></tr>
+<tr><td>৬</td><td>পরীক্ষা: Month-এ <b>October 2026</b> বেছে <b>Make backup now</b> চাপুন।</td><td>Drive-এ Monthly Excel Backup → প্রতিটা module-এর ফোল্ডারে একটা করে ফাইল</td></tr>
+</table></div>
+<div class="attention">শুধু <b>wlf-maintenance</b> নামের function-এই deploy করবেন। <code>wlf-maintenance-</code> বা <code>WLF-Maintenance-</code> নামের বাড়তি function থাকলে মুছে দিতে পারেন, অ্যাপ সেগুলো ব্যবহার করে না।</div>
+</section>
+
+<section id="know"><h2>জানা দরকার</h2><ul>
+<li><b>সময়সূচি বদলেছে:</b> এখন রাত ০২:০০ থেকে ০৫:০০-এর মধ্যে প্রতি ঘণ্টায় একবার সার্ভার দেখে নেয় কী বাকি আছে। প্রতিবারে কয়েকটা ফাইল বানায়, কারণ Edge Function-এর সময়সীমা আছে। ফলে ১ তারিখ সকালের মধ্যেই সব তৈরি থাকে, কোনোটা ব্যর্থ হলে পরের ঘণ্টায় আবার চেষ্টা হয়।</li>
+<li>যে Super Admin <b>Turn on</b> চেপেছেন, স্বয়ংক্রিয় backup তাঁর নামে তৈরি হয়। তিনি পরে Super Admin না থাকলে backup থেমে যাবে, তখন অন্য Super Admin-কে আবার Turn on চাপতে হবে।</li>
+<li>কোনো module-এ এক মাসে <b>১০০০টার বেশি record</b> থাকলে সেই মাসের স্বয়ংক্রিয় backup হবে না, লাল লেখায় জানাবে। তখন Backup কার্ডের বোতাম দিয়ে ছোট সময়সীমা বেছে backup নিন।</li>
+<li>Error log-এ ব্যবহারকারীর ফোনের ধরনও (browser) জমা থাকে, যাতে কোন ফোনে সমস্যা হচ্ছে বোঝা যায়। কোনো পাসওয়ার্ড বা ফর্মের তথ্য জমা হয় না।</li>
+</ul></section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>লক্ষণ</th><th>কারণ</th><th>সমাধান</th></tr>
+<tr><td>System status-এ Database লাল: "Run UPDATE_V272.sql…"</td><td>SQL চালানো হয়নি</td><td>ধাপ ১ করুন</td></tr>
+<tr><td>Edge Function লাল: "Deploy the v2.7.2 index.ts…"</td><td>পুরোনো Edge Function চলছে, অথবা ভুল নামের function-এ deploy হয়েছে</td><td>ধাপ ২ আবার করুন, নাম ঠিক <b>wlf-maintenance</b> কিনা দেখে নিন</td></tr>
+<tr><td>App লাল, বা মেনুতে পুরোনো ভার্সন দেখায়</td><td>পুরোনো cache</td><td>Ctrl+F5, ফোনে অ্যাপ বন্ধ করে আবার খুলুন</td></tr>
+<tr><td>কোনো বোতাম চাপলে কিছু হয় না</td><td>নিরাপত্তা নিয়মের কারণে পুরোনো cache-এর কোড আটকে যাচ্ছে</td><td>Ctrl+F5। তারপরও না চললে Error log-এর screenshot পাঠান</td></tr>
+<tr><td>Approve করতে গেলে "Fill in the Employee ID and the Section…"</td><td>নতুন নিয়ম</td><td>ঘর দুটো পূরণ করে Save চাপুন</td></tr>
+</table></div></section>
+
+<section id="limits"><h2>যা এখানে যাচাই করা যায়নি</h2><ul>
+<li>আসল Google Drive-এ ফোল্ডার সরানো আর নতুন ফাইল জমা হওয়া। পরীক্ষা হয়েছে নকল Drive দিয়ে।</li>
+<li>রাতের সময়সূচি আসলে চলছে কিনা। আমার পরীক্ষার ডাটাবেসে pg_cron নেই। Turn on-এর পরের দিন সকালে কার্ডের "Last check" সময়টা দেখে নিন।</li>
+<li>Google Sheets-এ Excel কেমন দেখায়। LibreOffice আর Excel-এর নিয়মে ফাইল ঠিক আছে।</li>
+</ul></section>
+
+<footer>Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

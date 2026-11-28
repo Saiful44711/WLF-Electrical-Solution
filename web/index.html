@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#10264d"><link rel="apple-touch-icon" href="icon-192.png"><title>WLF Electrical Solution</title>
   <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https: wss:; worker-src 'self' blob:; media-src 'self' blob: mediastream:; manifest-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="shell.css"><link rel="stylesheet" href="troubleshooting.css"><link rel="stylesheet" href="support.css"><link rel="stylesheet" href="release-v220.css">
 <link rel="stylesheet" href="maintenance.css"><link rel="stylesheet" href="damage-demand.css"><link rel="stylesheet" href="workspace-overview.css"><link rel="stylesheet" href="hardware.css"><link rel="stylesheet" href="admin-tools.css"><link rel="stylesheet" href="supplier-claim.css"><link rel="stylesheet" href="support-layout.css"></head>
 <body>
@@ -37,8 +38,8 @@
     <div class="auth-panel">
       <div class="login-brand"><img src="company-logo.png" alt="Walton Lift"><strong>WLF Electrical Solution</strong></div><div class="calculation-directory" aria-label="Available calculations"><span>Travel Time</span><span>Total Power</span><span>Nominal Speed &amp; Slip frequency</span><span>Motor Power</span><span>Energy Bill</span><span>Solar / Battery</span></div><div class="auth-card">
         <div class="auth-tabs">
-          <button id="tabLogin" class="active" onclick="switchAuthTab('login')">Log in</button>
-          <button id="tabRegister" onclick="switchAuthTab('register')">Request access</button>
+          <button id="tabLogin" class="active" data-onclick="switchAuthTab('login')">Log in</button>
+          <button id="tabRegister" data-onclick="switchAuthTab('register')">Request access</button>
         </div>
         <div id="authMsg"></div>
 
@@ -47,7 +48,7 @@
           <p class="sub">Log in with the email and password you registered.</p>
           <div class="field"><label>Email</label><input type="email" id="loginEmail" autocomplete="username" placeholder="you@example.com"></div>
           <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password" placeholder="Your password"></div>
-          <button class="btn block" id="loginBtn" onclick="doLogin()">Log in</button>
+          <button class="btn block" id="loginBtn" data-onclick="doLogin()">Log in</button>
         </div>
 
         <div id="registerForm" class="hidden">
@@ -58,7 +59,7 @@
           <div class="field"><label for="regSection">SECTION <span class="req" aria-hidden="true">*</span></label><select id="regSection" required aria-required="true"><option value="">Select your section…</option><option>Sales</option><option>R&amp;I Electrical</option><option>R&amp;I Mechanical</option><option>Production</option><option>QM</option><option>Installation</option><option>Commissioning</option><option>After Sales</option><option>SCM</option><option>Dispatch</option><option>Process</option><option>Business Planning &amp; Development</option><option>Factory Maintenance</option></select></div>
           <div class="field"><label for="regEmail">Email <span class="req" aria-hidden="true">*</span></label><input type="email" id="regEmail" required aria-required="true" autocomplete="username" placeholder="you@example.com"></div>
           <div class="field"><label for="regPassword">Password (min. 8 characters) <span class="req" aria-hidden="true">*</span></label><input type="password" id="regPassword" required aria-required="true" minlength="8" autocomplete="new-password" placeholder="Choose a password"></div>
-          <p class="note reg-note">All fields marked <span class="req">*</span> are required.</p><button class="btn block" id="regBtn" onclick="doRegister()">Send request</button>
+          <p class="note reg-note">All fields marked <span class="req">*</span> are required.</p><button class="btn block" id="regBtn" data-onclick="doRegister()">Send request</button>
         </div>
       </div>
       <div class="credit">Design and develop by Md. Saiful Islam - Lift Electrical R&amp;I</div>
@@ -111,23 +112,23 @@
       <div class="side-user">
         <div class="avatar" id="avatar">U</div>
         <div class="who"><b id="sideName">User</b><span id="sideRole"></span></div>
-        <button class="icon-btn" title="Log out" onclick="logout()">
+        <button class="icon-btn" title="Log out" data-onclick="logout()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
         </button>
       </div>
     </aside>
-    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+    <div class="overlay" id="overlay" data-onclick="toggleSidebar()"></div>
 
     <main class="main">
       <div class="topbar no-print"><img class="header-company-logo" src="company-logo.png" alt="Walton Lift">
-        <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+        <button class="menu-btn" data-onclick="toggleSidebar()" aria-label="Menu">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div>
           <h2 id="pageTitle">Component Selection</h2>
           <p id="pageSub">Choose your lift parameters to get the recommended components</p>
         </div>
-<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮</summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" onclick="setAppearance('system')">System</button></div></details>
+<details class="appearance-menu"><summary aria-label="Appearance menu" title="Appearance">⋮</summary><div class="appearance-options"><span>Theme</span><button type="button" data-appearance="light" data-onclick="setAppearance('light')">Light</button><button type="button" data-appearance="dark" data-onclick="setAppearance('dark')">Dark</button><button type="button" data-appearance="system" data-onclick="setAppearance('system')">System</button></div></details>
       </div>
 
       <div class="content">
@@ -151,7 +152,7 @@
               <div class="field"><label>Motor model</label><select id="sel-model" disabled></select></div>
             </div>
             <p class="hint-line" id="comboHint"></p>
-            <div class="sel-actions"><button class="btn" id="searchBtn" onclick="searchComponents()">Search components</button><button type="button" class="btn ghost" id="resetSelBtn" onclick="resetSelection()">Reset</button></div>
+            <div class="sel-actions"><button class="btn" id="searchBtn" data-onclick="searchComponents()">Search components</button><button type="button" class="btn ghost" id="resetSelBtn" data-onclick="resetSelection()">Reset</button></div>
             <p class="hint-line" id="selResetNote" role="status" aria-live="polite"></p>
           </div>
 
@@ -165,7 +166,7 @@
 
           <div id="reportWrap" class="hidden">
             <div class="report-actions no-print">
-              <button class="btn ghost" onclick="printReport()">
+              <button class="btn ghost" data-onclick="printReport()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="7" rx="1"/></svg>
                 Print / Save as PDF (A4)
               </button>
@@ -196,7 +197,7 @@
                 <div class="field"><label>Rated speed (m/s)</label><input type="number" inputmode="decimal" id="tt-speed" step="any" placeholder="e.g. 0.1"></div>
                 <div class="field"><label>Acc / Dec (m/s&sup2;)</label><input type="number" inputmode="decimal" id="tt-acc" step="any" placeholder="e.g. 0.1"></div>
               </div>
-              <button class="btn" onclick="calcTravelTime()">Calculate</button>
+              <button class="btn" data-onclick="calcTravelTime()">Calculate</button>
               <div id="ttResult" style="margin-top:18px;"></div>
             </div>
           </div>
@@ -222,7 +223,7 @@
                 <div class="field"><label>Cross flow fan qty</label><input type="number" inputmode="numeric" id="pw-fan" value="0"></div>
                 <div class="field"><label>Others fixed load (W)</label><input type="number" inputmode="decimal" id="pw-others" value="500"></div>
               </div>
-              <button class="btn" onclick="calcPower()">Calculate</button>
+              <button class="btn" data-onclick="calcPower()">Calculate</button>
               <div id="pwResult" style="margin-top:18px;"></div>
             </div>
           </div>
@@ -231,7 +232,7 @@
             <div class="card">
               <div class="card-head"><div><h3>Machine speed &amp; geared motor slip</h3><p id="ss-method"></p></div></div>
               <div class="row">
-                <div class="field"><label for="ss-type">Machine type</label><select id="ss-type" onchange="toggleGearFields()"><option value="Gearless">Gearless</option><option value="Geared">Geared induction motor</option></select></div>
+                <div class="field"><label for="ss-type">Machine type</label><select id="ss-type" data-onchange="toggleGearFields()"><option value="Gearless">Gearless</option><option value="Geared">Geared induction motor</option></select></div>
                 <div class="field"><label for="ss-diameter">Traction sheave diameter (mm)</label><input type="number" inputmode="decimal" id="ss-diameter" min="1" step="any" placeholder="e.g. 240"></div>
                 <div class="field"><label for="ss-roping">Roping ratio</label><select id="ss-roping"><option value="1">1:1</option><option value="2" selected>2:1</option><option value="4">4:1</option></select></div>
                 <div class="field"><label for="ss-rpm">Motor shaft RPM</label><input type="number" inputmode="decimal" id="ss-rpm" min="0" step="any" placeholder="e.g. 168"></div>
@@ -244,7 +245,7 @@
                 <div class="field"><label for="ss-freq">Motor electrical frequency (Hz)</label><input type="number" inputmode="decimal" id="ss-freq" min="0.01" step="any" value="50"><small>VFD output frequency for the entered RPM, not automatically the mains frequency.</small></div>
                 <div class="field"><label for="ss-poles">Actual motor poles</label><input type="number" inputmode="numeric" id="ss-poles" value="4" min="2" step="2"><small>Use the motor data: 2, 4, 6, 8, etc. Do not enter pole pairs.</small></div>
               </div>
-              <button class="btn" onclick="calcSpeedSlip()">Calculate speed</button>
+              <button class="btn" data-onclick="calcSpeedSlip()">Calculate speed</button>
               <div id="ssResult" style="margin-top:18px;"></div>
             </div>
           </div>
@@ -259,7 +260,7 @@
                 <div class="field"><label>Rated RPM</label><input type="number" inputmode="decimal" id="mp-rpm" step="any" placeholder="e.g. 1465"></div>
                 <div class="field"><label>Torque (Nm)</label><input type="number" inputmode="decimal" id="mp-torque" step="any" placeholder="e.g. 192"></div>
               </div>
-              <button class="btn" onclick="calcMotorPower()">Calculate</button>
+              <button class="btn" data-onclick="calcMotorPower()">Calculate</button>
               <div id="mpResult" style="margin-top:18px;"></div>
             </div>
           </div>
@@ -269,7 +270,7 @@
           <div id="pane-solar" class="calc-pane hidden">
             <div class="card"><div class="card-head"><div><h3>Solar supply, elevator drive &amp; battery sizing</h3><p>Motor kW, backup operation and daily energy determine the sourcing requirements</p></div></div><div id="solarForm"></div><div id="solarResult" aria-live="polite"></div></div>
           </div>
-<div class="card no-print" id="recordTools"><h3>Save as PDF</h3><p class="note">Print this page or save it as a PDF (A4). Calculations are not stored in the database.</p><div class="engineering-actions"><button class="btn" id="printCalcBtn" onclick="printCalculation()">Print / Save as PDF (A4)</button></div></div>        </section>
+<div class="card no-print" id="recordTools"><h3>Save as PDF</h3><p class="note">Print this page or save it as a PDF (A4). Calculations are not stored in the database.</p><div class="engineering-actions"><button class="btn" id="printCalcBtn" data-onclick="printCalculation()">Print / Save as PDF (A4)</button></div></div>        </section>
 
         <!-- ===== Account ===== -->
         <section id="tab-troubleshooting" class="tab-content hidden"><div id="tbRoot"></div></section>
@@ -285,7 +286,7 @@
             <div class="field"><label>Current password</label><input type="password" id="pwOld" autocomplete="current-password"></div>
             <div class="field"><label>New password (min. 8 characters)</label><input type="password" id="pwNew" autocomplete="new-password"></div>
             <div class="field"><label>Confirm new password</label><input type="password" id="pwNew2" autocomplete="new-password"></div>
-            <button class="btn" onclick="changePw()">Update password</button>
+            <button class="btn" data-onclick="changePw()">Update password</button>
           </div>
         </section>
 
@@ -315,8 +316,8 @@
             </div>
             <div class="editor-grid" id="editorFields"></div>
             <div class="actions" style="margin-top:16px;">
-              <button class="btn success" id="saveCompBtn" onclick="saveComponent()">Save</button>
-              <button class="btn ghost" onclick="closeEditor()">Cancel</button>
+              <button class="btn success" id="saveCompBtn" data-onclick="saveComponent()">Save</button>
+              <button class="btn ghost" data-onclick="closeEditor()">Cancel</button>
             </div>
           </div>
 
@@ -327,7 +328,7 @@
                 <div class="card-icon ci-indigo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></div>
                 <div><h3>Components data</h3><p id="compCount"></p></div>
               </div>
-              <div class="actions"><button class="btn ghost" id="compCsvDownload" onclick="downloadComponentsCsv()">Download CSV</button><button class="btn ghost" id="compCsvImport" onclick="chooseComponentsCsv()">Import CSV</button><button class="btn" onclick="openEditor(null)">+ Add component</button></div><input type="file" id="compCsvFile" accept=".csv,.txt,text/csv" hidden>
+              <div class="actions"><button class="btn ghost" id="compCsvDownload" data-onclick="downloadComponentsCsv()">Download CSV</button><button class="btn ghost" id="compCsvImport" data-onclick="chooseComponentsCsv()">Import CSV</button><button class="btn" data-onclick="openEditor(null)">+ Add component</button></div><input type="file" id="compCsvFile" accept=".csv,.txt,text/csv" hidden>
             </div>
             <div class="comp-search field"><label for="compSearch">Search all columns</label><input id="compSearch" type="search" autocomplete="off" placeholder="e.g. 1000 1.75 PMSM 7.5"><small class="note">Every word must match somewhere in the row. Works together with the filters below.</small></div><div id="componentAdminFilters" class="review-fields"></div><div class="tbl-wrap comp-wrap"><table class="tbl" id="componentsTable"><thead><tr id="compHeadRow"></tr></thead><tbody></tbody></table></div>
           </div>
@@ -343,8 +344,8 @@
     </main>
   </div>
 
-  <script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="form-fields.js"></script><script src="wlf-exports-lite.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="ri-workspace.js"></script><script src="damage-demand.js"></script><script src="supplier-claim.js"></script><script src="workspace-overview.js"></script><script src="qr.js"></script><script src="layout-pdf.js"></script><script src="hardware.js"></script><script src="admin-tools.js"></script><script src="excel-backup.js"></script><script src="monthly-reports.js"></script><script src="data-backup.js"></script><script src="push.js"></script><script src="pwa.js"></script>
+  <script src="csp-actions.js"></script><script src="access-core.js"></script><script src="troubleshooting-core.js"></script><script src="logic.js"></script><script src="config.js"></script><script src="supabase.js"></script><script src="component-core.js"></script><script src="transport.js"></script><script src="ui-helpers.js"></script><script src="troubleshooting.js"></script><script src="appearance.js"></script><script src="app.js"></script><script src="support-form-seed.js"></script><script src="form-fields.js"></script><script src="wlf-exports-lite.js"></script><script src="live-workspace.js"></script><script src="maintenance.js"></script><script src="ri-workspace.js"></script><script src="damage-demand.js"></script><script src="supplier-claim.js"></script><script src="workspace-overview.js"></script><script src="qr.js"></script><script src="layout-pdf.js"></script><script src="hardware.js"></script><script src="admin-tools.js"></script><script src="excel-backup.js"></script><script src="monthly-reports.js"></script><script src="system-status.js"></script><script src="data-backup.js"></script><script src="push.js"></script><script src="pwa.js"></script>
 
-<dialog id="settingsDialog"><h2>App settings</h2><p class="note">Live connection is preconfigured. Offline calculators and previously viewed component details are available after an online login. Account and data changes require internet.</p><label for="themeSetting">Appearance</label><select id="themeSetting"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><label><input type="checkbox" id="motionSetting"> Subtle background effect</label><p id="settingsStatus" role="status"></p><div class="engineering-actions"><button class="btn" onclick="applySettings()">Apply settings</button><button class="btn ghost" onclick="document.getElementById('settingsDialog').close()">Close</button></div></dialog>
+<dialog id="settingsDialog"><h2>App settings</h2><p class="note">Live connection is preconfigured. Offline calculators and previously viewed component details are available after an online login. Account and data changes require internet.</p><label for="themeSetting">Appearance</label><select id="themeSetting"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><label><input type="checkbox" id="motionSetting"> Subtle background effect</label><p id="settingsStatus" role="status"></p><div class="engineering-actions"><button class="btn" data-onclick="applySettings()">Apply settings</button><button class="btn ghost" data-onclick="closeSettingsDialog()">Close</button></div></dialog>
 <div id="apkPrintArea"></div></body>
 </html>

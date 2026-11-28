@@ -6,7 +6,7 @@ const MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const OREL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const PREL = 'http://schemas.openxmlformats.org/package/2006/relationships';
 const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-const xmlText = v => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, '')
+const xmlText = v => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
   .replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'}[c]));
 const col = i => { let s = ''; for (let n = i + 1; n; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
 
@@ -316,6 +316,12 @@ export const reportFileName = (kind, month) => REPORTS[kind].title + ' ' + month
 const nowDhaka = () => dhakaTime(new Date().toISOString());
 async function sha(bytes) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), n => n.toString(16).padStart(2, '0')).join(''); }
 
+export const BACKUP_KINDS = ['support', 'activity', 'project', 'qms', 'damage', 'claim'];
+function monthBounds(m) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(m || ''))) throw Error('Choose a month (YYYY-MM).');
+  const [y, mo] = m.split('-').map(Number), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  return {from: m + '-01', to: m + '-' + String(last).padStart(2, '0')};
+}
 export async function makeReport(kind, data, Zip, generated = nowDhaka()) {
   if (!REPORTS[kind]) throw Error('Unknown report');
   const {sheets, records} = REPORTS[kind].build(data, generated);
@@ -323,11 +329,13 @@ export async function makeReport(kind, data, Zip, generated = nowDhaka()) {
 }
 
 /* sql(action,payload) = wlf_report_admin; drive(path,init) = Google Drive call; folderFor(name) = folder id */
-export async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Zip, selfUrl}) {
+export async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Zip, selfUrl, backup}) {
   if (action === 'reportStatus') return sql('status');
   if (action === 'reportHistory') return sql('history');
   if (action === 'reportDeleteHistory') return sql('deleteHistory', {id: payload.id});
-  if (action === 'reportSchedule') return sql('schedule', {enable: payload.enable === true, url: selfUrl});
+  if (action === 'reportSchedule') return sql('schedule', {...(typeof payload.enable === 'boolean' ? {enable: payload.enable} : {}), ...(typeof payload.backup === 'boolean' ? {backup: payload.backup} : {}), url: selfUrl});
+  if (action === 'backupHistory') return sql('backupHistory');
+  if (action === 'backupDeleteHistory') return sql('backupDeleteHistory', {id: payload.id});
   async function one(kind, month) {
     const data = await sql('data', {kind, month});
     const {bytes, records} = await makeReport(kind, data, Zip);
@@ -352,11 +360,22 @@ export async function reportMaintenance({action, payload = {}, sql, drive, folde
     for (const k of kinds) made.push(await one(k, payload.month));
     return {made};
   }
+  if (action === 'backupGenerate') {
+    /* Super Admin: make the monthly Excel backup of a chosen month now (never clears) */
+    const kinds = [...new Set(payload.kinds || [])].filter(k => BACKUP_KINDS.includes(k));
+    if (!kinds.length) throw Error('Choose at least one backup.');
+    const {from, to} = monthBounds(payload.month), made = [];
+    for (const k of kinds) made.push(await backup(k, payload.month, from, to));
+    return {made};
+  }
   if (action === 'monthlyReports') {
     const made = [];
     try {
       const pending = await sql('pending');
-      for (const k of pending.kinds) made.push(await one(k, pending.month));
+      /* a few files per call (Edge Function time limit); the schedule calls again every hour from 02:00 to 05:00 */
+      let budget = 3;
+      for (const k of pending.kinds) { if (budget-- <= 0) break; made.push(await one(k, pending.month)); }
+      for (const k of pending.backups || []) { if (budget-- <= 0) break; made.push(await backup(k, pending.month, pending.from, pending.to)); }
       await sql('checked', {});
     } catch (err) {
       try { await sql('checked', {error: err.message}); } catch (_) { /* nothing more to record */ }

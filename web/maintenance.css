@@ -12,3 +12,14 @@
 /* v2.7.0: monthly report list stays compact on phones (the table scrolls sideways) */
 #wlfMonthlyHistory td{white-space:nowrap;vertical-align:middle}
 #wlfMonthlyHistory .btn{padding:6px 12px}
+/* v2.7.2 System status + Error log */
+#wlfSystemTable{min-width:0;width:100%;table-layout:fixed}
+#wlfSystemTable th,#wlfSystemTable td{white-space:normal;overflow-wrap:break-word;vertical-align:top}
+#wlfSystemTable th:first-child{width:36%}#wlfSystemTable th:nth-child(2){width:26%}
+@media (max-width:600px){#wlfSystemTable th:first-child{width:38%}#wlfSystemTable th:nth-child(2){width:34%}#wlfSystemTable th,#wlfSystemTable td{padding-left:8px;padding-right:8px}}
+#wlfSystemTable .error-text{color:#dc2626;font-weight:600}
+:root[data-theme="dark"] #wlfSystemTable .error-text{color:#f87171}
+.sys-ok{color:#15803d;font-weight:600}
+:root[data-theme="dark"] .sys-ok{color:#4ade80}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .sys-ok{color:#4ade80}}
+#wlfErrorTable .err-detail{white-space:pre-wrap;max-width:520px;font-size:12px;margin:6px 0 0}

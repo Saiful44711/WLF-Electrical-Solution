@@ -4,6 +4,7 @@ import JSZip from 'npm:jszip@3.10.1';
 import {excelMaintenance,archiveMaintenance} from '../_shared/wlf-excel-edge.mjs';
 import {reportMaintenance} from '../_shared/wlf-report.mjs';
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type,x-wlf-cron','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
+const EDGE_VERSION='2.7.2';   // shown on the System status card; must match the app
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});
@@ -37,10 +38,11 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  async function excelSql(action:string,payload:any={}){const r=await admin.rpc('wlf_excel_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  const clientId=Deno.env.get('WLF_GOOGLE_CLIENT_ID'),clientSecret=Deno.env.get('WLF_GOOGLE_CLIENT_SECRET'),refreshToken=Deno.env.get('WLF_GOOGLE_REFRESH_TOKEN');
  const configured=!!(clientId&&clientSecret&&refreshToken);
+ if(action==='version')return new Response(JSON.stringify({edge:EDGE_VERSION,driveConfigured:configured}),{headers});
  if(action==='status')return new Response(JSON.stringify({...await sql('status'),driveConfigured:configured}),{headers});
- if(['reportStatus','reportHistory','reportDeleteHistory','reportSchedule'].includes(action))
+ if(['reportStatus','reportHistory','reportDeleteHistory','reportSchedule','backupHistory','backupDeleteHistory'].includes(action))
   {const out=await reportMaintenance({action,payload:p,sql:reportSql,selfUrl});return new Response(JSON.stringify(action==='reportStatus'?{...out,driveConfigured:configured}:out),{headers});}
- const reportAction=['reportGenerate','monthlyReports'].includes(action);
+ const reportAction=['reportGenerate','monthlyReports','backupGenerate'].includes(action);
  if(cronToken&&!configured){await reportSql('checked',{error:'Google Drive is not set up'});throw Error('Google Drive setup required');}
  if(action==='deleteRejectedUser'){
  const target=await sql('reserveDeleteUser',{email:p.email});try{const {error}=await admin.auth.admin.deleteUser(target.id);if(error)throw error;}finally{await sql('releaseDeleteUser',{id:target.id});}
@@ -65,17 +67,44 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId!,client_secret:clientSecret!,refresh_token:refreshToken!,grant_type:'refresh_token'})});
  const t=await tr.json();if(!tr.ok||!t.access_token)throw Error('Google Drive authorization expired or invalid. Reconnect using the setup guide.');
  async function drive(path:string,init:any={}){const r=await fetch('https://www.googleapis.com/'+path,{...init,headers:{Authorization:'Bearer '+t.access_token,...(init.headers||{})}});if(!r.ok)throw Error('Google Drive request failed ('+r.status+'). Nothing was cleared.');return r;}
- async function driveFolder(kind='backup'){
- const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — '],
-  reportSupport:['wlfReportSupport','Technical Support Monthly Report'],reportActivity:['wlfReportActivity','R&I Team Activity Monthly Report'],reportDamage:['wlfReportDamage','Damage Demand Monthly Report']}[kind];
+ /* v2.7.2: monthly files live in one main folder each: "Monthly Analysis Report" (3 report folders) and
+    "Monthly Excel Backup" (one folder per category). Folders are found by a hidden mark, not by name; an old
+    report folder from v2.7.0 is moved into the main folder with its files. */
+ const FOLDERS:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — '],
+  reportRoot:['wlfReportRoot','Monthly Analysis Report'],
+  reportSupport:['wlfReportSupport','Technical Support Monthly Report','reportRoot'],reportActivity:['wlfReportActivity','R&I Team Activity Monthly Report','reportRoot'],reportDamage:['wlfReportDamage','Damage Demand Monthly Report','reportRoot'],
+  backupRoot:['wlfMonthlyBackupRoot','Monthly Excel Backup'],
+  mb_support:['wlfMonthlyBackupSupport','Technical Support','backupRoot'],mb_activity:['wlfMonthlyBackupActivity','R&I Team Activity','backupRoot'],
+  mb_project:['wlfMonthlyBackupProject','R&I Project Manager','backupRoot'],mb_qms:['wlfMonthlyBackupQms','QMS Data','backupRoot'],
+  mb_damage:['wlfMonthlyBackupDamage','Damage Demand','backupRoot'],mb_claim:['wlfMonthlyBackupClaim','Supplier Claim','backupRoot']};
+ const folderCache:any={};
+ async function driveFolder(kind='backup'):Promise<string>{
+ if(folderCache[kind])return folderCache[kind];
+ const cfg=FOLDERS[kind];if(!cfg)throw Error('Unknown Drive folder');
+ const parent=cfg[2]?await driveFolder(cfg[2]):null;
  const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='"+cfg[0]+"' and value='"+project+"' }";
- const folders=await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)&pageSize=1')).json();let folder=folders.files?.[0]?.id;
- if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+(kind.startsWith('report')?'':project),mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
+ const found=(await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,parents)&pageSize=1')).json()).files?.[0];
+ let folder=found?.id;
+ if(folder&&parent&&!(found.parents||[]).includes(parent)){
+  await drive('drive/v3/files/'+encodeURIComponent(folder)+'?addParents='+encodeURIComponent(parent)+((found.parents||[]).length?'&removeParents='+encodeURIComponent(found.parents.join(',')):'')+'&fields=id',{method:'PATCH',headers:{'Content-Type':'application/json'},body:'{}'});
+ }
+ if(!folder){const plain=kind.startsWith('report')||kind.startsWith('mb_')||kind==='backupRoot';
+  const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+(plain?'':project),mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project},...(parent?{parents:[parent]}:{})})});folder=(await r.json()).id;}
   if(!/^[a-zA-Z0-9_-]+$/.test(folder||''))throw Error('Drive did not return a backup folder ID.');
-  return folder;
+  return folderCache[kind]=folder;
+ }
+ /* v2.7.2: one monthly Excel backup (previous month, never clears) in the name of a Super Admin */
+ async function backupOne(kind:string,month:string,from:string,to:string,actor:string){
+  const exSql=async(a:string,x:any={})=>{const r=await admin.rpc('wlf_excel_admin',{action:a,actor,payload:x});if(r.error)throw Error(r.error.message);return r.data;};
+  const id=crypto.randomUUID();
+  const res=await excelMaintenance({action:'excelBackup',payload:{kind,from,to,withClear:false,id},sql:exSql,drive,folder:()=>driveFolder('mb_'+kind),project,Zip:JSZip,monthly:month});
+  const saved=await reportSql('backupSaved',{id,month});
+  for(const old of saved?.replaced||[]){if(/^[-a-zA-Z0-9_]{5,200}$/.test(old||''))try{await drive('drive/v3/files/'+encodeURIComponent(old),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({trashed:true})});}catch(_){/* already removed by hand */}}
+  return {kind,month,backup:true,fileName:res.name,records:res.records};
  }
  if(reportAction){
-  const result=await reportMaintenance({action,payload:p,sql:reportSql,drive,folderFor:driveFolder,Zip:JSZip,selfUrl});
+  const backup=async(kind:string,month:string,from:string,to:string)=>backupOne(kind,month,from,to,cronToken?(await reportSql('backupActor')).actor:auth.user.id);
+  const result=await reportMaintenance({action,payload:p,sql:reportSql,drive,folderFor:driveFolder,Zip:JSZip,selfUrl,backup});
   return new Response(JSON.stringify(result),{headers});
  }
  if(archiveAction){

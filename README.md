@@ -1,4 +1,18 @@
-# WLF Electrical Solution v2.7.1
+# WLF Electrical Solution v2.7.2
+
+## v2.7.2 Safety and monthly automation (28 Nov 2026)
+
+- **Request access**: the server refuses every sign-up from the app (any version) without Name, Employee ID and Section. An account without Employee ID and Section cannot be approved. Accounts made in the Supabase dashboard still work, but need both before approval.
+- **Monthly Excel backup**: Storage & Backup › Monthly Excel backup. Once a month (on the 1st, 02:00–05:00 Bangladesh time) the server saves the previous month of the six modules as Excel workbooks in Google Drive › **Monthly Excel Backup** › one folder per module. It never clears anything. "Make backup now" saves any month by hand. The Backup buttons stay as before.
+- **Monthly reports** now sit in one Drive folder **Monthly Analysis Report** with three report folders; the folders from v2.7.0 are moved there automatically with their files. The schedule now runs every hour from 02:00 to 05:00 and makes a few files per run.
+- **Excel layout**: every table workbook sizes its columns to the content (10–60 characters); long text wraps and the row grows.
+- **System status** card: app, database and Edge Function versions side by side, with the fix when one is older.
+- **Error log** card: errors from anyone's app, kept 7 days (at most 30 per account per hour), Super Admin only.
+- **Content-Security-Policy**: the page runs only its own scripts; the old inline onclick handlers were replaced by a small safe dispatcher (`csp-actions.js`).
+- Date indexes for period queries; the QMS snapshot clean-up no longer builds one huge text in memory.
+- The Edge Function single file is plain ASCII (special characters as `\uXXXX`), so copy and paste through Notepad cannot change it. A changed character was the cause of the missing spaces in the monthly reports.
+- SQL: run `supabase/UPDATE_V272.sql`. Edge Function: redeploy `wlf-maintenance`.
+
 
 ## v2.7.1 Admin Panel: QMS and Supplier Claim dashboards (28 Nov 2026)
 

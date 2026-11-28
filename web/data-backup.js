@@ -62,7 +62,7 @@ const WlfDataBackup=(()=>{
       status('Hardware Catalogue backup downloaded ('+data.rows.length+' rows).');
     }
     async function backupQms(){
-      const out={app:'WLF',kind:'qms',version:'2.7.1',exportedAt:new Date().toISOString(),rows:[]};
+      const out={app:'WLF',kind:'qms',version:'2.7.2',exportedAt:new Date().toISOString(),rows:[]};
       for(let offset=0;;){
         status('Preparing the QMS backup… '+out.rows.length+' lifts');
         const part=await call('adminExportData',{kind:'qms',offset,limit:100});

@@ -42,12 +42,22 @@ function unique(label,fallback,seen,limit) {
   seen.add(name.toLowerCase());
   return name;
 }
-function cell(value,address) {
+const shown=value=>Array.isArray(value)?value.join(', '):String(value??'');
+function cell(value,address,wrap) {
   if (typeof value==='number' && Number.isFinite(value)) return '<c r="'+address+'"><v>'+value+'</v></c>';
   if (typeof value==='boolean') return '<c r="'+address+'" t="b"><v>'+Number(value)+'</v></c>';
-  const display=Array.isArray(value)?value.join(', '):String(value??'');
-  return textCell(address,null,display.slice(0,32767));
+  return textCell(address,wrap?1:null,shown(value).slice(0,32767));
 }
+/* v2.7.2: column width from the content (10 to 60 characters); longer text wraps and the row grows (up to 8 lines) */
+const longestLine=t=>String(t).split(/\r?\n/).reduce((m,l)=>Math.max(m,l.length),0);
+function layout(headers,rows) {
+  const widths=headers.map((h,j)=>{let w=String(h).length+3;for(let i=0;i<Math.min(rows.length,400);i++){const v=rows[i][j];if(v!==undefined&&v!==null&&v!=='')w=Math.max(w,longestLine(shown(v))+2);}return Math.max(10,Math.min(60,w));});
+  return {widths,lines:(row)=>Math.min(8,Math.max(1,...headers.map((_,j)=>{const v=row[j];if(v===undefined||v===null||typeof v==='number')return 1;
+    return String(shown(v)).split(/\r?\n/).reduce((n,l)=>n+Math.max(1,Math.ceil(l.length/(widths[j]-1))),0);})))};
+}
+const tableStyles='<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>'+
+  '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders>'+
+  '<cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf/><xf applyAlignment="1"><alignment wrapText="1" vertical="top"/></xf></cellXfs></styleSheet>';
 
 async function buildWorkbook(Zip,groups) { return withSharedStrings(()=>buildWorkbookInner(Zip,groups)); }
 async function buildWorkbookInner(Zip,groups) {
@@ -66,9 +76,9 @@ async function buildWorkbookInner(Zip,groups) {
     workbookRelationships.push(rel(relation,'worksheet',file));
     overrides.push(override(file,'application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml'),
       override(tableFile,'application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml'));
-    const data=rows.map((row,i)=>'<row r="'+(i+1)+'">'+headers.map((_,j)=>cell(row[j],letters(j)+(i+1))).join('')+'</row>').join('');
-    const columns=headers.map((header,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+
-      Math.max(14,Math.min(43,header.length+4))+'" customWidth="1"/>').join('');
+    const lay=layout(headers,rows);
+    const data=rows.map((row,i)=>{const n=i?lay.lines(row):1;return '<row r="'+(i+1)+'"'+(n>1?' ht="'+(n*15)+'" customHeight="1"':'')+'>'+headers.map((_,j)=>cell(row[j],letters(j)+(i+1),i>0&&n>1)).join('')+'</row>';}).join('');
+    const columns=headers.map((header,i)=>'<col min="'+(i+1)+'" max="'+(i+1)+'" width="'+lay.widths[i]+'" customWidth="1"/>').join('');
     add('xl/'+file,'<worksheet xmlns="'+main+'" xmlns:r="'+office+'"><dimension ref="'+range+'"/>'+
       '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'+
       '<cols>'+columns+'</cols><sheetData>'+data+'</sheetData><tableParts count="1"><tablePart r:id="rId1"/></tableParts></worksheet>');
@@ -80,12 +90,14 @@ async function buildWorkbookInner(Zip,groups) {
   }
   add('xl/workbook.xml','<workbook xmlns="'+main+'" xmlns:r="'+office+'"><bookViews><workbookView/></bookViews><sheets>'+sheets.join('')+'</sheets></workbook>');
   add('xl/sharedStrings.xml',sharedStringsXml());
-  add('xl/_rels/workbook.xml.rels',relationships(workbookRelationships.join('')+rel('rIdSST','sharedStrings','sharedStrings.xml')));
+  add('xl/styles.xml',tableStyles);
+  add('xl/_rels/workbook.xml.rels',relationships(workbookRelationships.join('')+rel('rIdSST','sharedStrings','sharedStrings.xml')+rel('rIdSTY','styles','styles.xml')));
   add('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'+
     '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
     '<Default Extension="xml" ContentType="application/xml"/>'+
     override('workbook.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml')+
     override('sharedStrings.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml')+
+    override('styles.xml','application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml')+
     overrides.join('')+'</Types>');
   return zip.generateAsync({type:'uint8array',compression:'DEFLATE',compressionOptions:{level:3}});
 }
@@ -109,7 +121,7 @@ function formSheet(name,schema,records,baseHeaders,baseRow,getForm) {
   };
 }
 function supportSheets(categories,tickets,options={}) {
-  /* options.lean: Technical Support menu download — leaves out the bookkeeping columns (request id, people, timestamps) */
+  /* options.lean: Technical Support menu download \u2014 leaves out the bookkeeping columns (request id, people, timestamps) */
   const sheets=categories.map(c=>formSheet(supportNames[c.id]||c.name,c.schema,tickets.filter(r=>r.category===c.id),
     ['Request ID','Workflow status','Submitted by','Submitted at (UTC)','Last updated (UTC)','Assigned to','Solved by','Solved at (UTC)','Solution'],
     r=>[r.reference,r.status,r.authorName||r.createdBy,r.createdAt,r.updatedAt,r.assigneeName||r.assignedTo,
@@ -228,27 +240,27 @@ function qmsTables(raw) {
     blocks.push(kv(2,'Selected motor',cats[0].title,(cats[0].items||[]).map(it=>({b:it.label,spec:it.value??''}))));
     for (const c of cats.slice(1)) blocks.push(kv(2,'Selected motor',c.title,(c.items||[]).map(it=>({b:it.label,spec:it.value??''}))));
   } else blocks.push({no:2,name:'Selected motor',empty:'No motor was recorded.',columns:[],rows:[]});
-  blocks.push({no:3,name:'Control system — '+rec.system+' · '+rec.controllerModel,short:'Control system',columns:[{head:'Group',key:'a',span:2},{head:'Hardware',key:'b',span:2},{head:'Spec',key:'spec',span:1},
-    {head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:2},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
+  blocks.push({no:3,name:'Control system \u2014 '+rec.system+' \u00b7 '+rec.controllerModel,short:'Control system',columns:[{head:'Group',key:'a',span:2},{head:'Hardware',key:'b',span:2},{head:'Spec',key:'spec',span:1},
+    {head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:2},{head:'Brand',key:'brand',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],
     rows:parts(['control']).map(p=>({a:p.grp||'',b:p.hardware||'',spec:p.spec||'',code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
   blocks.push({no:4,name:'Serial numbers',columns:[{head:'Part',key:'a',span:3},{head:'Serial number',key:'spec',span:7}],
-    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'—'})),
+    rows:rec.serialsHidden?[]:qmsSerials.map(([k,t])=>({a:t,spec:rec.serials?.[k]||'\u2014'})),
     hidden:rec.serialsHidden,empty0:'Serial numbers are not shown to this account.'});
   const names={lop:'LOP',cop:'COP',faceplate:'COP faceplate',transom:'Transom',cable:'Travelling cable'};
-  blocks.push({no:5,name:'COP · LOP · Transom · Travelling cable',short:'COP LOP Transom Cable',columns:[{head:'Part',key:'a',span:2},{head:'Model',key:'b',span:2},{head:'Item code',key:'code',span:1},
-    {head:'Item name',key:'name',span:3},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
-    rows:parts(['lop','cop','faceplate','transom','cable']).map(p=>({a:names[p.section]+(p.grp&&p.section==='cop'?' · '+p.grp.replace('COP ',''):''),b:p.hardware||'',
+  blocks.push({no:5,name:'COP \u00b7 LOP \u00b7 Transom \u00b7 Travelling cable',short:'COP LOP Transom Cable',columns:[{head:'Part',key:'a',span:2},{head:'Model',key:'b',span:2},{head:'Item code',key:'code',span:1},
+    {head:'Item name',key:'name',span:3},{head:'Brand',key:'brand',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],
+    rows:parts(['lop','cop','faceplate','transom','cable']).map(p=>({a:names[p.section]+(p.grp&&p.section==='cop'?' \u00b7 '+p.grp.replace('COP ',''):''),b:p.hardware||'',
       code:codeOf(p),name:p.name||'',brand:p.brand||'',price:priceOf(p)}))});
   const avrModel=parts(['avr'])[0]?.model||'';
-  blocks.push({no:6,name:'AVR'+(avrModel?' — '+avrModel:''),short:'AVR',columns:[{head:'Category',key:'a',span:2},{head:'Hardware',key:'b',span:2},{head:'Spec',key:'spec',span:2},
-    {head:'Item code',key:'code',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
-    rows:parts(['avr']).map(p=>({a:p.grp||'',b:[p.hardware,p.name].filter(Boolean).join(' · ')||p.model||'',spec:p.spec||'',code:codeOf(p),brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),empty0:'No AVR was selected.'});
+  blocks.push({no:6,name:'AVR'+(avrModel?' \u2014 '+avrModel:''),short:'AVR',columns:[{head:'Category',key:'a',span:2},{head:'Hardware',key:'b',span:2},{head:'Spec',key:'spec',span:2},
+    {head:'Item code',key:'code',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],
+    rows:parts(['avr']).map(p=>({a:p.grp||'',b:[p.hardware,p.name].filter(Boolean).join(' \u00b7 ')||p.model||'',spec:p.spec||'',code:codeOf(p),brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),empty0:'No AVR was selected.'});
   const other=parts(['other']).map(p=>({a:p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',supplier:p.supplier||'',brand:p.brand||'',price:priceOf(p)}));
-  if (qmsSdb(sel)) other.push({a:'SDB main breaker rating',code:'—',name:'—',spec:qmsSdb(sel),supplier:'',brand:'',price:''});
+  if (qmsSdb(sel)) other.push({a:'SDB main breaker rating',code:'\u2014',name:'\u2014',spec:qmsSdb(sel),supplier:'',brand:'',price:''});
   blocks.push({no:7,name:'Other components',short:'Other components',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
-    {head:'Spec',key:'spec',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Brand',key:'brand',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],rows:other});
+    {head:'Spec',key:'spec',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Brand',key:'brand',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],rows:other});
   blocks.push({no:8,name:'Paid feature information',short:'Paid feature information',columns:[{head:'Category',key:'a',span:2},{head:'Item code',key:'code',span:1},{head:'Item name',key:'name',span:3},
-    {head:'Spec',key:'spec',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (৳)',key:'price',span:1,num:true}],
+    {head:'Spec',key:'spec',span:1},{head:'Brand',key:'brand',span:1},{head:'Supplier',key:'supplier',span:1},{head:'Price (\u09f3)',key:'price',span:1,num:true}],
     rows:parts(['paid']).map(p=>({a:p.grp||p.hardware||'',code:codeOf(p),name:p.name||'',spec:p.spec||'',brand:p.brand||'',supplier:p.supplier||'',price:priceOf(p)})),
     empty0:'No paid feature was selected.'});
   blocks.push({no:9,name:'Special note',short:'Special note',columns:[{head:'Special note',key:'a',span:10}],rows:rec.specialNote?[{a:rec.specialNote}]:[],empty0:'No special note.'});
@@ -259,10 +271,10 @@ const qmsFlatHeaders=['Lift ID','Project','Address','Delivery date','Controller'
 function qmsFlatRows(raw) {
   const {rec,blocks}=qmsTables(raw), out=[];
   const lead=[rec.liftId,rec.project,rec.address,rec.deliveryDate,rec.controllerModel];
-  const blank=v=>v==='—'?'':v;
+  const blank=v=>v==='\u2014'?'':v;
   for (const b of blocks) {
     if (b.hidden) continue;
-    const name=b.short||b.name.split(' — ')[0];
+    const name=b.short||b.name.split(' \u2014 ')[0];
     const rows=b.flat?b.flat():[...b.rows];
     if (b.note) rows.push({a:'Special note',spec:b.note});
     for (const r of rows) {
@@ -325,7 +337,7 @@ async function buildReportWorkbookInner(Zip,report) {
   for (const block of report.blocks||[]) {
     if (block.no!==lastNo) {
       lastNo=block.no;
-      row=r+1; put(span(row,0,UNITS,block.no+' · '+block.name,3),20);
+      row=r+1; put(span(row,0,UNITS,block.no+' \u00b7 '+block.name,3),20);
     }
     if (block.sub) { row=r+1; put(span(row,0,UNITS,block.sub,8),18); }
     if (block.empty) { row=r+1; put(span(row,0,UNITS,block.empty,5),18); put([],8); continue; }
@@ -371,8 +383,8 @@ async function buildReportWorkbookInner(Zip,report) {
 }
 function qmsReport(raw) {
   const {rec,blocks}=qmsTables(raw);
-  const sub=['Recorded by '+rec.createdName,rec.updatedAt?'Updated '+qmsClock(rec.updatedAt)+' by '+rec.updatedName:''].filter(Boolean).join(' · ');
-  return {name:'QMS Report',title:'QMS — Lift '+rec.liftId+' · '+rec.project,subtitle:sub,blocks};
+  const sub=['Recorded by '+rec.createdName,rec.updatedAt?'Updated '+qmsClock(rec.updatedAt)+' by '+rec.updatedName:''].filter(Boolean).join(' \u00b7 ');
+  return {name:'QMS Report',title:'QMS \u2014 Lift '+rec.liftId+' \u00b7 '+rec.project,subtitle:sub,blocks};
 }
 
 // ---- Excel backup handler (from _shared/wlf-excel-edge.mjs)
@@ -390,13 +402,17 @@ function base64(bytes) {
   }
   return result;
 }
+/* v2.7.2 monthly automatic backup: "Technical Support Backup 2026-11.xlsx" */
+function monthlyName(kind,month) {
+  return ({support:'Technical Support',activity:'R&I Team Activity',project:'R&I Project Manager',qms:'QMS Data',damage:'Damage Demand',claim:'Supplier Claim'}[kind]||'Backup')+' Backup '+month+'.xlsx';
+}
 function fileName(run,extension='xlsx') {
   const module={support:'Technical-Support',activity:'RI-Team-Activity',project:'RI-Project',qms:'QMS-Data',damage:'Damage-Demand',claim:'Supplier-Claim'}[run.kind]||'Backup';
   const period=run.date_from?run.date_from+'_to_'+run.date_to:'All-Dates';
   return 'WLF-'+module+'-'+period+'-'+run.id.slice(0,8)+'.'+extension;
 }
 
-async function excelMaintenance({action,payload,sql,drive,folder,project,Zip}) {
+async function excelMaintenance({action,payload,sql,drive,folder,project,Zip,monthly}) {
   const id=payload.id;
   async function readFile(fileId,expected) {
     if(!/^[-a-zA-Z0-9_]{5,200}$/.test(fileId||''))throw Error('A verified backup file was not found.');
@@ -431,7 +447,7 @@ async function excelMaintenance({action,payload,sql,drive,folder,project,Zip}) {
       const bytes=await buildWorkbook(Zip,backupSheets(snapshot));
       if(bytes.length>4000000)throw Error('Workbook is too large. Choose a shorter date range.');
       const run={id,kind:snapshot.kind,date_from:payload.from,date_to:payload.to};
-      const parent=await folder(),workbook=await saveFile(bytes,fileName(run),excelMime,parent);
+      const parent=await folder(),workbook=await saveFile(bytes,monthly?monthlyName(run.kind,monthly):fileName(run),excelMime,parent);
       let recovery;
       if(payload.withClear) {
         const archive={format:recoveryFormat,project,id,kind:run.kind,records:snapshot.records};
@@ -439,6 +455,7 @@ async function excelMaintenance({action,payload,sql,drive,folder,project,Zip}) {
       }
       const verified=await sql('verify',{id,nonce,workbookId:workbook.id,workbookHash:workbook.sha256,
         recoveryId:recovery?.id,recoveryHash:recovery?.sha256});
+      if(monthly)return {run:verified,name:monthlyName(run.kind,monthly),records:snapshot.total};
       return encodeDownload(verified,bytes);
     } catch(err) {
       try { await sql('release',{id,nonce}); } catch (_) { /* The short database lease also expires. */ }
@@ -525,7 +542,7 @@ async function archiveMaintenance({action,payload,usageSql,fullSql,drive,folderF
 }
 
 // ---- Monthly reports (from _shared/wlf-report.mjs)
-/* WLF v2.7.0 · Monthly reports: Technical Support, R&I Team Activity and Damage Demand.
+/* WLF v2.7.0 \u00b7 Monthly reports: Technical Support, R&I Team Activity and Damage Demand.
    Pure functions: data from wlf_report_admin('data') in, a styled, print-ready .xlsx out. Used by the wlf-maintenance Edge Function. */
 
 const reportMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -533,13 +550,13 @@ const MAIN = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const OREL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const PREL = 'http://schemas.openxmlformats.org/package/2006/relationships';
 const XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-const xmlText = v => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, '')
+const xmlText = v => String(v ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]/g, '')
   .replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'}[c]));
 const col = i => { let s = ''; for (let n = i + 1; n; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + (n - 1) % 26) + s; return s; };
 
 /* ------------------------------------------------------------------ styles
-   cellXfs index: 0 plain · 1 title · 2 subtitle · 3 block heading · 4 table header
-   text/int/pct/dec: 5/6/7/8 normal · 9/10/11/12 highlighted · 13/14/15/16 total row · 17 note */
+   cellXfs index: 0 plain \u00b7 1 title \u00b7 2 subtitle \u00b7 3 block heading \u00b7 4 table header
+   text/int/pct/dec: 5/6/7/8 normal \u00b7 9/10/11/12 highlighted \u00b7 13/14/15/16 total row \u00b7 17 note */
 const STYLES = XML + '<styleSheet xmlns="' + MAIN + '">' +
   '<numFmts count="2"><numFmt numFmtId="164" formatCode="0.0%"/><numFmt numFmtId="165" formatCode="#,##0.0"/></numFmts>' +
   '<fonts count="6"><font><sz val="10"/><name val="Calibri"/><family val="2"/></font>' +
@@ -663,7 +680,7 @@ function countBy(list, key, weight) {
 const top = (rows, value) => rows.map((r, i) => ({...r, mode: i === 0 && rows.length && value(rows[0]) > 0 && (rows.length === 1 || value(rows[1]) < value(rows[0])) ? 'hl' : r.mode}));
 const block = (heading, headers, types, rows, extra = {}) => ({heading, headers, types, rows, ...extra});
 const pctText = p => (p * 100).toFixed(1) + '%';
-const header = (kind, month, generated) => ({footer: 'WLF Electrical Solution · ' + kind + ' · ' + monthName(month) + ' · Generated ' + generated});
+const header = (kind, month, generated) => ({footer: 'WLF Electrical Solution \u00b7 ' + kind + ' \u00b7 ' + monthName(month) + ' \u00b7 Generated ' + generated});
 
 /* ------------------------------------------------------------------ Technical Support */
 const sectionName = name => String(name || '').replace(/ Team$/, '');
@@ -692,10 +709,10 @@ function supportBlocks(list, totalAll, scopeLabel) {
     ['Support requests', total], ...(totalAll != null ? [['Share of all support requests', pctText(share(total, totalAll))]] : []),
     ['Solved', solved.length], ['Not solved', notSolved], ['Still open (pending, received or forwarded)', total - solved.length - notSolved],
     ['Solve rate', pctText(share(solved.length, total))], ['Forwarded at least once', list.filter(r => r.forwards > 0).length],
-    ['Average time to solve', hours.length ? (hours.reduce((a, b) => a + b, 0) / hours.length).toFixed(1) + ' hours' : '—'],
-    ['Most frequent problem', problems.length ? problems[0].key + ' (' + problems[0].n + ', ' + pctText(share(problems[0].n, total)) + ')' : '—']
+    ['Average time to solve', hours.length ? (hours.reduce((a, b) => a + b, 0) / hours.length).toFixed(1) + ' hours' : '\u2014'],
+    ['Most frequent problem', problems.length ? problems[0].key + ' (' + problems[0].n + ', ' + pctText(share(problems[0].n, total)) + ')' : '\u2014']
   ].map(c => ({cells: c}))});
-  blocks.push(block('Problems ' + scopeLabel + ' · most frequent first', ['Problem category', 'Requests', 'Share', 'Solved', 'Still open'], ['text', 'int', 'pct', 'int', 'int'],
+  blocks.push(block('Problems ' + scopeLabel + ' \u00b7 most frequent first', ['Problem category', 'Requests', 'Share', 'Solved', 'Still open'], ['text', 'int', 'pct', 'int', 'int'],
     top(problems.map(e => ({cells: [e.key, e.n, share(e.n, total), e.items.filter(r => r.status === 'Solved').length, e.items.filter(r => isOpen(r.status)).length]})), r => r.cells[1]),
     {note: 'Highlighted: the problem that came most often (the repeat problem of the month).'}));
   blocks.push(block('Error codes reported', ['Error code', 'Times', 'Share of requests'], ['text', 'int', 'pct'],
@@ -712,9 +729,9 @@ function supportReport(data, generated) {
   const teams = new Map((data.teams || []).map(t => [t.id, sectionName(t.name)]));
   const list = (data.records || []).map(r => ({...r, section: teams.get(r.team) || r.team, f: supportFacts(r)}));
   const total = list.length, month = data.month, info = header('Technical Support Monthly Report', month, generated);
-  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) · Generated ' + generated + ' · Section = the section of the person who sent the request';
+  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) \u00b7 Generated ' + generated + ' \u00b7 Section = the section of the person who sent the request';
   const bySection = [...teams.entries()].map(([id, name]) => { const xs = list.filter(r => r.team === id); return {name, xs}; }).sort((a, b) => b.xs.length - a.xs.length);
-  const summary = {name: 'Summary', title: 'Technical Support Monthly Report · ' + monthName(month), subtitle: sub, ...info, blocks: []};
+  const summary = {name: 'Summary', title: 'Technical Support Monthly Report \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: []};
   const sectionBlock = block('Support by section', ['Section', 'Requests', 'Share', 'Solved', 'Not solved', 'Still open'], ['text', 'int', 'pct', 'int', 'int', 'int'],
     [...top(bySection.map(s => ({cells: [s.name, s.xs.length, share(s.xs.length, total), s.xs.filter(r => r.status === 'Solved').length, s.xs.filter(r => r.status === 'Not Solved').length, s.xs.filter(r => isOpen(r.status)).length]})), r => r.cells[1]),
       {cells: ['Total', total, total ? 1 : 0, list.filter(r => r.status === 'Solved').length, list.filter(r => r.status === 'Not Solved').length, list.filter(r => isOpen(r.status)).length], mode: 'total'}],
@@ -725,10 +742,10 @@ function supportReport(data, generated) {
   summary.blocks.push(block('Support given by R&I members', ['R&I member', 'Received', 'Solved', 'Not solved', 'Forwarded'], ['text', 'int', 'int', 'int', 'int'],
     top(given.map(g => ({cells: [g.name, g.received, g.solved, g.notSolved, g.forwarded]})), r => r.cells[2]), {note: 'Counted from the actions taken in this month.'}));
   const sheets = [summary];
-  for (const [id, name] of teams) sheets.push({name, title: 'Technical Support · ' + name + ' · ' + monthName(month), subtitle: sub, ...info,
+  for (const [id, name] of teams) sheets.push({name, title: 'Technical Support \u00b7 ' + name + ' \u00b7 ' + monthName(month), subtitle: sub, ...info,
     blocks: supportBlocks(list.filter(r => r.team === id), total, 'in ' + name)});
   const order = [...teams.keys()];
-  sheets.push({name: 'All requests', title: 'Technical Support · All requests · ' + monthName(month), subtitle: sub, ...info, blocks: [
+  sheets.push({name: 'All requests', title: 'Technical Support \u00b7 All requests \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: [
     block('All support requests of the month, by section', ['Section', 'Reference', 'Date (Dhaka)', 'Requester', 'Lift ID', 'Project', 'Problem category', 'Error code', 'Problem', 'Status', 'Solved by', 'Solution'],
       ['text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text'],
       list.slice().sort((a, b) => order.indexOf(a.team) - order.indexOf(b.team) || String(a.at).localeCompare(String(b.at)))
@@ -744,21 +761,21 @@ const hoursOf = xs => Math.round(xs.reduce((a, e) => a + Number(e.minutes || 0),
 function details(e) {
   const v = e.values || {};
   return fieldsOf(e.schema).filter(f => !/^(status|duration|duration_min|duration_minute)$/.test(f.id) && clean(v[f.id]))
-    .map(f => (f.label || f.id) + ': ' + clean(v[f.id])).join(' · ');
+    .map(f => (f.label || f.id) + ': ' + clean(v[f.id])).join(' \u00b7 ');
 }
 function activityCounts(xs) { return [xs.length, xs.filter(e => stateOf(e.status) === 'done').length, xs.filter(e => stateOf(e.status) === 'ongoing').length, xs.filter(e => stateOf(e.status) === 'other').length, hoursOf(xs)]; }
 function activityReport(data, generated) {
   const list = data.records || [], total = list.length, month = data.month, info = header('R&I Team Activity Monthly Report', month, generated);
-  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) · Generated ' + generated;
+  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) \u00b7 Generated ' + generated;
   const H = ['Entries', 'Share', 'Completed', 'Ongoing', 'Other status', 'Time (hours)'], T = ['int', 'pct', 'int', 'int', 'int', 'dec'];
   const row = (name, xs, base) => { const c = activityCounts(xs); return {cells: [name, c[0], share(c[0], base), c[1], c[2], c[3], c[4]]}; };
   const sectors = SECTORS.map(([k, name]) => ({k, name, xs: list.filter(e => e.sector === k)}));
   const members = countBy(list, e => e.member || 'Unknown');
-  const summary = {name: 'Summary', title: 'R&I Team Activity Monthly Report · ' + monthName(month), subtitle: sub, ...info, blocks: [
+  const summary = {name: 'Summary', title: 'R&I Team Activity Monthly Report \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: [
     {heading: 'Overview', headers: ['Item', 'Value'], types: ['text', 'value'], rows: [
       ['Activity entries', total], ['Completed', activityCounts(list)[1]], ['Ongoing', activityCounts(list)[2]], ['Other status', activityCounts(list)[3]],
       ['Time invested', hoursOf(list) + ' hours'], ['R&I members with entries', members.length],
-      ['Busiest sector', total ? sectors.slice().sort((a, b) => b.xs.length - a.xs.length)[0].name : '—']].map(c => ({cells: c}))},
+      ['Busiest sector', total ? sectors.slice().sort((a, b) => b.xs.length - a.xs.length)[0].name : '\u2014']].map(c => ({cells: c}))},
     block('Activity by sector', ['Sector', ...H], ['text', ...T], [...top(sectors.slice().sort((a, b) => b.xs.length - a.xs.length).map(s => row(s.name, s.xs, total)), r => r.cells[1]),
       {...row('Total', list, total), mode: 'total'}]),
     block('Activity by R&I member', ['R&I member', ...SECTORS.map(s => s[1]), 'Total', 'Share', 'Time (hours)'], ['text', 'int', 'int', 'int', 'int', 'int', 'pct', 'dec'],
@@ -769,14 +786,14 @@ function activityReport(data, generated) {
   const sheets = [summary];
   for (const s of sectors) {
     const n = s.xs.length;
-    sheets.push({name: s.name, title: 'R&I Team Activity · ' + s.name + ' · ' + monthName(month), subtitle: sub, ...info, blocks: [
+    sheets.push({name: s.name, title: 'R&I Team Activity \u00b7 ' + s.name + ' \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: [
       {heading: 'Overview', headers: ['Item', 'Value'], types: ['text', 'value'], rows: [['Entries', n], ['Share of all R&I entries', pctText(share(n, total))],
         ['Completed', activityCounts(s.xs)[1]], ['Ongoing', activityCounts(s.xs)[2]], ['Other status', activityCounts(s.xs)[3]], ['Time invested', hoursOf(s.xs) + ' hours']].map(c => ({cells: c}))},
       block('By form', ['Form', ...H], ['text', ...T], top(countBy(s.xs, e => e.form).map(f => row(f.key, f.items, n)), r => r.cells[1])),
       block('By R&I member', ['R&I member', ...H], ['text', ...T], top(countBy(s.xs, e => e.member || 'Unknown').map(m => row(m.key, m.items, n)), r => r.cells[1]))]});
   }
   const order = SECTORS.map(x => x[0]);
-  sheets.push({name: 'All entries', title: 'R&I Team Activity · All entries · ' + monthName(month), subtitle: sub, ...info, blocks: [
+  sheets.push({name: 'All entries', title: 'R&I Team Activity \u00b7 All entries \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: [
     block('All activity entries of the month, by sector', ['Sector', 'Date (Dhaka)', 'R&I member', 'Form', 'Status', 'Time (min)', 'Details'], ['text', 'text', 'text', 'text', 'text', 'dec', 'text'],
       list.slice().sort((a, b) => order.indexOf(a.sector) - order.indexOf(b.sector) || String(a.at).localeCompare(String(b.at)))
         .map(e => ({cells: [(SECTORS.find(x => x[0] === e.sector) || [, e.sector])[1], dhakaTime(e.at), e.member, e.form, e.status, Number(e.minutes || 0), details(e)]})),
@@ -795,9 +812,9 @@ function damageBlocks(list, units, scope) {
     {heading: 'Overview', headers: ['Item', 'Value'], types: ['text', 'value'], rows: [
       ['Damage demands', n], ['Units (total quantity)', u], ...(units != null ? [['Share of all damaged units', pctText(share(u, units))]] : []),
       ['Received from stock', list.filter(d => d.received).length], ['Waiting', list.filter(d => !d.received).length], ['Sent to supplier (claim)', list.filter(d => d.claimed).length],
-      ['Most frequent problem', problems.length ? problems[0].key + ' (' + problems[0].n + ', ' + pctText(share(problems[0].n, n)) + ')' : '—'],
-      ['Component failing most', parts.length ? parts[0].items[0].item + (parts[0].items[0].model ? ' · ' + parts[0].items[0].model : '') + ' (' + parts[0].w + ' units)' : '—']].map(c => ({cells: c}))},
-    block('Problems ' + scope + ' · most frequent first', ['Problem category', 'Demands', 'Share', 'Units'], ['text', 'int', 'pct', 'int'],
+      ['Most frequent problem', problems.length ? problems[0].key + ' (' + problems[0].n + ', ' + pctText(share(problems[0].n, n)) + ')' : '\u2014'],
+      ['Component failing most', parts.length ? parts[0].items[0].item + (parts[0].items[0].model ? ' \u00b7 ' + parts[0].items[0].model : '') + ' (' + parts[0].w + ' units)' : '\u2014']].map(c => ({cells: c}))},
+    block('Problems ' + scope + ' \u00b7 most frequent first', ['Problem category', 'Demands', 'Share', 'Units'], ['text', 'int', 'pct', 'int'],
       top(problems.map(e => ({cells: [e.key, e.n, share(e.n, n), e.items.reduce((a, d) => a + qty(d), 0)]})), r => r.cells[1])),
     block('Components failing most', ['Component', 'Model', 'Brand', 'Units', 'Demands', 'Share of units'], ['text', 'text', 'text', 'int', 'int', 'pct'],
       top(parts.slice(0, 25).map(e => ({cells: [e.items[0].item, e.items[0].model, [...new Set(e.items.map(d => d.brand).filter(Boolean))].join(', '), e.w, e.n, share(e.w, u)]})), r => r.cells[3]),
@@ -811,7 +828,7 @@ function damageReport(data, generated) {
   const teams = new Map((data.teams || []).map(t => [t.id, sectionName(t.name)]));
   const list = (data.records || []).map(d => ({...d, section: teams.get(d.team) || d.team}));
   const month = data.month, info = header('Damage Demand Monthly Report', month, generated), units = list.reduce((a, d) => a + qty(d), 0);
-  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) · Generated ' + generated;
+  const sub = 'Month: ' + monthName(month) + ' (Bangladesh time) \u00b7 Generated ' + generated;
   const sections = [...teams.entries()].map(([id, name]) => ({name, xs: list.filter(d => d.team === id)})).sort((a, b) => b.xs.reduce((s, d) => s + qty(d), 0) - a.xs.reduce((s, d) => s + qty(d), 0));
   const blocks = damageBlocks(list, null, 'in all sections');
   const secRows = sections.map(s => { const u = s.xs.reduce((a, d) => a + qty(d), 0); return {cells: [s.name, s.xs.length, u, share(u, units)]}; });
@@ -819,11 +836,11 @@ function damageReport(data, generated) {
     [...top(secRows, r => r.cells[2]), {cells: ['Total', list.length, units, units ? 1 : 0], mode: 'total'}], {note: 'Highlighted: the section with the most damaged units.'}));
   blocks.push(block('Damage by controller', ['Controller', 'Demands', 'Units'], ['text', 'int', 'int'],
     top(countBy(list, d => (d.controllers || []).length ? d.controllers : ['Not given'], qty).map(e => ({cells: [e.key, e.n, e.w]})), r => r.cells[2])));
-  const sheets = [{name: 'Summary', title: 'Damage Demand Monthly Report · ' + monthName(month), subtitle: sub, ...info, blocks}];
-  for (const [id, name] of teams) sheets.push({name, title: 'Damage Demand · ' + name + ' · ' + monthName(month), subtitle: sub, ...info,
+  const sheets = [{name: 'Summary', title: 'Damage Demand Monthly Report \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks}];
+  for (const [id, name] of teams) sheets.push({name, title: 'Damage Demand \u00b7 ' + name + ' \u00b7 ' + monthName(month), subtitle: sub, ...info,
     blocks: damageBlocks(list.filter(d => d.team === id), units, 'in ' + name)});
   const order = [...teams.keys()];
-  sheets.push({name: 'All demands', title: 'Damage Demand · All demands · ' + monthName(month), subtitle: sub, ...info, blocks: [
+  sheets.push({name: 'All demands', title: 'Damage Demand \u00b7 All demands \u00b7 ' + monthName(month), subtitle: sub, ...info, blocks: [
     block('All damage demands of the month, by section', ['Section', 'Reference', 'Date (Dhaka)', 'Requester', 'Project', 'Lift ID', 'Controller', 'Problem', 'Component', 'Model', 'Brand', 'Qty', 'Confirmed by', 'Status'],
       ['text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'text', 'int', 'text', 'text'],
       list.slice().sort((a, b) => order.indexOf(a.team) - order.indexOf(b.team) || String(a.at).localeCompare(String(b.at)))
@@ -843,6 +860,12 @@ const reportFileName = (kind, month) => REPORTS[kind].title + ' ' + month + '.xl
 const nowDhaka = () => dhakaTime(new Date().toISOString());
 async function sha(bytes) { return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), n => n.toString(16).padStart(2, '0')).join(''); }
 
+const BACKUP_KINDS = ['support', 'activity', 'project', 'qms', 'damage', 'claim'];
+function monthBounds(m) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(m || ''))) throw Error('Choose a month (YYYY-MM).');
+  const [y, mo] = m.split('-').map(Number), last = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  return {from: m + '-01', to: m + '-' + String(last).padStart(2, '0')};
+}
 async function makeReport(kind, data, Zip, generated = nowDhaka()) {
   if (!REPORTS[kind]) throw Error('Unknown report');
   const {sheets, records} = REPORTS[kind].build(data, generated);
@@ -850,11 +873,13 @@ async function makeReport(kind, data, Zip, generated = nowDhaka()) {
 }
 
 /* sql(action,payload) = wlf_report_admin; drive(path,init) = Google Drive call; folderFor(name) = folder id */
-async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Zip, selfUrl}) {
+async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Zip, selfUrl, backup}) {
   if (action === 'reportStatus') return sql('status');
   if (action === 'reportHistory') return sql('history');
   if (action === 'reportDeleteHistory') return sql('deleteHistory', {id: payload.id});
-  if (action === 'reportSchedule') return sql('schedule', {enable: payload.enable === true, url: selfUrl});
+  if (action === 'reportSchedule') return sql('schedule', {...(typeof payload.enable === 'boolean' ? {enable: payload.enable} : {}), ...(typeof payload.backup === 'boolean' ? {backup: payload.backup} : {}), url: selfUrl});
+  if (action === 'backupHistory') return sql('backupHistory');
+  if (action === 'backupDeleteHistory') return sql('backupDeleteHistory', {id: payload.id});
   async function one(kind, month) {
     const data = await sql('data', {kind, month});
     const {bytes, records} = await makeReport(kind, data, Zip);
@@ -879,11 +904,22 @@ async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Z
     for (const k of kinds) made.push(await one(k, payload.month));
     return {made};
   }
+  if (action === 'backupGenerate') {
+    /* Super Admin: make the monthly Excel backup of a chosen month now (never clears) */
+    const kinds = [...new Set(payload.kinds || [])].filter(k => BACKUP_KINDS.includes(k));
+    if (!kinds.length) throw Error('Choose at least one backup.');
+    const {from, to} = monthBounds(payload.month), made = [];
+    for (const k of kinds) made.push(await backup(k, payload.month, from, to));
+    return {made};
+  }
   if (action === 'monthlyReports') {
     const made = [];
     try {
       const pending = await sql('pending');
-      for (const k of pending.kinds) made.push(await one(k, pending.month));
+      /* a few files per call (Edge Function time limit); the schedule calls again every hour from 02:00 to 05:00 */
+      let budget = 3;
+      for (const k of pending.kinds) { if (budget-- <= 0) break; made.push(await one(k, pending.month)); }
+      for (const k of pending.backups || []) { if (budget-- <= 0) break; made.push(await backup(k, pending.month, pending.from, pending.to)); }
       await sql('checked', {});
     } catch (err) {
       try { await sql('checked', {error: err.message}); } catch (_) { /* nothing more to record */ }
@@ -896,6 +932,7 @@ async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Z
 
 // ---- Request handler
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type,x-wlf-cron','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
+const EDGE_VERSION='2.7.2';   // shown on the System status card; must match the app
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});
@@ -929,10 +966,11 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  async function excelSql(action:string,payload:any={}){const r=await admin.rpc('wlf_excel_admin',{action,actor:auth.user.id,payload});if(r.error)throw Error(r.error.message);return r.data;}
  const clientId=Deno.env.get('WLF_GOOGLE_CLIENT_ID'),clientSecret=Deno.env.get('WLF_GOOGLE_CLIENT_SECRET'),refreshToken=Deno.env.get('WLF_GOOGLE_REFRESH_TOKEN');
  const configured=!!(clientId&&clientSecret&&refreshToken);
+ if(action==='version')return new Response(JSON.stringify({edge:EDGE_VERSION,driveConfigured:configured}),{headers});
  if(action==='status')return new Response(JSON.stringify({...await sql('status'),driveConfigured:configured}),{headers});
- if(['reportStatus','reportHistory','reportDeleteHistory','reportSchedule'].includes(action))
+ if(['reportStatus','reportHistory','reportDeleteHistory','reportSchedule','backupHistory','backupDeleteHistory'].includes(action))
   {const out=await reportMaintenance({action,payload:p,sql:reportSql,selfUrl});return new Response(JSON.stringify(action==='reportStatus'?{...out,driveConfigured:configured}:out),{headers});}
- const reportAction=['reportGenerate','monthlyReports'].includes(action);
+ const reportAction=['reportGenerate','monthlyReports','backupGenerate'].includes(action);
  if(cronToken&&!configured){await reportSql('checked',{error:'Google Drive is not set up'});throw Error('Google Drive setup required');}
  if(action==='deleteRejectedUser'){
  const target=await sql('reserveDeleteUser',{email:p.email});try{const {error}=await admin.auth.admin.deleteUser(target.id);if(error)throw error;}finally{await sql('releaseDeleteUser',{id:target.id});}
@@ -957,17 +995,44 @@ async function usageSql(action:string,payload:any={}){const r=await admin.rpc('w
  const tr=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:clientId!,client_secret:clientSecret!,refresh_token:refreshToken!,grant_type:'refresh_token'})});
  const t=await tr.json();if(!tr.ok||!t.access_token)throw Error('Google Drive authorization expired or invalid. Reconnect using the setup guide.');
  async function drive(path:string,init:any={}){const r=await fetch('https://www.googleapis.com/'+path,{...init,headers:{Authorization:'Bearer '+t.access_token,...(init.headers||{})}});if(!r.ok)throw Error('Google Drive request failed ('+r.status+'). Nothing was cleared.');return r;}
- async function driveFolder(kind='backup'){
- const cfg:any={backup:['wlfProject','WLF Backups — '],activity:['wlfActivityProject','WLF Activity backup — '],full:['wlfFullProject','WLF Full Backup — '],
-  reportSupport:['wlfReportSupport','Technical Support Monthly Report'],reportActivity:['wlfReportActivity','R&I Team Activity Monthly Report'],reportDamage:['wlfReportDamage','Damage Demand Monthly Report']}[kind];
+ /* v2.7.2: monthly files live in one main folder each: "Monthly Analysis Report" (3 report folders) and
+    "Monthly Excel Backup" (one folder per category). Folders are found by a hidden mark, not by name; an old
+    report folder from v2.7.0 is moved into the main folder with its files. */
+ const FOLDERS:any={backup:['wlfProject','WLF Backups \u2014 '],activity:['wlfActivityProject','WLF Activity backup \u2014 '],full:['wlfFullProject','WLF Full Backup \u2014 '],
+  reportRoot:['wlfReportRoot','Monthly Analysis Report'],
+  reportSupport:['wlfReportSupport','Technical Support Monthly Report','reportRoot'],reportActivity:['wlfReportActivity','R&I Team Activity Monthly Report','reportRoot'],reportDamage:['wlfReportDamage','Damage Demand Monthly Report','reportRoot'],
+  backupRoot:['wlfMonthlyBackupRoot','Monthly Excel Backup'],
+  mb_support:['wlfMonthlyBackupSupport','Technical Support','backupRoot'],mb_activity:['wlfMonthlyBackupActivity','R&I Team Activity','backupRoot'],
+  mb_project:['wlfMonthlyBackupProject','R&I Project Manager','backupRoot'],mb_qms:['wlfMonthlyBackupQms','QMS Data','backupRoot'],
+  mb_damage:['wlfMonthlyBackupDamage','Damage Demand','backupRoot'],mb_claim:['wlfMonthlyBackupClaim','Supplier Claim','backupRoot']};
+ const folderCache:any={};
+ async function driveFolder(kind='backup'):Promise<string>{
+ if(folderCache[kind])return folderCache[kind];
+ const cfg=FOLDERS[kind];if(!cfg)throw Error('Unknown Drive folder');
+ const parent=cfg[2]?await driveFolder(cfg[2]):null;
  const q="mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='"+cfg[0]+"' and value='"+project+"' }";
- const folders=await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id)&pageSize=1')).json();let folder=folders.files?.[0]?.id;
- if(!folder){const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+(kind.startsWith('report')?'':project),mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project}})});folder=(await r.json()).id;}
+ const found=(await(await drive('drive/v3/files?q='+encodeURIComponent(q)+'&fields=files(id,parents)&pageSize=1')).json()).files?.[0];
+ let folder=found?.id;
+ if(folder&&parent&&!(found.parents||[]).includes(parent)){
+  await drive('drive/v3/files/'+encodeURIComponent(folder)+'?addParents='+encodeURIComponent(parent)+((found.parents||[]).length?'&removeParents='+encodeURIComponent(found.parents.join(',')):'')+'&fields=id',{method:'PATCH',headers:{'Content-Type':'application/json'},body:'{}'});
+ }
+ if(!folder){const plain=kind.startsWith('report')||kind.startsWith('mb_')||kind==='backupRoot';
+  const r=await drive('drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:cfg[1]+(plain?'':project),mimeType:'application/vnd.google-apps.folder',appProperties:{[cfg[0]]:project},...(parent?{parents:[parent]}:{})})});folder=(await r.json()).id;}
   if(!/^[a-zA-Z0-9_-]+$/.test(folder||''))throw Error('Drive did not return a backup folder ID.');
-  return folder;
+  return folderCache[kind]=folder;
+ }
+ /* v2.7.2: one monthly Excel backup (previous month, never clears) in the name of a Super Admin */
+ async function backupOne(kind:string,month:string,from:string,to:string,actor:string){
+  const exSql=async(a:string,x:any={})=>{const r=await admin.rpc('wlf_excel_admin',{action:a,actor,payload:x});if(r.error)throw Error(r.error.message);return r.data;};
+  const id=crypto.randomUUID();
+  const res=await excelMaintenance({action:'excelBackup',payload:{kind,from,to,withClear:false,id},sql:exSql,drive,folder:()=>driveFolder('mb_'+kind),project,Zip:JSZip,monthly:month});
+  const saved=await reportSql('backupSaved',{id,month});
+  for(const old of saved?.replaced||[]){if(/^[-a-zA-Z0-9_]{5,200}$/.test(old||''))try{await drive('drive/v3/files/'+encodeURIComponent(old),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({trashed:true})});}catch(_){/* already removed by hand */}}
+  return {kind,month,backup:true,fileName:res.name,records:res.records};
  }
  if(reportAction){
-  const result=await reportMaintenance({action,payload:p,sql:reportSql,drive,folderFor:driveFolder,Zip:JSZip,selfUrl});
+  const backup=async(kind:string,month:string,from:string,to:string)=>backupOne(kind,month,from,to,cronToken?(await reportSql('backupActor')).actor:auth.user.id);
+  const result=await reportMaintenance({action,payload:p,sql:reportSql,drive,folderFor:driveFolder,Zip:JSZip,selfUrl,backup});
   return new Response(JSON.stringify(result),{headers});
  }
  if(archiveAction){

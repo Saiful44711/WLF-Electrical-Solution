@@ -317,7 +317,7 @@ function searchComponents() {
 
   var html = '';
   rows.forEach(function (r) {
-    html += '<button class="chip" onclick="showDetails(' + r.r + ', this)"><b>' + esc(r.b) + '</b><span>' +
+    html += '<button class="chip" data-onclick="showDetails(' + r.r + ', this)"><b>' + esc(r.b) + '</b><span>' +
       esc(r.m) + ' &middot; ' + esc(r.t) + '</span></button>';
   });
   $('matchesList').innerHTML = html;
@@ -525,11 +525,11 @@ function loadUsers() {
         return '<option value="' + r + '"' + (r === u.role ? ' selected' : '') + '>' + ROLE_LABEL[r] + '</option>';
       }).join('');
       var actions = '';
-      if (u.status !== 'Approved') actions += '<button class="btn success sm" onclick="approveUser(' + u.row + ')">Approve</button>';
-      if (u.status !== 'Rejected' && !self) actions += '<button class="btn danger sm" onclick="updateUser(' + u.row + ', null, \'Rejected\')">' + (u.status === 'Approved' ? 'Revoke' : 'Reject') + '</button>';
-      actions += '<button class="btn ghost sm" onclick="resetPw(' + u.row + ')">Reset password</button>';
+      if (u.status !== 'Approved') actions += '<button class="btn success sm" data-onclick="approveUser(' + u.row + ')">Approve</button>';
+      if (u.status !== 'Rejected' && !self) actions += '<button class="btn danger sm" data-onclick="updateUser(' + u.row + ', null, \'Rejected\')">' + (u.status === 'Approved' ? 'Revoke' : 'Reject') + '</button>';
+      actions += '<button class="btn ghost sm" data-onclick="resetPw(' + u.row + ')">Reset password</button>';
       html += '<tr><td><b>' + esc(u.name) + '</b></td><td>' + esc(u.email) + '</td>' +
-        '<td><select id="role-' + u.row + '"' + (self ? ' disabled' : ' onchange="updateUser(' + u.row + ', this.value, null)"') + ' style="min-width:190px;padding:8px 10px;">' + opts + '</select></td>' +
+        '<td><select id="role-' + u.row + '"' + (self ? ' disabled' : ' data-onchange="updateUser(' + u.row + ', this.value, null)"') + ' style="min-width:190px;padding:8px 10px;">' + opts + '</select></td>' +
         '<td><span class="pill ' + esc(u.status.toLowerCase()) + '">' + esc(u.status) + '</span></td>' +
         '<td><div class="actions">' + actions + '</div></td></tr>';
     });
@@ -584,8 +584,8 @@ function loadComponentsAdmin() {
       $('compCount').textContent=records.length+' of '+d.records.length+' components';
       document.querySelector('#componentsTable tbody').innerHTML=records.map(function(r){
         return '<tr>'+r.values.map(function(v){return '<td>'+esc(v??'')+'</td>';}).join('')+
-         '<td><div class="actions"><button class="btn ghost sm" onclick="openEditor('+r.sheetRow+')">Edit</button>'+
-         '<button class="btn danger sm" onclick="deleteComponent('+r.sheetRow+')">Delete</button></div></td></tr>';
+         '<td><div class="actions"><button class="btn ghost sm" data-onclick="openEditor('+r.sheetRow+')">Edit</button>'+
+         '<button class="btn danger sm" data-onclick="deleteComponent('+r.sheetRow+')">Delete</button></div></td></tr>';
       }).join('')||'<tr><td colspan="'+(d.headers.length+1)+'" class="note">No component matches the search and filters.</td></tr>';
       stickComponentColumns();
     }
@@ -833,16 +833,16 @@ function engineFields(prefix, fields) {
 }
 function renderEngineeringForms() {
   $('energyForm').innerHTML = '<p class="note example-note">Example values are prefilled. Replace them with your lift data; expand the assumptions before using the result.</p>' +
-    '<button class="btn ghost sm" onclick="useSelectedLift(\'energy\')">Use selected lift / motor</button>' +
+    '<button class="btn ghost sm" data-onclick="useSelectedLift(\'energy\')">Use selected lift / motor</button>' +
     engineFields('en', ENERGY_BASIC) +
     '<div class="field currency-field"><label for="en-currency">Currency</label><input id="en-currency" value="BDT" maxlength="12"></div>' +
     '<details class="assumptions"><summary>Lift balance, losses &amp; operating days</summary>' + engineFields('en', ENERGY_ADVANCED) + '</details>' +
-    '<button id="energyBtn" class="btn" onclick="calcEnergyBill()">Calculate energy &amp; cost</button>';
+    '<button id="energyBtn" class="btn" data-onclick="calcEnergyBill()">Calculate energy &amp; cost</button>';
   $('solarForm').innerHTML = '<p class="note example-note">Sourcing estimate for an AC solar/battery supply feeding the existing elevator controller. Example settings require review.</p>' +
-    '<div class="engineering-actions"><button class="btn ghost sm" onclick="useSelectedLift(\'solar\')">Use selected motor</button>' +
-    '<button class="btn ghost sm" onclick="useEnergyForSolar()">Use latest energy result</button></div>' + engineFields('so', SOLAR_BASIC) +
+    '<div class="engineering-actions"><button class="btn ghost sm" data-onclick="useSelectedLift(\'solar\')">Use selected motor</button>' +
+    '<button class="btn ghost sm" data-onclick="useEnergyForSolar()">Use latest energy result</button></div>' + engineFields('so', SOLAR_BASIC) +
     '<details class="assumptions"><summary>Inverter duty, battery module &amp; losses</summary>' + engineFields('so', SOLAR_ADVANCED) + '</details>' +
-    '<button id="solarBtn" class="btn" onclick="calcSolarSizing()">Calculate sourcing requirements</button>';
+    '<button id="solarBtn" class="btn" data-onclick="calcSolarSizing()">Calculate sourcing requirements</button>';
 }
 function engineInput(prefix, basic, advanced) {
   var input = {};
@@ -918,7 +918,7 @@ function calcEnergyBill() {
       ['Month: operating / calendar days', r.monthActiveDays + ' / ' + r.monthDays],
       ['Year: operating / calendar days', r.yearActiveDays + ' / ' + r.yearDays]
     ]) + '<p class="note">Standing controls and the entered light/fan hours apply on non-trip days too. This trip model is an engineering estimate, not an ISO energy-class certificate.</p></details>' + engineWarnings(r.warnings);
-    html += '<button class="btn ghost" onclick="openCalcPane(\'solar\'); useEnergyForSolar();">Use this result for solar sizing</button>';
+    html += '<button class="btn ghost" data-onclick="openCalcPane(\'solar\'); useEnergyForSolar();">Use this result for solar sizing</button>';
     $('energyResult').innerHTML = html;
     track('Energy Bill Calculation', 'Capacity=' + input.capacity + ' kg; trips/day=' + input.trips + '; energy=' + r.dailyKWh + ' kWh/day');
   }).withFailureHandler(function (err) { busy(btn, false); fail(err); }).calculateEnergyBill(T(), input);

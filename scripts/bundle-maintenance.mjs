@@ -21,7 +21,11 @@ export function bundle() {
   const rest=index.slice(block.index+block[0].length);
   const out=head+'\n// ---- Excel workbook writer (from _shared/wlf-excel.mjs)\n'+excel+'\n// ---- Excel backup handler (from _shared/wlf-excel-edge.mjs)\n'+edge+'\n// ---- Monthly reports (from _shared/wlf-report.mjs)\n'+report+'\n// ---- Request handler\n'+rest;
   const left=out.match(/.{0,40}from '\.\.?\/.{0,40}/);if(left)throw Error('A relative import is left in the bundle: '+left[0]);
-  return '// @ts-nocheck\n'+out;
+  /* v2.7.1: the file is pasted by hand into the Supabase editor (often through Notepad). Every non-ASCII character
+     (·, —, ৳ and the U+FFFE/U+FFFF of the text cleaner) is written as a \\uXXXX escape, so copy and paste can never change it.
+     A changed U+FFFE once made the cleaner remove every space from the monthly reports. */
+  const ascii=('// @ts-nocheck\n'+out).replace(/[^\x00-\x7f]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
+  return ascii;
 }
 if(process.argv[1]===fileURLToPath(import.meta.url)){
   const target=process.argv[2];
