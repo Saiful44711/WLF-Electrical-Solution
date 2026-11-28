@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>WLF v2.7.1 Update Guide</title>
+<style>
+:root{--bg:#eef3f6;--card:#fff;--ink:#182f3b;--muted:#4c6573;--line:#d8e3e9;--head:#153e4c;--link:#087789;--code:#edf2f5;--okbg:#eaf6ef;--ok:#2a8158;--warnbg:#fff4d9;--warn:#d89523;--badbg:#fdecea;--bad:#c0392b}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1a20;--card:#17252d;--ink:#e3edf2;--muted:#9fb3bd;--line:#2b3d47;--head:#0d2b36;--link:#6fd0dc;--code:#0f1a20;--okbg:#14301f;--ok:#7fd49a;--warnbg:#3a2c0c;--warn:#ffd27a;--badbg:#3a1714;--bad:#ff8a80}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.85 'Nirmala UI','Noto Sans Bengali',system-ui,sans-serif}
+main{max-width:920px;margin:24px auto;padding:0 16px}
+header{padding:26px 28px;background:var(--head);color:#fff;border-radius:14px}
+header h1{font-size:28px;line-height:1.35;margin:6px 0}
+header p{margin:6px 0}
+section{background:var(--card);padding:22px 26px;margin:16px 0;border:1px solid var(--line);border-radius:12px}
+h2{font-size:22px;line-height:1.5;margin:0 0 10px}
+h3{font-size:18px;margin:16px 0 6px}
+li{margin:8px 0}
+a{color:var(--link)}
+code{font:14px/1.7 Consolas,monospace;background:var(--code);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+table{border-collapse:collapse;width:100%;font-size:15.5px}
+td,th{text-align:left;vertical-align:top;padding:9px;border-bottom:1px solid var(--line)}
+td{overflow-wrap:anywhere}
+.scroll{overflow-x:auto}
+.note{padding:12px 16px;background:var(--okbg);border-left:4px solid var(--ok);border-radius:6px;margin:10px 0}
+.attention{padding:12px 16px;background:var(--warnbg);border-left:4px solid var(--warn);border-radius:6px;margin:10px 0}
+.danger{padding:12px 16px;background:var(--badbg);border-left:4px solid var(--bad);border-radius:6px;margin:10px 0}
+.small{font-size:14px;color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:6px 14px}
+nav a{white-space:nowrap}
+footer{text-align:center;color:var(--muted);font-size:14px;margin:24px 0}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="small" style="color:#cfe3ea">WLF Electrical Solution · ভার্সন 2.7.0 → 2.7.1 · ২৮ নভেম্বর ২০২৬</p>
+  <h1>Admin Panel: QMS ও Supplier Claim ড্যাশবোর্ড — deployment নির্দেশিকা</h1>
+  <p>একটা SQL ফাইল চালাতে হবে, আর GitHub-এ ফাইল আপলোড করতে হবে। Edge Function বদলাতে হবে না। ডাটাবেসে নতুন কোনো টেবিল বা তথ্য যোগ হয় না: ড্যাশবোর্ড শুধু আগের তথ্য পড়ে।</p>
+</header>
+
+<section id="what"><h2>কী নতুন</h2><ul>
+<li><b>Admin Panel → Dashboard → QMS</b>
+  <ul>
+  <li>উপরে চারটা সংখ্যা: Lifts recorded, Projects, Control systems, আর All lift records।</li>
+  <li><b>Control system অনুযায়ী টেবিল:</b> কোন control system কয়টা project-এ আর কয়টা lift-এ গেছে, মোটের কত শতাংশ, আর কোন controller model কয়টা।</li>
+  <li><b>Hardware category অনুযায়ী project tracking:</b> Hardware category বাছুন (Controller, Motor, AVR, Circuit Breaker, Control PCB, LOP, COP Display, Transom Display…)। প্রতিটা model-এর item code, brand, কয়টা project আর কয়টা lift দেখাবে। <b>Sites</b> চাপলে সেই model যেসব project আর Lift ID-তে গেছে তার তালিকা খোলে।</li>
+  <li><b>Search ঘর:</b> model, item code, project বা Lift ID লিখে খোঁজা যায়।</li>
+  <li><b>Lifts:</b> "Recorded in this period" (From–To তারিখের মধ্যে রেকর্ড হওয়া lift) অথবা "All lift records" (সব lift)। কোনো পুরোনো model কোথায় কোথায় আছে খুঁজতে চাইলে All lift records বেছে নিন।</li>
+  </ul></li>
+<li><b>Admin Panel → Dashboard → Supplier claim</b>
+  <ul>
+  <li>উপরে পাঁচটা সংখ্যা: supplier-কে পাঠানো claim, Pending, Received (শতাংশসহ), মোট unit, আর আজ পর্যন্ত মোট Pending (তারিখ যা-ই হোক)।</li>
+  <li><b>Supplier অনুযায়ী টেবিল:</b> প্রতিটা supplier-এর claim, Pending, Received, unit, মোট claim-এর কত ভাগ, আর ওই supplier-এর সবচেয়ে বেশি claim হওয়া component। সবচেয়ে বেশি claim হওয়া supplier হলুদ রঙে চিহ্নিত থাকে।</li>
+  <li><b>Components claimed most:</b> কোন component, কোন supplier-এর কাছে, কয়টা unit।</li>
+  <li>R&amp;I user অনুযায়ী টেবিল আর curve আগের মতোই আছে।</li>
+  </ul></li>
+<li><b>Download Excel:</b> Admin Panel-এর Excel-এ চারটা নতুন শিট যোগ হয়েছে: QMS by control system, QMS by hardware (প্রতিটা model-এর project আর Lift ID সহ), Supplier claims, Components claimed most।</li>
+</ul>
+<p class="small">হিসাবের নিয়ম:
+<ul class="small">
+<li>দ্বিতীয় Yes চাপার দিন থেকে supplier claim গোনা হয়। শুধু প্রথম Yes হয়েছে এমনগুলো আলাদা লাইনে দেখায়: "waiting for the second Yes"।</li>
+<li>একটা AVR model-এ অনেকগুলো সারি থাকে, কিন্তু প্রতিটা lift একবারই গোনা হয়।</li>
+<li>Delete করা lift কোনো হিসাবে আসে না।</li>
+</ul></p>
+</section>
+
+<section id="order"><h2>কী কী করতে হবে (এই ক্রমে)</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>কাজ</th><th>ফল</th></tr>
+<tr><td>১</td><td>Supabase → <b>SQL Editor</b> → <b>New query</b> → <code>WLF-Supabase-v2.7.1.zip</code>-এর <code>UPDATE_V271.sql</code> খুলে পুরোটা paste করুন → <b>Run</b>।</td><td>নিচে <code>v271_ready = true</code></td></tr>
+<tr><td>২</td><td><code>WLF-GitHub-v2.7.1-UPLOAD.zip</code> extract করুন → GitHub repo → <b>Add file</b> → <b>Upload files</b> → ভেতরের সব ফাইল আর ফোল্ডার টেনে ছাড়ুন → <b>Commit changes</b>।</td><td>Actions-এ সবুজ টিক</td></tr>
+<tr><td>৩</td><td>সাইটে Ctrl+F5 চাপুন (ফোনে অ্যাপ বন্ধ করে আবার খুলুন)।</td><td>মেনুর নিচে <b>WLF v2.7.1</b></td></tr>
+<tr><td>৪</td><td>Admin Panel → Dashboard → <b>QMS</b>, তারপর <b>Supplier claim</b> খুলে দেখুন।</td><td>নতুন টেবিলগুলো দেখা যায়</td></tr>
+</table></div>
+<div class="attention">v2.7.0-এর শেষ Edge Function (<code>index.ts</code>, ৮৩ KB, Excel-এ space ঠিক করা) এখনো <code>wlf-maintenance</code>-এ deploy না করে থাকলে সেটা আগে করে নিন। v2.7.1 এতে কিছু বদলায়নি।</div>
+</section>
+
+<section id="trouble"><h2>সমস্যা হলে</h2>
+<div class="scroll"><table>
+<tr><th>লক্ষণ</th><th>কারণ</th><th>সমাধান</th></tr>
+<tr><td>QMS বা Supplier claim-এ লেখা "Run UPDATE_V271.sql in Supabase to see these figures."</td><td>SQL চালানো হয়নি</td><td>ধাপ ১ করুন, তারপর Admin Panel-এ Apply চাপুন</td></tr>
+<tr><td>SQL চালালে "STOP: apply UPDATE_V270.sql (v2.7.0) first"</td><td>v2.7.0-এর SQL বসানো নেই</td><td>আগে UPDATE_V270.sql চালান</td></tr>
+<tr><td>মেনুতে এখনো 2.7.0 দেখায়</td><td>পুরোনো cache, অথবা GitHub Actions এখনো শেষ হয়নি</td><td>Actions-এ সবুজ টিকের পর Ctrl+F5 চাপুন</td></tr>
+<tr><td>Hardware category তালিকা খালি</td><td>এই সময়ের মধ্যে কোনো lift রেকর্ড হয়নি</td><td>"Lifts" ঘরে All lift records বাছুন</td></tr>
+</table></div></section>
+
+<section id="limits"><h2>যা এখানে যাচাই করা যায়নি</h2><ul>
+<li>আপনার আসল ডাটাবেস দিয়ে ড্যাশবোর্ড চালানো। পরীক্ষা হয়েছে বানানো lift আর claim দিয়ে, আর প্রতিটা সংখ্যা ডাটাবেস থেকে সরাসরি গোনা সংখ্যার সঙ্গে মিলিয়ে দেখা হয়েছে।</li>
+<li>কয়েক হাজার lift থাকলে পাতা খুলতে কত সময় লাগে। প্রতিটা model-এর শুধু সর্বশেষ ৩০০টা lift দেখায়, তবে মোট সংখ্যা সবসময় ঠিক থাকে।</li>
+</ul></section>
+
+<footer>Design &amp; Developed by Md. Saiful Islam</footer>
+</main>
+</body>
+</html>

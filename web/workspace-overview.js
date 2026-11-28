@@ -167,6 +167,8 @@ const WlfOverview = (() => {
     claims:[['claims','Supplier claims raised']]};
   const AP_GROUP = {team:'R&I team activity', support:'Technical Support', damage:'Damage Demand', claims:'Supplier claim'};
   const AP = {dash:'team', user:'all', range:12, mode:'together', metric:{team:'entries', support:'received', damage:'damage', claims:'claims', curves:'entries'}, hidden:new Set()};
+  /* v2.7.1: QMS and Supplier Claim dashboards (getAdminInsights) */
+  const AQ = {scope:'period', category:'', search:'', open:''};
   let apData = null, apFilters = null, chartSeq = 0;
   const apCharts = {};
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -333,13 +335,48 @@ const WlfOverview = (() => {
       return apCard('Damage Demand · ' + who, period, kpi + byUser) + curveCard('damage') + teams;
     }
     case 'claims': {
-      const kpi = `<div class="overview-metrics">${metric('Supplier claims raised', count(sumOf(panel, u => u.claims)), 'blue')}</div>`;
+      const c = data.insights?.claims;
       const byUser = table(['R&I user','Supplier claims raised'], panel.map(u => [h(u.name), count(u.claims)]), 'Supplier claims by R&I user');
-      return apCard('Supplier claim · ' + who, period, kpi + byUser) + curveCard('claims');
+      if (!c) return apCard('Supplier claim · ' + who, period, '<p class="note">' + h(data.insightsNote || 'Supplier claim figures are loading…') + '</p>' + byUser) + curveCard('claims');
+      const share = (n, t) => t ? Math.round(n * 1000 / t) / 10 + '%' : '—';
+      const kpi = `<div class="overview-metrics">${metric('Claims sent to suppliers', count(c.claims), 'blue')}${metric('Pending', count(c.pending), 'amber', share(c.pending, c.claims) + ' of the claims')}${metric('Received', count(c.received), 'teal', share(c.received, c.claims) + ' of the claims')}${metric('Units claimed', count(c.units), 'violet')}${metric('Pending now (all dates)', count(c.pendingNow), 'amber')}</div>`
+        + (c.waiting ? `<p class="note">${count(c.waiting)} more waiting for the second Yes (not yet sent).</p>` : '');
+      const top = c.suppliers[0], topUnits = Math.max(0, ...c.components.map(k => Number(k.units)));
+      const suppliers = c.suppliers.length ? `<div class="tbl-wrap overview-table" tabindex="0" aria-label="Claims by supplier"><table class="tbl" id="apClaimSuppliers"><thead><tr>${['Supplier','Claims','Pending','Received','Units','Share of claims','Component claimed most'].map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${
+          c.suppliers.map(x => `<tr${x === top && (c.suppliers.length === 1 || c.suppliers[1].claims < x.claims) ? ' class="ap-top"' : ''}><td>${h(x.supplier)}</td><td>${count(x.claims)}</td><td>${count(x.pending)}</td><td>${count(x.received)}</td><td>${count(x.units)}</td><td>${share(x.claims, c.claims)}</td><td>${h(x.topItem || '—')}${x.topUnits ? ' · ' + count(x.topUnits) + ' units' : ''}</td></tr>`).join('')
+        }</tbody></table></div><p class="note">Highlighted: the supplier with the most claims.</p>` : '<p class="note">No supplier claims in this period.</p>';
+      const comps = c.components.length ? `<div class="tbl-wrap overview-table" tabindex="0" aria-label="Components claimed most"><table class="tbl" id="apClaimComponents"><thead><tr>${['Component','Supplier','Claims','Units','Pending'].map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${
+          c.components.map(k => `<tr${Number(k.units) === topUnits && c.components.filter(z => Number(z.units) === topUnits).length === 1 ? ' class="ap-top"' : ''}><td>${h(k.item || '—')}</td><td>${h(k.supplier)}</td><td>${count(k.claims)}</td><td>${count(k.units)}</td><td>${count(k.pending)}</td></tr>`).join('')
+        }</tbody></table></div>` : '';
+      return apCard('Supplier claim · ' + period, 'Claims count from the day of the second Yes (sent to the supplier). The R&I user filter applies to the last table only.', kpi + suppliers)
+        + (comps ? apCard('Components claimed most', period + ' · by units', comps) : '')
+        + apCard('Supplier claims by R&I user · ' + who, period, byUser) + curveCard('claims');
     }
     case 'qms': {
-      const q = data.qms;
-      return apCard('QMS', period + ' · ' + count(q.total) + ' lift records in total', `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('All lift records', count(q.total), 'teal')}</div>${people(q.people)}`);
+      const q = data.insights?.qms, all = data.insights?.qmsScope === 'all';
+      const scope = `<div class="overview-filters ap-filters"><label>Lifts<select id="apQmsScope"><option value="period" ${all ? '' : 'selected'}>Recorded in this period</option><option value="all" ${all ? 'selected' : ''}>All lift records</option></select></label></div>`;
+      if (!q) return apCard('QMS', period, scope + '<p class="note">' + h(data.insightsNote || 'QMS figures are loading…') + '</p>');
+      const where = all ? 'All lift records' : period;
+      const kpi = `<div class="overview-metrics">${metric('Lifts recorded', count(q.lifts), 'violet')}${metric('Projects', count(q.projects), 'blue')}${metric('Control systems', count(q.systems.length), 'teal')}${metric('All lift records', count(q.allLifts), 'teal')}</div>`;
+      const systems = q.systems.length ? table(['Control system','Projects','Lifts','Share of lifts','Controller models'], q.systems.map(x => [h(x.system), count(x.projects), count(x.lifts), q.lifts ? Math.round(x.lifts * 1000 / q.lifts) / 10 + '%' : '—',
+          h((x.controllers || []).map(m => m.model + ' (' + m.lifts + ')').join(', ') || '—')]), 'Projects and lifts by control system') : '<p class="note">No lifts recorded' + (all ? '.' : ' in this period.') + '</p>';
+      const cats = q.categories || [];
+      if (!cats.some(c => c.category === AQ.category)) AQ.category = cats[0]?.category || '';
+      const cat = cats.find(c => c.category === AQ.category);
+      const term = AQ.search.trim().toLowerCase();
+      const models = cat ? cat.models.filter(m => !term || (m.model + ' ' + m.code + ' ' + m.brand).toLowerCase().includes(term) || m.sites.some(x => (x.project + ' ' + x.liftId).toLowerCase().includes(term))) : [];
+      const tracking = cats.length ? `<div class="overview-filters ap-filters">
+          <label>Hardware category<select id="apQmsCategory">${cats.map(c => `<option value="${h(c.category)}" ${c.category === AQ.category ? 'selected' : ''}>${h(c.category)} (${count(c.models.length)} model${c.models.length === 1 ? '' : 's'})</option>`).join('')}</select></label>
+          <label>Search<input id="apQmsSearch" type="search" placeholder="Model, item code, project or Lift ID" value="${h(AQ.search)}"></label></div>
+        <p class="note">${h(cat.category)}: used in ${count(cat.projects)} project${cat.projects === 1 ? '' : 's'} and ${count(cat.lifts)} lift${cat.lifts === 1 ? '' : 's'}. Press Sites to see where a model went.</p>
+        <div class="tbl-wrap overview-table" tabindex="0" aria-label="Models in ${h(cat.category)}"><table class="tbl" id="apQmsModels"><thead><tr>${['Model','Item code','Brand','Projects','Lifts',''].map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${
+          models.map(m => { const key = cat.category + '|' + m.model, open = AQ.open === key;
+            return `<tr><td>${h(m.model)}</td><td>${h(m.code || '—')}</td><td>${h(m.brand || '—')}</td><td>${count(m.projects)}</td><td>${count(m.lifts)}</td><td><button class="btn ghost" type="button" data-qms-sites="${h(key)}" aria-expanded="${open}">${open ? 'Hide' : 'Sites'}</button></td></tr>`
+              + (open ? `<tr class="ap-sites"><td colspan="6">${m.sites.length ? `<table class="tbl"><thead><tr><th>Project</th><th>Lift ID</th><th>Control system</th><th>Recorded</th></tr></thead><tbody>${m.sites.map(x => `<tr><td>${h(x.project)}</td><td>${h(x.liftId)}</td><td>${h(x.system)}</td><td>${h(date(x.at))}</td></tr>`).join('')}</tbody></table>${m.lifts > m.sites.length ? `<p class="note">Showing the latest ${count(m.sites.length)} of ${count(m.lifts)} lifts.</p>` : ''}` : '—'}</td></tr>` : '');
+          }).join('') || '<tr><td colspan="6">Nothing matches the search.</td></tr>'
+        }</tbody></table></div>` : '<p class="note">No hardware was recorded on these lifts.</p>';
+      return apCard('QMS · ' + where, 'Projects and lifts by control system. Deleted lifts are not counted.', scope + kpi + systems)
+        + apCard('Project tracking by hardware category', where, tracking);
     }
     default: return curveCard('curves');
     }
@@ -379,6 +416,23 @@ const WlfOverview = (() => {
     if (rangeSelect) rangeSelect.onchange = () => { AP.range = Number(rangeSelect.value); if (AP.range === 1) AP.mode = 'separate'; paintBody(); };
     root.querySelectorAll('[data-ap-mode]').forEach(b => { b.onclick = () => { AP.mode = b.dataset.apMode; paintBody(); }; });
     root.querySelectorAll('[data-ap-user]').forEach(b => { b.onclick = () => { const n = b.dataset.apUser; AP.hidden.has(n) ? AP.hidden.delete(n) : AP.hidden.add(n); paintBody(); }; });
+    const scope = el('apQmsScope'), cat = el('apQmsCategory'), search = el('apQmsSearch');
+    if (scope) scope.onchange = () => { AQ.scope = scope.value; AQ.open = ''; loadInsights(); };
+    if (cat) cat.onchange = () => { AQ.category = cat.value; AQ.open = ''; AQ.search = ''; paintBody(); };
+    if (search) search.oninput = () => { AQ.search = search.value; clearTimeout(paintBody.t); paintBody.t = setTimeout(() => { paintBody(); const s2 = el('apQmsSearch'); if (s2) { s2.focus(); s2.setSelectionRange(s2.value.length, s2.value.length); } }, 250); };
+    root.querySelectorAll('[data-qms-sites]').forEach(b => { b.onclick = () => { AQ.open = AQ.open === b.dataset.qmsSites ? '' : b.dataset.qmsSites; paintBody(); }; });
+  }
+
+  /* only the QMS / Supplier Claim figures are fetched again when the QMS lift scope changes */
+  async function loadInsights() {
+    const session = SESSION, run = dashboardRun, status = el('workspaceStatus');
+    if (status) status.textContent = 'Loading QMS figures…';
+    try {
+      const insights = await rpc('getAdminInsights', [T(), {...apFilters, qmsScope: AQ.scope}]);
+      if (SESSION !== session || run !== dashboardRun || !apData) return;
+      apData.insights = insights; paintBody();
+      if (el('workspaceStatus')) el('workspaceStatus').textContent = '';
+    } catch (err) { if (el('workspaceStatus')) el('workspaceStatus').textContent = cleanError(err); }
   }
 
   function renderDashboard(data, filters) {
@@ -419,8 +473,10 @@ const WlfOverview = (() => {
     const status = el('workspaceStatus');
     status.textContent = 'Loading Admin Panel…';
     try {
-      const [data, panel, series] = await Promise.all([rpc('getManagementDashboard',[T(),filters]), rpc('getAdminPanel',[T(),filters]), rpc('getAdminSeries',[T()])]);
-      data.panel = panel; data.series = series;
+      const [data, panel, series, insights] = await Promise.all([rpc('getManagementDashboard',[T(),filters]), rpc('getAdminPanel',[T(),filters]), rpc('getAdminSeries',[T()]),
+        rpc('getAdminInsights',[T(),{...filters, qmsScope: AQ.scope}]).catch(err => ({error: cleanError(err)}))]);
+      data.panel = panel; data.series = series; data.insights = insights && !insights.error ? insights : null;
+      if (insights?.error) data.insightsNote = /Unsupported|not allowed|Unknown action|unknown rpc/i.test(insights.error) ? 'Run UPDATE_V271.sql in Supabase to see these figures.' : insights.error;
       if (SESSION === session && run === dashboardRun) renderDashboard(data,filters);
     } catch (err) {
       if (SESSION === session && run === dashboardRun && el('workspaceStatus')) el('workspaceStatus').textContent = cleanError(err);
@@ -452,7 +508,16 @@ const WlfOverview = (() => {
           rows:data.damage.teams.map(t => [teamName(t.team), t.total, t.pending, t.received, t.quantity])},
         {name:'Top damaged components',headers:['Component','Units','Demands'],rows:data.damage.top.map(t => [t.item, t.quantity, t.demands])},
         {name:'Damage per month',headers:['Team',...data.months],rows:curve(data.damage.curve)},
-        {name:'QMS',headers:['Measure','Lift records'],rows:[['Lifts recorded in this period', data.qms.lifts || 0],['All lift records', data.qms.total || 0]]}
+        {name:'QMS',headers:['Measure','Lift records'],rows:[['Lifts recorded in this period', data.qms.lifts || 0],['All lift records', data.qms.total || 0]]},
+        ...(data.insights ? [
+          {name:'QMS by control system',headers:['Control system','Projects','Lifts','Controller models'],
+            rows:data.insights.qms.systems.map(x => [x.system, x.projects, x.lifts, (x.controllers || []).map(m => m.model + ' (' + m.lifts + ')').join(', ')])},
+          {name:'QMS by hardware',headers:['Hardware category','Model','Item code','Brand','Projects','Lifts','Project','Lift ID'],
+            rows:data.insights.qms.categories.flatMap(c => c.models.flatMap(m => m.sites.map((x, i) => [i ? '' : c.category, i ? '' : m.model, i ? '' : m.code, i ? '' : m.brand, i ? '' : m.projects, i ? '' : m.lifts, x.project, x.liftId])))},
+          {name:'Supplier claims',headers:['Supplier','Claims','Pending','Received','Units','Component claimed most','Units of it'],
+            rows:data.insights.claims.suppliers.map(x => [x.supplier, x.claims, x.pending, x.received, x.units, x.topItem || '', x.topUnits || 0])},
+          {name:'Components claimed most',headers:['Component','Supplier','Claims','Units','Pending'],
+            rows:data.insights.claims.components.map(k => [k.item, k.supplier, k.claims, k.units, k.pending])}] : [])
       ],'WLF-Admin-Panel-'+data.from+'-to-'+data.to);
       if (status.isConnected) status.textContent = 'Excel downloaded.';
     } catch (err) {

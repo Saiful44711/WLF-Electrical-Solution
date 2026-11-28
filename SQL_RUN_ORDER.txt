@@ -1,4 +1,6 @@
-WLF Electrical Solution v2.7.0 - SQL run order
+WLF Electrical Solution v2.7.1 - SQL run order
+
+v2.7.1: run supabase/UPDATE_V271.sql after UPDATE_V270.sql (Admin Panel QMS and Supplier Claim dashboards, read-only).
 
 v2.7.0 (monthly reports): run UPDATE_V270.sql once (needs UPDATE_V268.sql; v2.6.9 had no SQL)
    -> v270_ready = true. It also tries to switch on pg_cron and pg_net; if they stay off,

@@ -1,4 +1,12 @@
-# WLF Electrical Solution v2.7.0
+# WLF Electrical Solution v2.7.1
+
+## v2.7.1 Admin Panel: QMS and Supplier Claim dashboards (28 Nov 2026)
+
+- **QMS dashboard**: lifts, projects and control systems for the period (or all lift records), a table of projects and lifts per control system with the controller models, and **project tracking by hardware category**: choose a category (Controller, Motor, AVR, then the Hardware Catalogue categories such as Circuit Breaker, Control PCB, LOP, COP Display, Transom Display), see every model with item code, brand, projects and lifts, and press **Sites** for the projects and Lift IDs that use it. Search by model, item code, project or Lift ID.
+- **Supplier Claim dashboard**: claims sent to suppliers (day of the second Yes), Pending, Received, units, pending now on all dates, a table per supplier (claims, pending, received, units, component claimed most; the top supplier highlighted) and the components claimed most. The table by R&I user and the curve stay.
+- Admin Panel Excel has four more sheets: QMS by control system, QMS by hardware, Supplier claims, Components claimed most.
+- SQL: run `supabase/UPDATE_V271.sql` (read-only dashboard function, no new table). No Edge Function change.
+
 
 ## v2.7.0 Monthly reports to Google Drive; AVR item table off the QMS Input page (27 Nov 2026)
 

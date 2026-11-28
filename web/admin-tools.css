@@ -165,3 +165,19 @@ html[data-theme=dark] .clog-deleted{background:#3f1717;color:#fca5a5}
 .ap-mini-head{display:flex;align-items:center;gap:6px;font-weight:700}.ap-mini-head b{margin-left:auto;font-size:20px}
 .ap-mini .ap-chartbox{min-width:0}
 #tab-workspace-dashboard:fullscreen #apBody{max-width:none}
+
+/* v2.7.1 Admin Panel: QMS hardware tracking and Supplier Claim tables */
+.mgmt-card .tbl tr.ap-top td{background:color-mix(in srgb,#d18a25 22%,transparent);font-weight:700}
+.mgmt-card .tbl tr.ap-sites>td{padding:6px 10px 12px;background:color-mix(in srgb,var(--line) 35%,transparent)}
+.mgmt-card .tbl tr.ap-sites .tbl{margin:0;width:100%}
+.mgmt-card .tbl td .btn{padding:5px 12px;white-space:nowrap}
+.mgmt-card .ap-filters input[type=search]{min-width:min(320px,100%)}
+/* tables scroll sideways on phones instead of breaking words letter by letter */
+#apQmsModels,#apClaimSuppliers,#apClaimComponents{min-width:680px}
+#apQmsModels td,#apClaimSuppliers td,#apClaimComponents td{overflow-wrap:normal;word-break:normal}
+#apQmsModels td:first-child,#apClaimSuppliers td:first-child,#apClaimComponents td:first-child{min-width:200px}
+.mgmt-card .ap-filters label:has(#apQmsScope){max-width:340px;width:100%}
+.mgmt-card .ap-filters label:has(#apQmsScope) select{width:100%}
+.mgmt-card .ap-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;align-items:end;margin:6px 0 10px}
+.mgmt-card .ap-filters label{display:grid;gap:4px}
+.mgmt-card .ap-filters select,.mgmt-card .ap-filters input{width:100%}
