@@ -10,6 +10,7 @@ const WlfAdmin = (() => {
   const when = v => v ? clock.format(new Date(v)) : '—';
   const onDay = v => v ? day.format(new Date(String(v).length === 10 ? v + 'T00:00:00+06:00' : v)) : '—';
   const sa = () => !!SESSION && SESSION.role === 'Super Admin' && SESSION.status === 'Approved';
+  const annAllowed = () => !!SESSION && SESSION.status === 'Approved' && (SESSION.role === 'Super Admin' || (SESSION.permissions || []).includes('announcements:manage'));
   const today = () => AccessCore.dateKey(new Date());
   const monthStart = () => today().slice(0, 8) + '01';
   const team = c => String((AccessCore.supportTitles && AccessCore.supportTitles[c]) || c).replace(/ Team Support Request$/, '').replace(/ Support Request$/, '');
@@ -209,7 +210,7 @@ const WlfAdmin = (() => {
   let clog = {from:'', to:'', q:'', rows:[]};
   function componentLogAllowed() {
     const u = SESSION || {}, p = u.permissions || [];
-    return u.role === 'Super Admin' || (p.includes('usage:dashboard') && p.includes('components:log'));
+    return u.role === 'Super Admin' || p.includes('components:log');
   }
   async function componentLog(state) {
     const card = el('componentLogCard');
@@ -240,6 +241,14 @@ const WlfAdmin = (() => {
           'WLF-Component-Change-Log-' + clog.from + '-to-' + clog.to);
       };
     } catch (err) { if (run === epoch && card.isConnected) card.innerHTML = `<div class="msg error">${h(cleanError(err))}</div>`; }
+  }
+  /* v2.7.4: the Component change log sits at the top of Components Data; a person who has only the log (given by the Super Admin) sees only the log */
+  function mountComponentLog() {
+    const tabNode = el('tab-components');
+    if (!tabNode || !SESSION) return;
+    if (!el('componentLogCard')) tabNode.insertAdjacentHTML('afterbegin', '<div id="componentLogCard"></div>');
+    tabNode.classList.toggle('log-only', SESSION.role !== 'Super Admin');
+    componentLog();
   }
   async function downloadOldLog() {
     const b = el('usageOldDownload'), s = el('usageOldStatus');
@@ -363,7 +372,7 @@ const WlfAdmin = (() => {
   let ann = {items:[], sections:[], editing:null};
   async function loadAnnAdmin(message) {
     const root = el('tab-announcements');
-    if (!root || !sa()) return;
+    if (!root || !annAllowed()) return;
     const run = epoch;
     if (!root.innerHTML) root.innerHTML = '<p class="note">Loading…</p>';
     try {
@@ -427,6 +436,7 @@ const WlfAdmin = (() => {
   function onTab(tab) {
     if (tab === 'account') loadAnnouncements();
     if (tab === 'recycle-bin') loadBin();
+    if (tab === 'components') mountComponentLog();
     if (tab === 'announcements') { ann.editing = null; loadAnnAdmin(); }
   }
   document.addEventListener('DOMContentLoaded', () => {
@@ -448,7 +458,7 @@ const WlfAdmin = (() => {
   window.addEventListener('wlf-logout', () => {
     epoch++;
     popupSkipped.clear(); { const d = el('wlfAnnouncePopup'); if (d && d.open) d.close(); }
-    for (const id of ['announceCard', 'tab-recycle-bin', 'tab-announcements']) { const x = el(id); if (x) x.innerHTML = ''; }
+    for (const id of ['announceCard', 'tab-recycle-bin', 'tab-announcements', 'componentLogCard']) { const x = el(id); if (x) x.innerHTML = ''; }
     if (el('announceCard')) el('announceCard').hidden = true;
     for (const id of ['profileNavBadge', 'damageNavBadge', 'supplierNavBadge']) if (el(id)) el(id).hidden = true;
     bin = {items:[], purges:[], kind:'', query:'', selected:new Set()}; ann = {items:[], sections:[], editing:null};

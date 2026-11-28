@@ -933,7 +933,7 @@ async function reportMaintenance({action, payload = {}, sql, drive, folderFor, Z
 
 // ---- Request handler
 const headers={'Access-Control-Allow-Origin':'*','Access-Control-Allow-Headers':'authorization,x-client-info,apikey,content-type,x-wlf-cron','Access-Control-Allow-Methods':'POST,OPTIONS','Content-Type':'application/json','Cache-Control':'no-store'};
-const EDGE_VERSION='2.7.3';   // shown on the System status card; must match the app
+const EDGE_VERSION='2.7.4';   // shown on the System status card; must match the app
 const digest=async(text:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))).map(x=>x.toString(16).padStart(2,'0')).join('');
 Deno.serve(async(req)=>{
  if(req.method==='OPTIONS')return new Response('ok',{headers});

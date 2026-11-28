@@ -105,8 +105,9 @@ const WlfHardware = (() => {
           <div id="hwTable">${catalogueTable(q)}</div>
           <p class="note">Rows with a missing item code show an amber “no code”. Delete is not permanent for saved QMS records: they keep their own copy.${edit ? '' : ' You can view the catalogue; the Super Admin edits it.'}</p>
         </div></div>
-      <p class="note overview-status" id="hwStatus" role="status">${h(message || '')}</p></div>`;
+      <p class="note overview-status" id="hwStatus" role="status">${h(message || '')}</p></div><div id="hwLogCard"></div>`;
     bindCatalogue();
+    paintCatalogueLog();
   }
 
   async function catalogueCall(action, payload, message) {
@@ -333,15 +334,58 @@ const WlfHardware = (() => {
     };
   }
 
+  /* ---------------------------------------------------------------- v2.7.4: Hardware Catalogue change log (the Super Admin chooses who may see it) */
+  let hlog = {from: '', to: '', q: '', rows: [], total: 0, error: ''};
+  const logAllowed = () => { const u = SESSION || {}; return u.role === 'Super Admin' || (u.permissions || []).includes('catalogue:log'); };
+  function paintCatalogueLog() {
+    const card = el('hwLogCard');
+    if (!card) return;
+    if (!logAllowed()) { card.innerHTML = ''; return; }
+    const changes = r => (r.changes || []).map(c => r.action === 'Edited'
+      ? `<li><b>${h(c.field)}</b>: <s>${h(c.old || '—')}</s> → ${h(c.new || '—')}</li>`
+      : `<li><b>${h(c.field)}</b>: ${h(r.action === 'Deleted' ? c.old : c.new)}</li>`).join('');
+    card.innerHTML = `<form class="card" id="hwLogForm"><div class="hw-head"><div><div class="overview-eyebrow">WHO CHANGED THE CATALOGUE</div><h3>Hardware Catalogue change log</h3></div></div>
+      <div class="overview-filters"><label>From<input type="date" name="from" value="${h(hlog.from)}"></label><label>To<input type="date" name="to" value="${h(hlog.to)}"></label>
+        <label>Search<input type="search" name="q" value="${h(hlog.q)}" placeholder="Model, user, item…" autocomplete="off"></label>
+        <button type="submit" class="btn ghost">Show</button><button type="button" class="btn ghost" id="hwLogExcel" ${hlog.rows.length ? '' : 'disabled'}>Excel</button></div>
+      ${hlog.error ? `<div class="msg error">${h(hlog.error)}</div>` : hlog.rows.length ? `<div class="tbl-wrap" tabindex="0"><table class="tbl" id="hwLogTable"><thead><tr><th>When (Dhaka)</th><th>User</th><th>Change</th><th>Item</th><th>Fields</th></tr></thead><tbody>${hlog.rows.map(r =>
+        `<tr><td>${h(when(r.at, true))}</td><td>${h(r.who)}</td><td><span class="clog-${h(String(r.action).toLowerCase())}">${h(r.action)}</span></td><td>${h(r.label)}</td><td><ul class="clog-changes">${changes(r)}</ul></td></tr>`).join('')}</tbody></table></div>`
+        : '<p class="note">No catalogue changes in this period.</p>'}
+      <p class="note">${Number(hlog.total) || 0} ${Number(hlog.total) === 1 ? 'change' : 'changes'}${Number(hlog.total) > hlog.rows.length ? ' · showing the newest ' + hlog.rows.length : ''}</p></form>`;
+    el('hwLogForm').onsubmit = e => { e.preventDefault(); loadCatalogueLog(Object.fromEntries(new FormData(e.currentTarget))); };
+    el('hwLogExcel').onclick = async () => {
+      await WlfExports.excel([{name: 'Catalogue change log', headers: ['When (Dhaka)', 'User', 'Change', 'Item', 'Field', 'Old value', 'New value'],
+        rows: hlog.rows.flatMap(r => ((r.changes || []).length ? r.changes : [{field: '', old: '', new: ''}]).map(c => [when(r.at, true), r.who, r.action, r.label, c.field, c.old, c.new]))}],
+        'WLF-Hardware-Catalogue-Change-Log-' + hlog.from + '-to-' + hlog.to);
+    };
+  }
+  async function loadCatalogueLog(state) {
+    if (!logAllowed()) return;
+    const run = catalogueRun;
+    hlog = {...hlog, ...(state || {}), error: ''};
+    try {
+      const x = await rpc('getCatalogueLog', [T(), {from: hlog.from, to: hlog.to, q: hlog.q}]);
+      if (run !== catalogueRun) return;
+      hlog.from = x.from; hlog.to = x.to; hlog.rows = x.rows; hlog.total = x.total;
+    } catch (err) { if (run !== catalogueRun) return; hlog.rows = []; hlog.error = cleanError(err); }
+    paintCatalogueLog();
+  }
+
   async function openCatalogue() {
     const root = el('tab-catalogue');
     const run = ++catalogueRun;
+    if (SESSION && SESSION.role !== 'Super Admin') {   /* a person who may only see the change log gets only the log */
+      root.innerHTML = '<div id="hwLogCard"></div>';
+      await loadCatalogueLog();
+      return;
+    }
     root.innerHTML = '<div class="card"><p class="note">Loading the catalogue…</p></div>';
     try {
       await loadCatalogue(true);
       if (run !== catalogueRun) return;
       if (!selected.system || !systems().includes(selected.system)) selected = {system: systems()[0] || '', model: ''};
       paintCatalogue();
+      loadCatalogueLog();
     } catch (err) {
       if (run === catalogueRun) root.innerHTML = `<div class="card"><p class="note">${h(cleanError(err))}</p></div>`;
     }
@@ -1146,7 +1190,7 @@ const WlfHardware = (() => {
     }
   });
   window.addEventListener('wlf-logout', () => {
-    catalogueRun++; qmsRun++; session = null; CAT = {rows: [], map: [], canEdit: false, at: 0}; draft = null; selected = {system: '', model: ''};
+    catalogueRun++; qmsRun++; session = null; CAT = {rows: [], map: [], canEdit: false, at: 0}; hlog = {from: '', to: '', q: '', rows: [], total: 0, error: ''}; draft = null; selected = {system: '', model: ''};
     for (const id of ['tab-catalogue', 'tab-qms', 'hwDialog']) el(id)?.replaceChildren();
     if (el('hwDialog')?.open) el('hwDialog').close();
   });

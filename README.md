@@ -1,4 +1,12 @@
-# WLF Electrical Solution v2.7.3
+# WLF Electrical Solution v2.7.4
+
+## v2.7.4 Who sees what (28 Nov 2026)
+
+- **Hardware Catalogue** is now inside Administration and only the Super Admin can open and edit it. The old "Hardware Catalogue edit" permission is removed from every user and can no longer be given. QMS and Damage Demand still read the catalogue as before.
+- **Hardware Catalogue change log**: who added, edited, deleted or restored a catalogue row, with old and new values, a date filter, search and Excel. It sits at the bottom of the Hardware Catalogue page. The Super Admin chooses who may see it (permission "Hardware Catalogue change log"); such a person sees only the log.
+- **Component change log** moved from the Usage Dashboard to Components Data. The Super Admin chooses who may see it (permission "Component change log"); it no longer needs Usage Dashboard access, and such a person sees only the log.
+- **Announcement** moved out of Administration to just under Admin Panel. The Super Admin chooses who may create, edit and delete announcements (permission "Announcement"). The Recycle bin stays Super Admin only.
+- SQL: run `supabase/UPDATE_V274.sql` (after V273). Edge Function: redeploy `wlf-maintenance` (index.ts from this package, only the version number changed).
 
 ## v2.7.3 Announcements, QMS and R&I (28 Nov 2026)
 

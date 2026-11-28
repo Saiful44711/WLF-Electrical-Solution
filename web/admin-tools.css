@@ -193,3 +193,6 @@ html[data-theme=dark] .clog-deleted{background:#3f1717;color:#fca5a5}
 .wlf-announce-popup small{color:var(--muted)}
 .wlf-announce-error{margin:0;color:#c0392b;font-size:13px}
 .wlf-announce-body .btn{justify-self:stretch;margin-top:8px}
+
+/* v2.7.4: Components Data for a person who may only see the change log */
+#tab-components.log-only > :not(#componentLogCard){display:none!important}

@@ -33,14 +33,14 @@ await h.db.exec(fs.readFileSync('supabase/UPDATE_SUPPORT_FORMS_20261107.sql','ut
 await h.db.exec(fs.readFileSync('supabase/UPDATE_DAMAGE_DEMAND_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_WORKSPACE_20261107.sql','utf8'));
 await h.db.exec(fs.readFileSync('supabase/UPDATE_SECTIONS_V230.sql','utf8'));
-await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V270.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V271.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V272.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V273.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
+await h.db.exec(fs.readFileSync('supabase/UPDATE_V240.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V250.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V251.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V252.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V253.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V254.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V255.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V256.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V257.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V258.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V259.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V260.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V261.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V262.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V263.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V264.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V265.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V266.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V267.sql','utf8')); await h.db.exec(fs.readFileSync('supabase/UPDATE_V268.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V270.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V271.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V272.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V273.sql','utf8'));await h.db.exec(fs.readFileSync('supabase/UPDATE_V274.sql','utf8'));await h.db.exec("update wlf_private.usage_housekeeping set last_run=now()+interval '30 days'");
 await h.db.exec('alter table public.wlf_profiles disable trigger wlf_deletion_guard');
 for(const [name,emp,section] of [['sa','SA-1','R&I Electrical'],['admin','AD-2','Sales'],['rni','RN-3','R&I Electrical'],['rni2','RN-4','R&I Mechanical'],['user','US-5','Commissioning'],['other','OT-6','After Sales'],['pending','PD-7','QM']])await h.db.query('update public.wlf_profiles set employee_id=$2,section=$3 where id=$1',[IDS[name],emp,section]);
 await h.db.query("update public.wlf_profiles set permissions=array['selection','calc:power','calc:speed','calc:travel','calc:motor','calc:energy','calc:solar','tb:MOT:error','tb:NICE3000+:error','support:commissioning:request','support:aftersales:request','dashboard'] where id=$1",[IDS.admin]);
 await h.db.exec('alter table public.wlf_profiles enable trigger wlf_deletion_guard');
 await h.rpc('other','logAction',['Component Selection','Linked history fixture']);
 const {excelMaintenance,archiveMaintenance}=await import('../supabase/functions/_shared/wlf-excel-edge.mjs');const {reportMaintenance}=await import('../supabase/functions/_shared/wlf-report.mjs');await h.db.query("update public.wlf_profiles set status='Rejected'where id=$1",[IDS.other]);fs.mkdirSync('test-results',{recursive:true});server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');let rel=url.pathname.replace(/^\/wlf\//,'');if(url.pathname==='/wlf/')rel='index.html';if(!url.pathname.startsWith('/wlf/')||rel.includes('..')){res.writeHead(404);res.end();return;}if(rel==='config.js'){res.setHeader('Content-Type','application/javascript');res.end(testConfig);return;}const f=path.join('dist',rel);if(!fs.existsSync(f)){res.writeHead(404);res.end();return;}res.setHeader('Content-Type',mime[path.extname(f)]||'text/plain');if(rel==='sw.js'&&shellVersion==='v210'){
- const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.7.3-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
+ const sw=fs.readFileSync(f,'utf8').replace('wlf-pwa-2.7.4-bin','wlf-pwa-2.1.0-storage-documents');res.end(sw);return;}
  res.end(rel==='supabase.js'?fs.readFileSync(f,'utf8')+mockRealtime:fs.readFileSync(f));});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
 browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE||undefined,args:['--no-sandbox']});context=await browser.newContext({viewport:{width:1280,height:900}});await context.addInitScript(()=>{try{if(!localStorage.getItem('wlf-usage-archive'))localStorage.setItem('wlf-usage-archive',String(Date.now()));}catch(_){}});page=await context.newPage();await page.addInitScript(()=>{const open=()=>document.querySelectorAll('#tab-storage details:not([data-forced])').forEach(d=>{d.open=true;d.dataset.forced='1';});new MutationObserver(open).observe(document,{childList:true,subtree:true});});globalThis.consoleErrors=[];page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')globalThis.consoleErrors.push(m.text().slice(0,300));});/* v2.5.1: confirmation popup after each save; count it and press OK */globalThis.savedPopups=[];globalThis.savedLocator=page.locator('#wlfSavedDialog[open]');globalThis.savedHandler=async d=>{globalThis.savedPopups.push(await d.locator('h3').innerText());await d.locator('[data-saved-close]').click();};await page.addLocatorHandler(globalThis.savedLocator,globalThis.savedHandler);globalThis.annSeen=[];globalThis.annLocator=page.locator('#wlfAnnouncePopup[open]');globalThis.annHandler=async d=>{const t=(await d.innerText()).replace(/\s+/g,' ');await page.keyboard.press('Escape');const stillOpen=(await d.count())===1;const box=await d.boundingBox();globalThis.annSeen.push({t,stillOpen,box,vw:page.viewportSize().width});
  if(globalThis.annSeen.length===1){fs.mkdirSync('test-results/v273',{recursive:true});await page.screenshot({path:'test-results/v273/04-announcement-popup.png'});}
@@ -54,7 +54,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  if(process.env.WLF_EDGE_DELAY)await new Promise(r=>setTimeout(r,Number(process.env.WLF_EDGE_DELAY)));
  const sql=async(action,payload=p)=>(await h.db.query('select public.wlf_backup_admin($1,$2,$3)result',[action,id,payload])).rows[0].result;
  const excelSql=async(action,payload={})=>sequential(async()=>(await h.db.query('select public.wlf_excel_admin($1,$2,$3) result',[action,id,payload])).rows[0].result);
- if(body.action==='version')data={edge:globalThis.edgeVersion||'2.7.3',driveConfigured:true};
+ if(body.action==='version')data={edge:globalThis.edgeVersion||'2.7.4',driveConfigured:true};
  else if(body.action==='status')data={...await sequential(()=>sql('status')),driveConfigured:true};
  else if(body.action==='excelHistory')data=await excelSql('history');
  else if(body.action==='excelDeleteHistory')data=await excelSql('deleteHistory',p.all?{all:true,confirm:p.confirm}:{id:p.id});
@@ -489,7 +489,7 @@ await dialog.getByRole('button',{name:'Close',exact:true}).click();
 await logout();
 
 await login('sa');
-assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=catalogue] + [data-tab=workspace-dashboard]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
+assert.equal(await page.locator('#nav [data-tab=damage-demand] + [data-tab=supplier-claim] + [data-tab=qms] + [data-tab=workspace-dashboard] + [data-tab=announcements]').count(),1);assert.equal(await page.locator('#nav [data-damage-nav]').count(),0,'v2.5.3: no Demand/Dashboard sub-items in the menu');
 fs.mkdirSync('test-results/v259',{recursive:true});fs.mkdirSync('test-results/v260',{recursive:true});
 await tab('qms');
 await page.locator('#qmsLiftForm').waitFor();
@@ -1065,7 +1065,7 @@ await page.locator('#globalMsg').filter({hasText:'Component saved'}).waitFor();
 await tab('dashboard');await page.locator('#usageLogTable').waitFor();
 assert.equal(await page.locator('#techDashboard,#rniPerformanceTable').count(),0,'Technical Support is not in the Usage Dashboard');
 assert.match(await page.locator('#statsArea').innerText(),/Actions · last 7 days[\s\S]*Activity log · last 7 days|Activity log · last 7 days[\s\S]*Actions · last 7 days/);
-await page.locator('#componentLogTable').waitFor();
+await tab('components');await page.locator('#componentLogTable').waitFor();
 const clogText=await page.locator('#componentLogTable').innerText();
 assert.match(clogText,/Edited/);assert.match(clogText,new RegExp('Motor Power \\(KW\\): '+oldP.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*→\\s*99\\.5'));
 await v256shot('03-component-change-log',{at:'#componentLogCard'});
@@ -1073,7 +1073,7 @@ const clogDl=page.waitForEvent('download');await page.locator('#componentLogExce
 assert.match(await (await Zip.loadAsync(fs.readFileSync('test-results/v256/component-change-log.xlsx'))).file('xl/worksheets/sheet1.xml').async('string'),/99.5/);
 // From-To delete
 await sequential(()=>h.db.query("insert into public.wlf_usage(actor,action,details,at) values($1,'Login','range-test',now()-interval '20 days'),($1,'Login','range-test',now()-interval '21 days')",[IDS.user]));
-await tab('dashboard');await page.locator('#usageRangeForm').waitFor();await page.locator('#componentLogTable').waitFor();await page.waitForTimeout(300);
+await tab('dashboard');await page.locator('#usageRangeForm').waitFor();await page.waitForTimeout(300);
 const d20=await page.evaluate(()=>{const f=n=>new Date(Date.now()+6*3600e3-n*86400e3).toISOString().slice(0,10);return [f(22),f(19)];});
 await page.locator('#usageRangeForm [name=from]').fill(d20[0]);await page.locator('#usageRangeForm [name=to]').fill(d20[1]);
 assert.equal(await page.locator('#usageRangeDelete').isDisabled(),true);
@@ -1095,9 +1095,10 @@ await tab('dashboard');await page.locator('#usageLogTable').waitFor();
 assert.equal(await page.locator('#usageRangeForm').count(),0,'range delete is Super Admin only');assert.equal(await page.locator('.usage-old').count(),0);
 assert.equal(await page.locator('#componentLogTable').count(),0,'change log needs its own tick');
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_append(permissions,'components:log') where id=$1",[IDS.user]));
-await logout();await login('user');await tab('dashboard');await page.locator('#componentLogTable').waitFor();
-await v256shot('06-usage-dashboard-user',{at:'#componentLogCard'});
-assert.equal(await page.locator('#nav [data-tab=components]').isVisible(),false,'Components data stays Super Admin only');
+await logout();await login('user');assert.equal(await page.locator('#componentLogTable').count(),0,'v2.7.4: the log is no longer on the Usage Dashboard');
+await page.locator('#nav [data-tab=components]').waitFor({state:'visible'});await tab('components');await page.locator('#componentLogTable').waitFor();
+assert.equal(await page.locator('#tab-components.log-only').count(),1,'a person with only the log sees only the log');assert.equal(await page.locator('#componentsTable').isVisible(),false);assert.equal(await page.locator('#compCsvImport').isVisible(),false);
+await v256shot('06-components-log-user',{at:'#componentLogCard'});
 await tab('account');assert.equal(await page.locator('#myActivityCard').count(),0);await v256shot('07-my-profile',{phone:true});
 await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_remove(array_remove(permissions,'usage:dashboard'),'components:log') where id=$1",[IDS.user]));
 await logout();await login('user');
@@ -1899,14 +1900,14 @@ fs.mkdirSync('test-results/v268',{recursive:true});
 {const shot=async(name)=>{fs.mkdirSync('test-results/v272',{recursive:true});await page.screenshot({path:'test-results/v272/'+name+'.png'});};
  await tab('storage');await page.locator('#wlfSystemTable').waitFor({timeout:30000});
  const sys=async()=>(await page.locator('#wlfSystemTable tbody tr').allInnerTexts()).map(t=>t.replace(/\s+/g,' ').trim());
- {const rows=await sys();assert.equal(rows.length,4);for(const r of rows)assert.match(r,/✓ OK$/,'all parts match: '+r);assert.match(rows[0],/App \(this page\) 2\.7\.3/);assert.match(rows[1],/Database 2\.7\.3/);assert.match(rows[2],/Edge Function \(wlf-maintenance\) 2\.7\.3/);}
+ {const rows=await sys();assert.equal(rows.length,4);for(const r of rows)assert.match(r,/✓ OK$/,'all parts match: '+r);assert.match(rows[0],/App \(this page\) 2\.7\.4/);assert.match(rows[1],/Database 2\.7\.4/);assert.match(rows[2],/Edge Function \(wlf-maintenance\) 2\.7\.4/);}
  await page.locator('#wlfSystemCard').scrollIntoViewIfNeeded();await shot('01-system-status-ok');
- globalThis.edgeVersion='2.7.1';await page.locator('#wlfErrorRefresh').click();await page.waitForFunction(()=>/Deploy the v2\.7\.3 index\.ts/.test(document.querySelector('#wlfSystemTable')?.innerText||''));
+ globalThis.edgeVersion='2.7.1';await page.locator('#wlfErrorRefresh').click();await page.waitForFunction(()=>/Deploy the v2\.7\.4 index\.ts/.test(document.querySelector('#wlfSystemTable')?.innerText||''));
  await shot('02-system-status-edge-old');globalThis.edgeVersion='';
  // a page error reaches the log with page, account and version; only the Super Admin sees it
  await page.evaluate(()=>WlfReportError('E2E sample error: cannot read x','at test.js:1:1'));await page.waitForTimeout(500);
  await page.locator('#wlfErrorRefresh').click();await page.locator('#wlfErrorTable').waitFor();
- {const t=await page.locator('#wlfErrorTable').innerText();assert.match(t,/E2E sample error/);assert.match(t,/storage/);assert.match(t,/2\.7\.3/);}
+ {const t=await page.locator('#wlfErrorTable').innerText();assert.match(t,/E2E sample error/);assert.match(t,/storage/);assert.match(t,/2\.7\.4/);}
  await page.locator('#wlfErrorCard').scrollIntoViewIfNeeded();await shot('03-error-log');
  page.once('dialog',d=>d.accept());await page.locator('#wlfErrorClear').click();await page.waitForFunction(()=>/No errors in the last 7 days/.test(document.querySelector('#wlfErrorList').innerText));
  // monthly Excel backup by hand: file named by month, own folder per module, never clears
@@ -1959,6 +1960,38 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  {const l=await labels();assert.ok(l.some(t=>/^UPS SL/.test(t))&&!l.some(t=>/^ARD SL/.test(t)),'MOT keeps UPS SL: '+l.join(' | '));}
  // the stored number is the same field, so a NICE lift saved earlier shows its serial as ARD
  await page.locator(form+'[name=system]').selectOption('NICE3000+');await page.locator(form+'[name=sl-ups]').fill('ARD-1');assert.equal(await page.locator(form+'[name=sl-ups]').inputValue(),'ARD-1');}
+
+// v2.7.4: Hardware Catalogue change log, Component log inside Components Data, Announcement under Admin Panel, each given by the Super Admin
+{fs.mkdirSync('test-results/v274',{recursive:true});
+ await logout();await login('sa');
+ // menu order: Announcement directly under Admin Panel; Hardware Catalogue inside Administration (after Recycle Bin)
+ assert.equal(await page.locator('#nav [data-tab=workspace-dashboard] + [data-tab=announcements]').count(),1,'Announcement sits under Admin Panel');
+ assert.equal(await page.locator('#nav [data-tab=recycle-bin] + [data-tab=catalogue]').count(),1,'Hardware Catalogue is inside Administration');
+ const order=await page.evaluate(()=>[...document.querySelectorAll('#nav > *')].filter(n=>!n.hidden&&!n.classList.contains('hidden')).map(n=>n.dataset.tab||n.textContent.trim()));
+ assert.ok(order.indexOf('Administration')<order.indexOf('catalogue'),'catalogue is after the Administration heading: '+order.join(','));
+ assert.ok(order.indexOf('announcements')<order.indexOf('Administration'),'announcement is before the Administration heading');
+ // Super Admin: the catalogue page has its change log (the AVR 80 KVA edit made earlier is in it)
+ await tab('catalogue');await page.locator('.hw-layout').waitFor();await page.locator('#hwLogTable').waitFor();
+ const hlog=await page.locator('#hwLogTable').innerText();assert.match(hlog,/Edited|Added/);assert.match(hlog,/AVR 80 KVA/);
+ await page.locator('#hwLogCard').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v274/01-catalogue-change-log.png'});
+ // the old edit tick is gone: nobody but the Super Admin has the catalogue page
+ await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_remove(permissions,'catalogue:log') where id=$1",[IDS.user]));
+ await logout();await login('user');assert.equal(await page.locator('#nav [data-tab=catalogue]').isVisible(),false,'no tick: no catalogue page');
+ assert.equal(await page.locator('#nav [data-tab=announcements]').isVisible(),false,'no tick: no Announcement');
+ // the Super Admin gives the three ticks
+ await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_cat(permissions,array['catalogue:log','announcements:manage']) where id=$1",[IDS.user]));
+ await logout();await login('user');
+ await page.locator('#nav [data-tab=catalogue]').waitFor({state:'visible'});await page.locator('#nav [data-tab=announcements]').waitFor({state:'visible'});
+ await tab('catalogue');await page.locator('#hwLogTable').waitFor();assert.equal(await page.locator('.hw-layout').count(),0,'only the log, no catalogue editing');
+ assert.equal(await page.locator('#hwNewModel,#hwImport').count(),0);
+ await page.locator('#hwLogCard').scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/v274/02-catalogue-log-user.png'});
+ await tab('announcements');await page.locator('#tab-announcements form, #tab-announcements .card').first().waitFor();
+ assert.equal(await page.locator('#tab-announcements .msg.error').count(),0,'the chosen person can open Announcement');
+ await page.screenshot({path:'test-results/v274/03-announcement-user.png'});
+ assert.equal(await page.locator('#nav [data-tab=recycle-bin]').isVisible(),false,'Recycle bin stays Super Admin only');
+ await sequential(()=>h.db.query("update public.wlf_profiles set permissions=array_remove(array_remove(permissions,'catalogue:log'),'announcements:manage') where id=$1",[IDS.user]));
+ await logout();await login('sa');
+}
 await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.waitForFunction(()=>navigator.serviceWorker.controller!==null);await context.setOffline(true);await page.reload();await page.locator('#app').waitFor({state:'visible'});await tab('troubleshooting');await page.locator('[data-section="NICE3000+"]').click();await page.locator('#tbErrors').click();await page.locator('#tbSearch').fill('Err38');await page.locator('#tbDetail').filter({hasText:'Err38'}).waitFor();assert.equal(await page.evaluate(()=>navigator.onLine),false);
 assert.deepEqual(globalThis.consoleErrors.filter(t=>/Content Security Policy|Refused to (execute|load|apply|connect|frame|run)/i.test(t)),[],'v2.7.2: nothing is blocked by the Content-Security-Policy');assert.deepEqual(errors,[]);console.log('PASS WLF browser including My Profile, workspace KPIs, QMS, Project Address, Damage Demand submission, option grants, Dispatch receive, requester status, filtered chart and Excel, PWA update, activity, project, Excel and PPTX exports, plus documents CRUD/custom fields/read-only access, user search/rejected deletion, date-filtered Drive-simulated backup-only/clear/download/restore, R&I isolation; PGlite-backed Supabase SDK: imported components, local formulas/search, support form/roles/CSV, realtime callback draft preservation, mobile dark layout, actual PWA service-worker offline reload under GitHub project subpath. Auth and realtime delivery mocked; no hosted Supabase/device test.');
 })().catch(async err=>{console.error(err);console.error('Page errors',errors);if(page&&!page.isClosed()){console.error((await page.locator('body').innerText()).slice(-3500));await page.screenshot({path:'test-results/failure.png',fullPage:true}).catch(()=>{});}console.error('\n==== FAILURE SUMMARY (copy everything below this line) ====\n'+String(err&&err.message||err).slice(0,9000));process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();if(server)server.close();if(h)await h.close();});

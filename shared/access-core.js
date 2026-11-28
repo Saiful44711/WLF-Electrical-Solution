@@ -25,14 +25,20 @@ function damageAccess(u,option,team){
  if(option==='receive')return damageAccess(u,'demand')&&(superUser(u)||(team?permissions.includes('damage:receive:'+team):permissions.some(function(k){return k.indexOf('damage:receive:')===0;})));
  return superUser(u)||permissions.includes('damage:'+option);
 }
-function catalogueAccess(u){return approved(u)&&(superUser(u)||(u.permissions||[]).includes('catalogue:edit'));}
-function catalogueRead(u){return approved(u)&&(superUser(u)||u.role==='R&I'||['catalogue:edit','qms:components','damage:demand'].some(function(k){return (u.permissions||[]).includes(k);}));}
+/* v2.7.4: the Hardware Catalogue page is for the Super Admin only; other users still read it inside QMS and Damage Demand */
+function catalogueAccess(u){return approved(u)&&superUser(u);}
+function catalogueRead(u){return approved(u)&&(superUser(u)||u.role==='R&I'||['qms:components','damage:demand'].some(function(k){return (u.permissions||[]).includes(k);}));}
 function workspaceAccess(u,key){return approved(u)&&u.workspaceUpdate===true&&(superUser(u)||(u.permissions||[]).includes(key));}
 function categoryRead(u,c){return categories.indexOf(c)>=0&&['request','handle','senior'].some(function(k){return read(u,'support:'+c+':'+k);});}
 function handler(u,c){return approved(u)&&u.role==='R&I'&&categories.indexOf(c)>=0&&((u.permissions||[]).includes('support:'+c+':request')||(u.teams||[]).includes(c));}
 function canReport(u){return approved(u)&&['Super Admin','R&I'].indexOf(u.role)>=0;}
 function usageAccess(u){return approved(u)&&(superUser(u)||(u.permissions||[]).includes('usage:dashboard'));}
-function componentLogAccess(u){return usageAccess(u)&&(superUser(u)||(u.permissions||[]).includes('components:log'));}
+/* v2.7.4: the Component change log lives in Components Data; the Super Admin gives it per user (components:log) */
+function componentLogAccess(u){return approved(u)&&(superUser(u)||(u.permissions||[]).includes('components:log'));}
+/* v2.7.4: the Hardware Catalogue change log is given per user by the Super Admin (catalogue:log) */
+function catalogueLogAccess(u){return approved(u)&&(superUser(u)||(u.permissions||[]).includes('catalogue:log'));}
+/* v2.7.4: Announcement is given per user by the Super Admin (announcements:manage) */
+function announcementAccess(u){return approved(u)&&(superUser(u)||(u.permissions||[]).includes('announcements:manage'));}
 function visible(u,t){return !t.deletedAt&&categoryRead(u,t.category)&&(superUser(u)||handler(u,t.category)||t.createdBy===u.email);}
 function reference(t){
  if(t.reference)return t.reference;
@@ -79,7 +85,7 @@ var liveActions=['adminDataUsage','adminExportData','adminImportData','adminImpo
  'createDamageDemand','getDamageDemands','getDamageDemand','getDamageDashboard','getDamageReport','receiveDamageDemand',
  'getMyWorkspaceProfile','getWorkspaceDashboard','getWorkspaceReport','getAdminPanel','getAdminSeries','getAdminInsights','logClientError','getClientErrors','clearClientErrors','getQmsComponents','saveQmsComponent','getCatalogue','saveCatalogueRow','deleteCatalogueRow','newCatalogueModel','renameCatalogueModel','deleteCatalogueModel','importCatalogue','replaceCatalogueTables','saveCatalogueMap','getQmsLifts','getQmsLift','saveQmsLift','deleteQmsLift',
  'savePushSubscription','deletePushSubscription','getPushStatus','getUserAccessLog','saveSupportAging','getMyForwarded',
- 'getNavBadges','getAnnouncements','markAnnouncementRead','getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement','getRecycleBin','restoreRecycleItem','purgeRecycleItems','getUsageLog','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange','getComponentLog','getManagementDashboard','getSupplierClaims','markSupplierClaim','confirmSupplierClaim','cancelSupplierClaim','receiveSupplierClaim','saveSupplierReference','undoSupplierReceive'];
+ 'getNavBadges','getAnnouncements','markAnnouncementRead','getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement','getRecycleBin','restoreRecycleItem','purgeRecycleItems','getUsageLog','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange','getComponentLog','getCatalogueLog','getManagementDashboard','getSupplierClaims','markSupplierClaim','confirmSupplierClaim','cancelSupplierClaim','receiveSupplierClaim','saveSupplierReference','undoSupplierReceive'];
 function apiAllowed(a){return liveActions.indexOf(a)>=0;}
 function apiCan(u,a){if(!approved(u))return false;
  if(a==='logClientError')return true;
@@ -89,9 +95,11 @@ function apiCan(u,a){if(!approved(u))return false;
  if(a==='getDamageDemands'||a==='getDamageDemand')return damageAccess(u,'demand');
  if(a==='getDamageDashboard'||a==='getDamageReport')return damageAccess(u,'dashboard');
  if(a==='getWorkspaceDashboard'||a==='getWorkspaceReport'||a==='getManagementDashboard'||a==='getAdminPanel'||a==='getAdminSeries'||a==='getAdminInsights')return workspaceAccess(u,'workspace:dashboard');
- if(['getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement','getRecycleBin','restoreRecycleItem','purgeRecycleItems','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange'].indexOf(a)>=0)return superUser(u);
+ if(['getAnnouncementAdmin','saveAnnouncement','deleteAnnouncement'].indexOf(a)>=0)return announcementAccess(u);
+ if(['getRecycleBin','restoreRecycleItem','purgeRecycleItems','exportOldUsageLog','purgeUsageLog','countUsageRange','purgeUsageRange'].indexOf(a)>=0)return superUser(u);
  if(a==='getUsageLog'||a==='adminStats')return usageAccess(u);
  if(a==='getComponentLog')return componentLogAccess(u);
+ if(a==='getCatalogueLog')return catalogueLogAccess(u);
  if(a==='getSupplierClaims')return supplierAccess(u,'view');
  if(a==='markSupplierClaim')return supplierAccess(u,'claim');
  if(a==='confirmSupplierClaim')return supplierAccess(u,'confirm');
@@ -111,5 +119,5 @@ function entryKey(e){return e.controller==='GENERAL'?'tb:general:'+e.id:e.kind==
 /* v2.5.8: readable names for the stored activity-history actions (submit, receive, notSolved ...) */
 var historyNames={submit:'Submitted',receive:'Received',forward:'Forwarded',forwarded:'Forwarded',solve:'Solved',solved:'Solved',notSolved:'Not Solved',pending:'Kept Pending',comment:'Comment',restore:'Restored',delete:'Deleted',edit:'Edited',reassign:'Reassigned'};
 function historyLabel(action){var a=String(action==null?'':action).trim();if(!a)return '';if(Object.prototype.hasOwnProperty.call(historyNames,a))return historyNames[a];return a.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/[_-]+/g,' ').replace(/\b([a-z])/g,function(m){return m.toUpperCase();});}
-return {catalogueAccess:catalogueAccess,catalogueRead:catalogueRead,historyLabel:historyLabel,usageAccess:usageAccess,componentLogAccess:componentLogAccess,sections:sections,teamSections:teamSections,roleFor:roleFor,label:label,dateKey:dateKey,reference:reference,unresolvedCount:unresolvedCount,categories:categories,supportTitles:supportTitles,roles:roles,calculators:calculators,superUser:superUser,approved:approved,read:read,operate:operate,categoryRead:categoryRead,damageAccess:damageAccess,supplierAccess:supplierAccess,workspaceAccess:workspaceAccess,handler:handler,visible:visible,validateForm:validateForm,transition:transition,entryKey:entryKey,apiAllowed:apiAllowed,apiCan:apiCan,liveActions:liveActions,validateSchema:validateSchema,canReport:canReport,pendingCount:pendingCount,filterTickets:filterTickets,performance:performance};
+return {catalogueAccess:catalogueAccess,catalogueRead:catalogueRead,historyLabel:historyLabel,usageAccess:usageAccess,componentLogAccess:componentLogAccess,announcementAccess:announcementAccess,catalogueLogAccess:catalogueLogAccess,sections:sections,teamSections:teamSections,roleFor:roleFor,label:label,dateKey:dateKey,reference:reference,unresolvedCount:unresolvedCount,categories:categories,supportTitles:supportTitles,roles:roles,calculators:calculators,superUser:superUser,approved:approved,read:read,operate:operate,categoryRead:categoryRead,damageAccess:damageAccess,supplierAccess:supplierAccess,workspaceAccess:workspaceAccess,handler:handler,visible:visible,validateForm:validateForm,transition:transition,entryKey:entryKey,apiAllowed:apiAllowed,apiCan:apiCan,liveActions:liveActions,validateSchema:validateSchema,canReport:canReport,pendingCount:pendingCount,filterTickets:filterTickets,performance:performance};
 });

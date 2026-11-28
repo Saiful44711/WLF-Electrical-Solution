@@ -197,7 +197,7 @@ function openTab(name) {
   if (name === 'selection') maybeRefreshIndex();
   if (name === 'troubleshooting') Troubleshooting.open();
   if (name === 'users') loadUsers();
-  if (name === 'components') loadComponentsAdmin();
+  if (name === 'components' && SESSION && SESSION.role === 'Super Admin') loadComponentsAdmin();
   if (name === 'dashboard') loadStats();
   window.scrollTo(0, 0);
 }
@@ -748,8 +748,8 @@ function loadStats() {
       html += '<td><b>' + r.total + '</b></td><td>' + esc(r.lastActive) + '</td></tr>';
     });
     html += '</tbody></table></div></div>';
-    $('statsArea').innerHTML = '<div id="usageLogCard"></div><div id="componentLogCard"></div>'+html;
-    if(typeof WlfAdmin!=='undefined'){WlfAdmin.usageLog({member:'',offset:0});WlfAdmin.componentLog();}
+    $('statsArea').innerHTML = '<div id="usageLogCard"></div>'+html;
+    if(typeof WlfAdmin!=='undefined'){WlfAdmin.usageLog({member:'',offset:0});}
   }).withFailureHandler(fail).adminStats(T());
 }
 
