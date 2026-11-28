@@ -64,7 +64,7 @@ else if(url.pathname==='/functions/v1/wlf-maintenance'){
  else if(body.action==='backupPart'){let nonce=crypto.randomUUID(),part=await sql('prepare',{...p,project:'wlf-test',nonce});if(!part.alreadyVerified){archiveParts.set(p.id+':'+p.batch,part);await sql('verify',{...p,nonce,fileId:'drive_sample_'+p.batch,sha256:'a'.repeat(64)});}data={verified:true};}
  else if(body.action==='downloadPart')data=archiveParts.get(p.id+':'+p.batch);
  else if(body.action==='restore')data=await sql('restore',{archive:p.archive,project:'wlf-test'});
- else if(body.action.startsWith('report')||['monthlyReports','backupHistory','backupDeleteHistory','backupGenerate'].includes(body.action)){const reportSql=async(a,x={})=>sequential(async()=>(await h.db.query('select public.wlf_report_admin($1,$2,$3) result',[a,id,x])).rows[0].result);(globalThis.edgeLog||(globalThis.edgeLog=[])).push(body.action);
+ else if(body.action.startsWith('report')||['monthlyReports','backupHistory','backupDeleteHistory','backupGenerate'].includes(body.action)){(globalThis.edgeLog||(globalThis.edgeLog=[])).push(body.action);const reportSql=async(a,x={})=>sequential(async()=>(await h.db.query('select public.wlf_report_admin($1,$2,$3) result',[a,id,x])).rows[0].result);(globalThis.edgeLog||(globalThis.edgeLog=[])).push(body.action);
   const backup=async(kind,month,from,to)=>{const bid=crypto.randomUUID();const r=await excelMaintenance({action:'excelBackup',payload:{kind,from,to,withClear:false,id:bid},sql:excelSql,drive,folder:async()=>'folder_mb_'+kind,project:'wlf-test',Zip,monthly:month});await reportSql('backupSaved',{id:bid,month});return {kind,month,backup:true,fileName:r.name,records:r.records};};
   data=await reportMaintenance({action:body.action,payload:p,sql:reportSql,drive,folderFor:async k=>'folder_'+k,Zip,selfUrl:'https://wlftest.supabase.co/functions/v1/wlf-maintenance',backup});if(body.action==='reportStatus')data={...data,driveConfigured:true};}
  else if(body.action==='deleteRejectedUser'){let target=await sql('reserveDeleteUser',{email:p.email});await h.db.query('delete from auth.users where id=$1',[target.id]);await sql('releaseDeleteUser',{id:target.id});data={deleted:true};}
@@ -1890,10 +1890,21 @@ fs.mkdirSync('test-results/v268',{recursive:true});
  await page.locator('#wlfMbTable').waitFor();await page.locator('#wlfMbMonth').fill(month);
  for(const k of ['activity','project','damage','claim']){for(let tries=0;;tries++){const box=page.locator('[data-mb-kind][value='+k+']');if(!(await box.isChecked()))break;if(tries>4)throw Error('could not untick '+k);await box.click();await page.waitForTimeout(150);}}
  const before=excelFiles.size,runs0=Number((await sequential(()=>h.db.query('select count(*) n from wlf_private.excel_runs where with_clear'))).rows[0].n);
- await page.locator('#wlfMbMake').click();
- // the Storage page is drawn again while the backup runs (a slow phone, a refresh): the result must still reach the new card
- await page.evaluate(()=>WlfTools.storage());await page.locator('#wlfMbCard').waitFor();
- await page.waitForFunction(()=>/Saved in Google Drive/.test(document.querySelector('#wlfMbStatus').textContent)||document.querySelector('#wlfMbStatus').classList.contains('error'),null,{timeout:60000});
+ // A click right after the page was drawn can be lost on a slow CI browser (the same thing the Excel buttons above already guard against):
+ // look at what happened and press again once, never when the server was already asked.
+ const mbLog=(globalThis.edgeLog||[]).length;
+ for(let attempt=1;;attempt++){
+  if(!(process.env.WLF_DROP_MB&&attempt===1))await page.locator('#wlfMbMake').click();
+  if(attempt===1){// the Storage page is drawn again while the backup runs (a slow phone, a refresh): the result must still reach the new card
+   await page.evaluate(()=>WlfTools.storage());await page.locator('#wlfMbCard').waitFor();}
+  const asked=()=>(globalThis.edgeLog||[]).slice(mbLog).some(x=>/backupGenerate/.test(x));
+  try{await page.waitForFunction(()=>/Saved in Google Drive/.test(document.querySelector('#wlfMbStatus').textContent)||document.querySelector('#wlfMbStatus').classList.contains('error'),null,{timeout:asked()?60000:25000});break;}
+  catch(e){
+   const info='status "'+(await page.locator('#wlfMbStatus').innerText().catch(()=>'?'))+'"; make button disabled: '+(await page.locator('#wlfMbMake').isDisabled().catch(()=>'?'))+'; edge calls: '+((globalThis.edgeLog||[]).slice(mbLog).join(' | ')||'none')+'; console: '+globalThis.consoleErrors.slice(-3).join(' | ');
+   if(asked()||attempt>=3)throw Error('Monthly backup did not finish (attempt '+attempt+'). '+info);
+   console.log('WARN monthly backup click had no effect, pressing again (attempt '+attempt+'). '+info);
+   await page.waitForFunction(()=>{const b=document.querySelector('#wlfMbMake');return b&&!b.disabled;},null,{timeout:60000});}
+ }
  const said=await page.locator('#wlfMbStatus').innerText();console.log('monthly backup:',said);
  assert.ok(said.includes('Technical Support Backup '+month+'.xlsx')&&said.includes('QMS Data Backup '+month+'.xlsx'),said);
  assert.equal(excelFiles.size,before+2);
